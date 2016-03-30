@@ -1,0 +1,133 @@
+.general-font {
+  font-family: 'Open Sans', "Helvetica Neue", sans-serif;
+}
+.tahoma-font {
+  font-family: Tahoma, Arial, "Helvetica Neue", sans-serif;
+}
+.arial-font {
+  font-family: Arial, "Helvetica Neue", sans-serif;
+}
+/**
+ * Bootstrap Multiselect v0.9.8 (https://github.com/davidstutz/bootstrap-multiselect)
+ *
+ * Copyright 2012 - 2014 David Stutz
+ *
+ * Dual licensed under the BSD-3-Clause and the Apache License, Version 2.0.
+ */
+.multiselect-container {
+  position: absolute;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.multiselect-container .input-group {
+  margin: 5px;
+}
+.multiselect-container > li {
+  padding: 0;
+}
+.multiselect-container > li > a.multiselect-all label {
+  font-weight: bold;
+}
+.multiselect-container > li.multiselect-group label {
+  margin: 0;
+  padding: 3px 20px 3px 20px;
+  height: 100%;
+  font-weight: bold;
+}
+.multiselect-container > li.multiselect-group-clickable label {
+  cursor: pointer;
+}
+.multiselect-container > li > a {
+  padding: 0;
+}
+.multiselect-container > li > a > label {
+  margin: 0;
+  height: 100%;
+  cursor: pointer;
+  font-weight: normal;
+  padding: 3px 20px 3px 40px;
+}
+.multiselect-container > li > a > label.radio,
+.multiselect-container > li > a > label.checkbox {
+  margin: 0;
+}
+.multiselect-container > li > a > label > input[type="checkbox"] {
+  margin-bottom: 5px;
+}
+.filter .btn {
+  padding: 6px 3px;
+}
+.btn-group > .btn-group:nth-child(2) > .multiselect.btn {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.form-inline .multiselect-container label.checkbox,
+.form-inline .multiselect-container label.radio {
+  padding: 3px 20px 3px 40px;
+}
+.form-inline .multiselect-container li a label.checkbox input[type="checkbox"],
+.form-inline .multiselect-container li a label.radio input[type="radio"] {
+  margin-left: -20px;
+  margin-right: 0;
+}
+/***********************************************************************************************************************
+ * Стили
+ **********************************************************************************************************************/
+.multiselect.dropdown-toggle.btn {
+  text-decoration: none;
+  border: 1px solid #e5e7e8;
+  height: 34px;
+  padding: 6px 12px;
+  margin-top: -1px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #555;
+  background-color: #fff;
+  -webkit-border-radius: 0;
+  -webkit-background-clip: padding-box;
+  -moz-border-radius: 0;
+  -moz-background-clip: padding;
+  border-radius: 0;
+  background-clip: padding-box;
+  -webkit-transition: border ease 0.5s;
+  -moz-transition: border ease 0.5s;
+  -o-transition: border ease 0.5s;
+  transition: border ease 0.5s;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.multiselect.dropdown-toggle.btn:focus {
+  border-color: #21c2f8;
+  outline: 0;
+  -webkit-box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+  -moz-box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+  box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+}
+.multiselect.dropdown-toggle.btn:active {
+  -webkit-transform: scale(1);
+  -moz-transform: scale(1);
+  -o-transform: scale(1);
+  -ms-transform: scale(1);
+  transform: scale(1);
+}
+.multiselect.dropdown-toggle.btn:active,
+.multiselect.dropdown-toggle.btn:focus,
+.multiselect.dropdown-toggle.btn:hover {
+  background-color: #fff;
+}
+.btn-group.open .multiselect.dropdown-toggle.btn {
+  border-color: #21c2f8;
+  outline: 0;
+  -webkit-box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+  -moz-box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+  box-shadow: 0 0 0 2px rgba(33, 194, 248, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2) inset;
+}
+.multiselect-container.dropdown-menu li a {
+  text-decoration: none;
+}
+.multiselect-container.dropdown-menu li.active a {
+  color: #fff;
+  background-color: #21c2f8;
+}

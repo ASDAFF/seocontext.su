@@ -1,0 +1,29 @@
+<?php
+$MESS['DONINBIZ_HOME_SLIDER_1'] = "Слайд";
+$MESS['DONINBIZ_HOME_SLIDER_2'] = "Активность";
+$MESS['DONINBIZ_HOME_SLIDER_3'] = "Начало активности";
+$MESS['DONINBIZ_HOME_SLIDER_4'] = "Окончание активности";
+$MESS['DONINBIZ_HOME_SLIDER_5'] = "*Название";
+$MESS['DONINBIZ_HOME_SLIDER_6'] = "Сортировка";
+$MESS['DONINBIZ_HOME_SLIDER_7'] = "Основные данные";
+$MESS['DONINBIZ_HOME_SLIDER_8'] = "Название слайда";
+$MESS['DONINBIZ_HOME_SLIDER_9'] = "Ссылка названия слайда";
+$MESS['DONINBIZ_HOME_SLIDER_10'] = "Фоновое изображение";
+$MESS['DONINBIZ_HOME_SLIDER_11'] = "Картинка";
+$MESS['DONINBIZ_HOME_SLIDER_12'] = "Ссылка картинки";
+$MESS['DONINBIZ_HOME_SLIDER_13'] = "Положение картинки";
+$MESS['DONINBIZ_HOME_SLIDER_14'] = "Текст";
+$MESS['DONINBIZ_HOME_SLIDER_15'] = "Цвет текста";
+$MESS['DONINBIZ_HOME_SLIDER_16'] = "Первая кнопка";
+$MESS['DONINBIZ_HOME_SLIDER_17'] = "Текст первой кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_18'] = "Ссылка первой кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_19'] = "Стиль первой кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_20'] = "Вторая кнопка";
+$MESS['DONINBIZ_HOME_SLIDER_21'] = "Текст второй кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_22'] = "Ссылка второй кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_23'] = "Стиль второй кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_24'] = "Третья кнопка";
+$MESS['DONINBIZ_HOME_SLIDER_25'] = "Текст третьей кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_26'] = "Ссылка третьей кнопки";
+$MESS['DONINBIZ_HOME_SLIDER_27'] = "Стиль третьей кнопки";
+?>

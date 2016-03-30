@@ -1,0 +1,4 @@
+<?
+$MESS ['MENU_ITEM_ACCESS_DENIED'] = "Access denied";
+$MESS ['SEARCH_TEXT'] = "Search Site";
+?>

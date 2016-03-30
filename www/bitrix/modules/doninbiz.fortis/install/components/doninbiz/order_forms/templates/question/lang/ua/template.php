@@ -1,0 +1,11 @@
+<?
+$MESS['FORM_QUESTION_FIELD_NAME'] = 'імя';
+$MESS['FORM_QUESTION_FIELD_MOBILE'] = 'Номер телефону';
+$MESS['FORM_QUESTION_FIELD_EMAIL'] = 'Email';
+$MESS['FORM_QUESTION_FIELD_PRODUCT'] = 'товар / послуга';
+$MESS['FORM_QUESTION_FIELD_COMMENT'] = 'Коментар';
+$MESS['FORM_QUESTION_FIELD_CAPTCHA'] = 'Перевірочний код';
+$MESS['FORM_QUESTION_CAPTCHA_CHANGE_IMAGE'] = 'змінити картинку';
+$MESS['FORM_QUESTION_SEND'] = 'Відправка...';
+$MESS['FORM_QUESTION_REQUIRED_FIELDS'] = 'обовязкові поля';
+?>

@@ -1,0 +1,125 @@
+#fortis-list-colors {
+  padding: 0 0 10px 0;
+
+  ul {
+    list-style: none; margin: 10px 0; padding: 0;
+
+    li {
+      float: left; padding: 0 10px 0 0;
+
+      label {
+        display: block; cursor: pointer;
+        width: 50px; height: 50px;
+        -webkit-border-radius: 10px;
+        -webkit-background-clip: padding-box;
+        -moz-border-radius: 10px;
+        -moz-background-clip: padding;
+        border-radius: 10px;
+        background-clip: padding-box;
+        border: 3px solid #fff;
+        -webkit-box-shadow: 1px 1px 1px 0 rgba(0,0,0, 0.2);
+        -moz-box-shadow: 1px 1px 1px 0 rgba(0,0,0, 0.2);
+        box-shadow: 1px 1px 1px 0 rgba(0,0,0, 0.2);
+        position: relative;
+
+        input {
+          -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+          filter: alpha(opacity=0);
+          -khtml-opacity: 0;
+          -moz-opacity: 0;
+          opacity: 0;
+        }
+
+        .tick {
+          visibility: hidden;
+          background: url(../images/tick.png) 0 0 no-repeat;
+          position: absolute; top: 2.5px; left: 2.5px;
+          display: block; width: 40px; height: 40px;
+        }
+
+        &.active {
+          .tick {
+            visibility: visible;
+          }
+        }
+      }
+
+      .color-picker-label {
+        position: relative;
+        background: url(../images/colorpicker.png) 0 0 no-repeat;
+        -webkit-border-radius: 0;
+        -moz-border-radius: 0;
+        border-radius: 0;
+        border: none;
+        -webkit-box-shadow: none;
+        -moz-box-shadow: none;
+        box-shadow: none;
+
+        .init-color-picker {
+          display: block; position: absolute; top: 0; left: 0;
+          width: 50px; height: 50px;
+        }
+      }
+    }
+  }
+}
+
+.clearfix:before,.clearfix:after{
+  content:" ";
+  display:table
+}
+.clearfix:after{
+  clear:both
+}
+
+
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.alert h4 {
+  margin-top: 0;
+  color: inherit;
+}
+.alert > p,
+.alert > ul {
+  margin-bottom: 0;
+}
+.alert > p + p {
+  margin-top: 5px;
+}
+.alert-success {
+  color: #3c763d;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+}
+.alert-success hr {
+  border-top-color: #c9e2b3;
+}
+.alert-info {
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+.alert-info hr {
+  border-top-color: #a6e1ec;
+}
+.alert-warning {
+  color: #8a6d3b;
+  background-color: #fcf8e3;
+  border-color: #faebcc;
+}
+.alert-warning hr {
+  border-top-color: #f7e1b5;
+}
+.alert-danger {
+  color: #a94442;
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+
+.alert-danger hr {
+  border-top-color: #e4b9c0;
+}

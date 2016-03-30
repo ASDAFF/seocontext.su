@@ -1,0 +1,10 @@
+<?
+$PERM["uslugi"]["5"]="W";
+$PERM["portfolio"]["5"]="W";
+$PERM["o-kompanii"]["5"]="W";
+$PERM["kontakty"]["5"]="W";
+$PERM["katalog"]["5"]="W";
+$PERM["informatsiya"]["5"]="W";
+$PERM["index.php"]["5"]="W";
+$PERM["/"]["*"]="R";
+?>

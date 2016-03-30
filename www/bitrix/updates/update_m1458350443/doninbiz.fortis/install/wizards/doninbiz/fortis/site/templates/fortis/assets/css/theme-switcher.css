@@ -1,0 +1,348 @@
+#theme-switcher {
+  position: fixed;
+  top: 150px;
+  left: -210px;
+  z-index: 1000;
+  background: #2F383D;
+  width: 210px;
+  min-height: 100px;
+  color: #fff;
+  font-size: 13px;
+  -webkit-border-radius: 0 0 3px 3px;
+  -webkit-background-clip: padding-box;
+  -moz-border-radius: 0 0 3px 3px;
+  -moz-background-clip: padding;
+  border-radius: 0 0 3px 3px;
+  background-clip: padding-box;
+}
+#theme-switcher h4 {
+  background: #242b2f;
+  display: block;
+  width: 250px;
+  margin: 0;
+  height: 40px;
+  line-height: 40px;
+  font-size: 16px;
+  padding-left: 10px;
+  color: #fff;
+  -webkit-border-radius: 0 3px 3px 0;
+  -webkit-background-clip: padding-box;
+  -moz-border-radius: 0 3px 3px 0;
+  -moz-background-clip: padding;
+  border-radius: 0 3px 3px 0;
+  background-clip: padding-box;
+}
+#theme-switcher h4 a {
+  float: right;
+  display: block;
+  color: #f4f4f4;
+  text-decoration: none;
+  width: 40px;
+  height: 40px;
+  padding: 0 0 0 10px;
+  border: solid #fff;
+  border-width: 1px 1px 1px 0;
+  -webkit-border-radius: 0 3px 3px 0;
+  -webkit-background-clip: padding-box;
+  -moz-border-radius: 0 3px 3px 0;
+  -moz-background-clip: padding;
+  border-radius: 0 3px 3px 0;
+  background-clip: padding-box;
+}
+#theme-switcher h4 a:hover,
+#theme-switcher h4 a:focus {
+  background: #000;
+}
+#theme-switcher h4 a .icon-close {
+  padding: 0 0 0 4px;
+  display: none;
+}
+#theme-switcher.opened {
+  -webkit-box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4);
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.4);
+}
+#theme-switcher.opened h4 a {
+  border-color: transparent;
+}
+#theme-switcher.opened h4 a .icon-open {
+  display: none;
+}
+#theme-switcher.opened h4 a .icon-close {
+  display: inline-block;
+}
+@media (max-height: 790px) {
+  #theme-switcher {
+    top: 10px;
+    width: 240px;
+    left: -240px;
+  }
+  #theme-switcher h4 {
+    width: 280px;
+  }
+  #theme-switcher form {
+    overflow: auto;
+  }
+}
+#theme-switcher form {
+  position: relative;
+}
+#theme-switcher form hr {
+  border: 0;
+  margin: 0;
+  border-top: 1px solid #1C2225;
+  background-color: #546772;
+  height: 1px;
+  zoom: 1;
+  filter: alpha(opacity=50);
+  -webkit-opacity: 0.5;
+  -moz-opacity: 0.5;
+  opacity: 0.5;
+}
+#theme-switcher form .btn {
+  font-size: 13px;
+  border: 1px solid #777;
+  color: #a3a3a3;
+  -webkit-border-radius: 0;
+  -webkit-background-clip: padding-box;
+  -moz-border-radius: 0;
+  -moz-background-clip: padding;
+  border-radius: 0;
+  background-clip: padding-box;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+#theme-switcher form .btn:hover {
+  border-color: #ccc;
+  color: #fff;
+}
+#theme-switcher form .btn:active,
+#theme-switcher form .btn.active {
+  border-color: #ccc;
+  color: #fff;
+  background: #242B2F;
+}
+#theme-switcher form .btn.active:hover {
+  background: none;
+}
+#theme-switcher form .item {
+  padding: 5px 10px;
+}
+#theme-switcher form .item .name {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: #f0f0f0;
+  margin: 0 0 7px 0;
+}
+#theme-switcher form .item .btn-group {
+  width: 100%;
+  text-align: center;
+}
+#theme-switcher form .item .btn-group .btn {
+  float: none;
+  display: inline-block;
+  padding: 1px 5px;
+}
+#theme-switcher form .item .btn-group .btn .fa {
+  display: none;
+}
+#theme-switcher form .item .btn-group .btn.active .fa {
+  display: inline-block;
+}
+#theme-switcher form .item.change-layout .btn-group .btn {
+  float: none;
+  display: inline-block;
+  padding: 1px 5px;
+}
+#theme-switcher form .item.change-layout .btn-group .btn.wide {
+  margin-right: 5px;
+  width: 88px;
+}
+#theme-switcher form .item.change-layout .btn-group .btn.boxed {
+  width: 88px;
+}
+#theme-switcher form .item.change-layout .btn-group .btn.rubber {
+  margin-top: 5px;
+  width: 185px;
+}
+#theme-switcher form .item.change-header-color .btn-group {
+  margin-bottom: 5px;
+}
+#theme-switcher form .item.change-header-color .btn-group .btn.light {
+  margin-bottom: 5px;
+  width: 185px;
+}
+#theme-switcher form .item.change-header-color .btn-group .btn.colored,
+#theme-switcher form .item.change-header-color .btn-group .btn.dark {
+  width: 88px;
+}
+#theme-switcher form .item.change-header-color .btn-group .btn.colored {
+  margin-right: 5px;
+}
+#theme-switcher form .item.change-header-type .btn-group {
+  margin-bottom: 5px;
+}
+#theme-switcher form .item.change-header-type .btn-group .btn {
+  width: 88px;
+}
+#theme-switcher form .item.change-header-type .btn-group .btn:first-child {
+  margin-right: 5px;
+}
+#theme-switcher form .item.change-home-zebra .btn-group {
+  margin-bottom: 5px;
+}
+#theme-switcher form .item.change-home-zebra .btn-group .btn.left,
+#theme-switcher form .item.change-home-zebra .btn-group .btn.right {
+  width: 88px;
+}
+#theme-switcher form .item.change-home-zebra .btn-group .btn.left {
+  margin-right: 5px;
+}
+#theme-switcher form .item.change-color .def-colors .btn {
+  position: relative;
+  float: left;
+  display: block;
+  height: 20px;
+  width: 20px;
+  padding: 0;
+  border: 1px solid #000;
+  margin: 0 0 -1px -1px;
+}
+#theme-switcher form .item.change-color .def-colors .btn span {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid transparent;
+  font-size: 10px;
+  line-height: 16px;
+}
+#theme-switcher form .item.change-color .def-colors .btn span .fa {
+  visibility: hidden;
+}
+#theme-switcher form .item.change-color .def-colors .btn:active,
+#theme-switcher form .item.change-color .def-colors .btn.active {
+  -webkit-transform: none;
+  -moz-transform: none;
+  -o-transform: none;
+  -ms-transform: none;
+  transform: none;
+}
+#theme-switcher form .item.change-color .def-colors .btn:active span,
+#theme-switcher form .item.change-color .def-colors .btn.active span {
+  border: 1px solid #fff;
+}
+#theme-switcher form .item.change-color .def-colors .btn:active span .fa,
+#theme-switcher form .item.change-color .def-colors .btn.active span .fa {
+  visibility: visible;
+}
+#theme-switcher form .item.change-color .def-colors .btn input {
+  visibility: hidden;
+  position: absolute;
+}
+#theme-switcher form .item.change-color .custom-color .name {
+  text-transform: inherit;
+  font-size: 13px;
+  line-height: 13px;
+  margin-bottom: 3px;
+  font-weight: 400;
+}
+#theme-switcher form .item.change-color .custom-color .field-custom-color {
+  float: left;
+  outline: none;
+  width: 100px;
+  border: 1px solid #ccc;
+  padding: 0 5px;
+  height: 20px;
+  margin-right: 5px;
+}
+#theme-switcher form .item.change-color .custom-color .change-custom-color {
+  float: left;
+  padding: 0 5px;
+  line-height: 16px;
+  height: 20px;
+  border-color: #ccc;
+  color: #fff;
+  background: #242B2F;
+}
+#theme-switcher form .item.change-sidebar-align .btn-group {
+  margin-bottom: 5px;
+}
+#theme-switcher form .item.change-sidebar-align .btn-group .btn.left,
+#theme-switcher form .item.change-sidebar-align .btn-group .btn.right {
+  width: 88px;
+}
+#theme-switcher form .item.change-sidebar-align .btn-group .btn.left {
+  margin-right: 5px;
+}
+#theme-switcher form .item.change-textures .btn-group .btn,
+#theme-switcher form .item.change-images .btn-group .btn {
+  position: relative;
+  float: left;
+  display: block;
+  height: 20px;
+  width: 20px;
+  padding: 0;
+  border: 1px solid #000;
+  margin: 0 0 -1px -1px;
+}
+#theme-switcher form .item.change-textures .btn-group .btn span,
+#theme-switcher form .item.change-images .btn-group .btn span {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid transparent;
+  font-size: 10px;
+  line-height: 16px;
+}
+#theme-switcher form .item.change-textures .btn-group .btn span .fa,
+#theme-switcher form .item.change-images .btn-group .btn span .fa {
+  visibility: hidden;
+}
+#theme-switcher form .item.change-textures .btn-group .btn span .fa.b,
+#theme-switcher form .item.change-images .btn-group .btn span .fa.b {
+  color: #212121;
+}
+#theme-switcher form .item.change-textures .btn-group .btn span .fa.s,
+#theme-switcher form .item.change-images .btn-group .btn span .fa.s {
+  text-shadow: 0 0 1px #000;
+}
+#theme-switcher form .item.change-textures .btn-group .btn:active,
+#theme-switcher form .item.change-images .btn-group .btn:active,
+#theme-switcher form .item.change-textures .btn-group .btn.active,
+#theme-switcher form .item.change-images .btn-group .btn.active {
+  -webkit-transform: none;
+  -moz-transform: none;
+  -o-transform: none;
+  -ms-transform: none;
+  transform: none;
+}
+#theme-switcher form .item.change-textures .btn-group .btn:active span,
+#theme-switcher form .item.change-images .btn-group .btn:active span,
+#theme-switcher form .item.change-textures .btn-group .btn.active span,
+#theme-switcher form .item.change-images .btn-group .btn.active span {
+  border: 1px solid #fff;
+}
+#theme-switcher form .item.change-textures .btn-group .btn:active span .fa,
+#theme-switcher form .item.change-images .btn-group .btn:active span .fa,
+#theme-switcher form .item.change-textures .btn-group .btn.active span .fa,
+#theme-switcher form .item.change-images .btn-group .btn.active span .fa {
+  visibility: visible;
+}
+#theme-switcher form .item.change-textures .btn-group .btn input,
+#theme-switcher form .item.change-images .btn-group .btn input {
+  visibility: hidden;
+  position: absolute;
+}
+#theme-switcher form .button-default {
+  text-align: center;
+}
+#theme-switcher form .button-default .btn {
+  padding: 1px 5px;
+  margin: 10px 0;
+  background: none;
+  text-transform: uppercase;
+  outline: none;
+}

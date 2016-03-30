@@ -1,0 +1,34 @@
+<?php
+$MESS['DONINBIZ_PARTNERS_1'] = "Элемент";
+$MESS['DONINBIZ_PARTNERS_2'] = "Активность";
+$MESS['DONINBIZ_PARTNERS_3'] = "Начало активности";
+$MESS['DONINBIZ_PARTNERS_4'] = "Окончание активности";
+$MESS['DONINBIZ_PARTNERS_5'] = "*Название";
+$MESS['DONINBIZ_PARTNERS_6'] = "Символьный код";
+$MESS['DONINBIZ_PARTNERS_7'] = "Сортировка";
+$MESS['DONINBIZ_PARTNERS_8'] = "Значения свойств";
+$MESS['DONINBIZ_PARTNERS_9'] = "Номер телефона";
+$MESS['DONINBIZ_PARTNERS_10'] = "Ссылка";
+$MESS['DONINBIZ_PARTNERS_11'] = "Разделы";
+$MESS['DONINBIZ_PARTNERS_12'] = "Анонс";
+$MESS['DONINBIZ_PARTNERS_13'] = "Картинка для анонса";
+$MESS['DONINBIZ_PARTNERS_14'] = "Описание для анонса";
+$MESS['DONINBIZ_PARTNERS_15'] = "Подробно";
+$MESS['DONINBIZ_PARTNERS_16'] = "Детальная картинка";
+$MESS['DONINBIZ_PARTNERS_17'] = "Детальное описание";
+$MESS['DONINBIZ_PARTNERS_18'] = "SEO";
+$MESS['DONINBIZ_PARTNERS_19'] = "Шаблон META TITLE";
+$MESS['DONINBIZ_PARTNERS_20'] = "Шаблон META KEYWORDS";
+$MESS['DONINBIZ_PARTNERS_21'] = "Шаблон META DESCRIPTION";
+$MESS['DONINBIZ_PARTNERS_22'] = "Заголовок элемента";
+$MESS['DONINBIZ_PARTNERS_23'] = "Настройки для картинок анонса элементов";
+$MESS['DONINBIZ_PARTNERS_24'] = "Шаблон ALT";
+$MESS['DONINBIZ_PARTNERS_25'] = "Шаблон TITLE";
+$MESS['DONINBIZ_PARTNERS_26'] = "Шаблон имени файла";
+$MESS['DONINBIZ_PARTNERS_27'] = "Настройки для детальных картинок элементов";
+$MESS['DONINBIZ_PARTNERS_28'] = "Шаблон ALT";
+$MESS['DONINBIZ_PARTNERS_29'] = "Шаблон TITLE";
+$MESS['DONINBIZ_PARTNERS_30'] = "Шаблон имени файла";
+$MESS['DONINBIZ_PARTNERS_31'] = "Дополнительно";
+$MESS['DONINBIZ_PARTNERS_32'] = "Теги";
+?>

@@ -1,0 +1,29 @@
+<?php
+$MESS['DONINBIZ_FEATURES_1'] = "Элемент";
+$MESS['DONINBIZ_FEATURES_2'] = "Активность";
+$MESS['DONINBIZ_FEATURES_3'] = "*Начало активности";
+$MESS['DONINBIZ_FEATURES_4'] = "Окончание активности";
+$MESS['DONINBIZ_FEATURES_5'] = "*Название";
+$MESS['DONINBIZ_FEATURES_6'] = "Сортировка";
+$MESS['DONINBIZ_FEATURES_7'] = "Значения свойств";
+$MESS['DONINBIZ_FEATURES_8'] = "Значок FontAwesome";
+$MESS['DONINBIZ_FEATURES_9'] = "Или картинка";
+$MESS['DONINBIZ_FEATURES_10'] = "Описание";
+$MESS['DONINBIZ_FEATURES_11'] = "Название кнопки \"Подробнее\"";
+$MESS['DONINBIZ_FEATURES_12'] = "Ссылка кнопки \"Подробнее\"";
+$MESS['DONINBIZ_FEATURES_13'] = "SEO";
+$MESS['DONINBIZ_FEATURES_14'] = "Шаблон META TITLE";
+$MESS['DONINBIZ_FEATURES_15'] = "Шаблон META KEYWORDS";
+$MESS['DONINBIZ_FEATURES_16'] = "Шаблон META DESCRIPTION";
+$MESS['DONINBIZ_FEATURES_17'] = "Заголовок элемента";
+$MESS['DONINBIZ_FEATURES_18'] = "Настройки для картинок анонса элементов";
+$MESS['DONINBIZ_FEATURES_19'] = "Шаблон ALT";
+$MESS['DONINBIZ_FEATURES_20'] = "Шаблон TITLE";
+$MESS['DONINBIZ_FEATURES_21'] = "Шаблон имени файла";
+$MESS['DONINBIZ_FEATURES_22'] = "Настройки для детальных картинок элементов";
+$MESS['DONINBIZ_FEATURES_23'] = "Шаблон ALT";
+$MESS['DONINBIZ_FEATURES_24'] = "Шаблон TITLE";
+$MESS['DONINBIZ_FEATURES_25'] = "Шаблон имени файла";
+$MESS['DONINBIZ_FEATURES_26'] = "Дополнительно";
+$MESS['DONINBIZ_FEATURES_27'] = "Теги";
+?>

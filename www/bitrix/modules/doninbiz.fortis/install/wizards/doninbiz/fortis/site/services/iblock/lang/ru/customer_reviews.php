@@ -1,0 +1,30 @@
+<?php
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_1'] = "Элемент";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_2'] = "Активность";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_3'] = "Начало активности";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_4'] = "Окончание активности";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_5'] = "Сортировка";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_6'] = "*Название";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_7'] = "Значения свойств";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_8'] = "Отображать в слайдере на главной?";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_9'] = "*Имя клиента или название компании";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_10'] = "Статус / должность";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_11'] = "Сайт клиента";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_12'] = "Фото";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_13'] = "Отзыв";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_14'] = "SEO";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_15'] = "Шаблон META TITLE";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_16'] = "Шаблон META KEYWORDS";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_17'] = "Шаблон META DESCRIPTION";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_18'] = "Заголовок элемента";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_19'] = "Настройки для картинок анонса элементов";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_20'] = "Шаблон ALT";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_21'] = "Шаблон TITLE";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_22'] = "Шаблон имени файла";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_23'] = "Настройки для детальных картинок элементов";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_24'] = "Шаблон ALT";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_25'] = "Шаблон TITLE";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_26'] = "Шаблон имени файла";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_27'] = "Дополнительно";
+$MESS['DONINBIZ_CUSTOMER_REVIEWS_28'] = "Теги";
+?>

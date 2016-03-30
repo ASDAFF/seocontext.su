@@ -1,0 +1,1 @@
+<img src="#SITE_DIR#includes/def-logo.png" alt="">

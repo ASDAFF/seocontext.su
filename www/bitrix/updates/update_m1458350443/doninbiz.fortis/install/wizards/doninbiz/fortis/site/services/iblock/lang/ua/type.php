@@ -1,0 +1,11 @@
+<?
+$MESS["FORTIS_CONTENT_TYPE_NAME"] = "Fortis: Контент";
+$MESS["FORTIS_CONTENT_ELEMENT_NAME"] = "Элементы";
+$MESS["FORTIS_CONTENT_SECTION_NAME"] = "Разделы";
+$MESS["FORTIS_ORDERS_TYPE_NAME"] = "Fortis: Заказы";
+$MESS["FORTIS_ORDERS_ELEMENT_NAME"] = "Заказы";
+$MESS["FORTIS_ORDERS_SECTION_NAME"] = "Разделы";
+$MESS["FORTIS_OTHER_TYPE_NAME"] = "Fortis: Разное";
+$MESS["FORTIS_OTHER_ELEMENT_NAME"] = "Элементы";
+$MESS["FORTIS_OTHER_SECTION_NAME"] = "Разделы";
+?>

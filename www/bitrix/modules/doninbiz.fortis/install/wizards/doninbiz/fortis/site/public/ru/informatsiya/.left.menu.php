@@ -1,0 +1,32 @@
+<?
+$aMenuLinks = Array(
+	Array(
+		"Новости", 
+		"#SITE_DIR#informatsiya/novosti/",
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Статьи", 
+		"#SITE_DIR#informatsiya/stati/",
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Акции", 
+		"#SITE_DIR#informatsiya/aktsii/",
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Вопросы и ответы", 
+		"#SITE_DIR#informatsiya/voprosy-i-otvety/",
+		Array(), 
+		Array(), 
+		"" 
+	)
+);
+?>

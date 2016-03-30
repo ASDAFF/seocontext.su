@@ -1,0 +1,1 @@
+Copyright В© 2015 - <a href="#">Company Name</a>
