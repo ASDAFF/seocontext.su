@@ -58,6 +58,24 @@ class CAllSaleOrderChange
 		return $DB->Query("DELETE FROM b_sale_order_change WHERE ID = ".$ID." ", true);
 	}
 
+
+	/**
+	 * @param $id
+	 *
+	 * @return bool|CDBResult
+	 */
+	public function deleteByOrderId($id)
+	{
+		global $DB;
+
+		$id = intval($id);
+
+		if ($id <= 0)
+			return false;
+
+		return $DB->Query("DELETE FROM b_sale_order_change WHERE ORDER_ID = ".$id." ", true);
+	}
+
 	/*
 	 * Adds record to the order change history
 	 * Wrapper around CSaleOrderChange::Add method
@@ -151,19 +169,60 @@ class CAllSaleOrderChange
 
 			if (in_array($field, $arInfo["TRIGGER_FIELDS"]))
 			{
+				$originalValues = array();
+				if ($entity !== null)
+				{
+					/** @var \Bitrix\Sale\Internals\Fields $fields */
+					$fields = $entity->getFields();
+					$originalValues = $fields->getOriginalValues();
+				}
+
 				$arData = array();
 				foreach ($arInfo["DATA_FIELDS"] as $fieldName)
 				{
-					if (array_key_exists($fieldName, $arFields))
+					$value = null;
+					$isValueGetting = false;
+					if (array_key_exists("DATA_METHOD", $arInfo) && isset($arInfo['DATA_METHOD'][$fieldName]))
 					{
-						$value = $arFields[$fieldName];
-					}
-					elseif ($entity !== null)
-					{
-						$value = $entity->getField($fieldName);
+						$dataMethodCallback = $arInfo['DATA_METHOD'][$fieldName][0];
+						$dataMethodFields = $arInfo['DATA_METHOD'][$fieldName][1];
+						$dataMethodArgs = array();
 
-						if ($value === null)
-							continue;
+						foreach ($dataMethodFields as $dataMethodFieldName)
+						{
+							if (isset($arFields[$dataMethodFieldName]))
+							{
+								$dataMethodArgs[] = $arFields[$dataMethodFieldName];
+							}
+						}
+
+						if ($value = call_user_func_array($dataMethodCallback, $dataMethodArgs))
+						{
+							$isValueGetting = true;
+						}
+					}
+
+					if (!$isValueGetting)
+					{
+						if (isset($arInfo["DATA_FIELDS"]) && in_array('OLD_'.$fieldName, $arInfo["DATA_FIELDS"]))
+						{
+							if (isset($originalValues[$fieldName]))
+							{
+								$arFields['OLD_'.$fieldName] = $originalValues[$fieldName];
+							}
+						}
+
+						if (array_key_exists($fieldName, $arFields))
+						{
+							$value = $arFields[$fieldName];
+						}
+						elseif ($entity !== null)
+						{
+							$value = $entity->getField($fieldName);
+
+							if ($value === null)
+								continue;
+						}
 					}
 
 					$arData[$fieldName] = TruncateText($value, 128);
@@ -197,7 +256,38 @@ class CAllSaleOrderChange
 			{
 				if (isset($arInfo["FUNCTION"]) && is_callable(array("CSaleOrderChangeFormat", $arInfo["FUNCTION"])))
 				{
-					$arResult = call_user_func_array(array("CSaleOrderChangeFormat", $arInfo["FUNCTION"]), array(unserialize($data)));
+					$dataFields = unserialize($data);
+					$dataFieldsNameList = array();
+
+					if (isset($arInfo["DATA_FIELDS"]) && is_array($arInfo["DATA_FIELDS"]))
+					{
+						$dataFieldsNameList = array_flip($arInfo["DATA_FIELDS"]);
+					}
+
+					foreach ($dataFields as $paramName => $paramData)
+					{
+						if (array_key_exists($paramName, $dataFieldsNameList))
+						{
+							unset($dataFieldsNameList[$paramName]);
+						}
+					}
+
+					if (!empty($dataFieldsNameList))
+					{
+						foreach($dataFieldsNameList as $fieldName => $fieldData)
+						{
+							$dataFields[$fieldName] = "";
+						}
+					}
+
+					$params = array($dataFields, $typeCode);
+
+					if (!empty($arInfo['ENTITY']))
+					{
+						$params[] = $arInfo['ENTITY'];
+					}
+
+					$arResult = call_user_func_array(array("CSaleOrderChangeFormat", $arInfo["FUNCTION"]), $params);
 					return $arResult;
 				}
 			}
@@ -273,7 +363,7 @@ class CSaleOrderChangeFormat
 		"ORDER_DELIVERY_SYSTEM_CHANGED" => array(
 			"TRIGGER_FIELDS" => array("DELIVERY_ID"),
 			"FUNCTION" => "FormatOrderDeliverySystemChanged",
-			"DATA_FIELDS" => array("DELIVERY_ID"),
+			"DATA_FIELDS" => array("DELIVERY_ID", "DELIVERY_NAME"),
 			"ENTITY" => 'SHIPMENT',
 		),
 		"ORDER_PERSON_TYPE_CHANGED" => array(
@@ -325,11 +415,29 @@ class CSaleOrderChangeFormat
 			"ENTITY" => 'ORDER',
 		),
 
+		"ORDER_UPDATED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderUpdated",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => 'ORDER',
+		),
+
+		"ORDER_RESPONSIBLE_CHANGE" => array(
+			"TRIGGER_FIELDS" => array("RESPONSIBLE_ID"),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array("RESPONSIBLE_ID", "RESPONSIBLE_NAME", "OLD_RESPONSIBLE_ID", "OLD_RESPONSIBLE_NAME"),
+			"DATA_METHOD" => array(
+				"RESPONSIBLE_NAME" => array('CSaleOrderChangeFormat::getOrderResponsibleName', array("RESPONSIBLE_ID")),
+				"OLD_RESPONSIBLE_NAME" => array('CSaleOrderChangeFormat::getOrderResponsibleName', array("OLD_RESPONSIBLE_ID"))
+			),
+			"ENTITY" => 'ORDER',
+		),
+
 		"BASKET_ADDED" => array(
 			"ENTITY" => "BASKET",
 			"TRIGGER_FIELDS" => array(),
 			"FUNCTION" => "FormatBasketAdded",
-			"DATA_FIELDS" => array("PRODUCT_ID", "NAME", "QUANTITY"),
+			"DATA_FIELDS" => array("PRODUCT_ID", "NAME", "QUANTITY", "SET_PARENT_ID"),
 		),
 		"BASKET_REMOVED" => array(
 			"ENTITY" => "BASKET",
@@ -349,6 +457,15 @@ class CSaleOrderChangeFormat
 			"FUNCTION" => "FormatBasketPriceChanged",
 			"DATA_FIELDS" => array("PRODUCT_ID", "NAME", "PRICE", "CURRENCY")
 		),
+
+
+		"BASKET_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => 'BASKET'
+		),
+
 		"ORDER_DELIVERY_REQUEST_SENT" => array(
 			"TRIGGER_FIELDS" => array(),
 			"FUNCTION" => "FormatOrderDeliveryRequestSent",
@@ -393,6 +510,13 @@ class CSaleOrderChangeFormat
 			"TRIGGER_FIELDS" => array("PRICE"),
 			"FUNCTION" => "FormatPaymentPriceChanged",
 			"DATA_FIELDS" => array("PRICE", "CURRENCY"),
+			"ENTITY" => 'PAYMENT'
+		),
+
+		"PAYMENT_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array(),
 			"ENTITY" => 'PAYMENT'
 		),
 
@@ -500,6 +624,335 @@ class CSaleOrderChangeFormat
 			"FUNCTION" => "FormatShipmentQuantityChanged",
 			"DATA_FIELDS" => array("QUANTITY", "ORDER_DELIVERY_ID", "NAME", "PRODUCT_ID"),
 			"ENTITY" => 'SHIPMENT_ITEM',
+		),
+
+
+		"SHIPMENT_RESPONSIBLE_CHANGE" => array(
+			"TRIGGER_FIELDS" => array("RESPONSIBLE_ID"),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array("RESPONSIBLE_ID", "RESPONSIBLE_NAME", "OLD_RESPONSIBLE_ID", "OLD_RESPONSIBLE_NAME"),
+			"DATA_METHOD" => array(
+				"RESPONSIBLE_NAME" => array('CSaleOrderChangeFormat::getOrderResponsibleName', array("RESPONSIBLE_ID")),
+				"OLD_RESPONSIBLE_NAME" => array('CSaleOrderChangeFormat::getOrderResponsibleName', array("OLD_RESPONSIBLE_ID"))
+			),
+			"ENTITY" => 'SHIPMENT',
+		),
+
+
+		"SHIPMENT_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => 'SHIPMENT'
+		),
+
+		"ORDER_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"PERSON_TYPE_ID",
+				"CANCELED",
+				"STATUS_ID",
+				"MARKED",
+				"PRICE",
+				"SUM_PAID",
+				"USER_ID",
+				"EXTERNAL_ORDER",
+			),
+			"ENTITY" => "ORDER",
+		),
+
+		"BASKET_ITEM_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"QUANTITY",
+				"PRICE",
+				"PRODUCT_ID",
+				"DISCOUNT_VALUE",
+				"VAT_RATE",
+				"OLD_QUANTITY",
+				"OLD_PRICE",
+				"OLD_PRODUCT_ID",
+				"OLD_DISCOUNT_VALUE",
+				"OLD_VAT_RATE"
+			),
+			"ENTITY" => "BASKET",
+		),
+
+		"BASKET_ITEM_DELETE_BUNDLE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "BASKET",
+		),
+
+		"BASKET_ITEM_DELETED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "BASKET",
+		),
+
+		"PAYMENT_ADD" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"PAID",
+				"PAY_SYSTEM_ID",
+				"PAY_SYSTEM_NAME",
+				"SUM",
+				"IS_RETURN",
+				"ACCOUNT_NUMBER",
+				"EXTERNAL_PAYMENT",
+			),
+			"ENTITY" => "PAYMENT",
+		),
+
+		"PAYMENT_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"PAID",
+				"PAY_SYSTEM_ID",
+				"PAY_SYSTEM_NAME",
+				"SUM",
+				"IS_RETURN",
+				"ACCOUNT_NUMBER",
+				"EXTERNAL_PAYMENT",
+				"OLD_PAID",
+				"OLD_PAY_SYSTEM_ID",
+				"OLD_PAY_SYSTEM_NAME",
+				"OLD_SUM",
+				"OLD_IS_RETURN",
+				"OLD_ACCOUNT_NUMBER",
+				"OLD_EXTERNAL_PAYMENT",
+			),
+			"ENTITY" => "PAYMENT",
+		),
+
+		"SHIPMENT_ADD" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"DELIVERY_LOCATION",
+				"PRICE_DELIVERY",
+				"CUSTOM_PRICE_DELIVERY",
+				"ALLOW_DELIVERY",
+				"DEDUCTED",
+				"RESERVED",
+				"DELIVERY_NAME",
+				"DELIVERY_ID",
+				"CANCELED",
+				"MARKED",
+				"SYSTEM",
+				"COMPANY_ID",
+				"DISCOUNT_PRICE",
+				"BASE_PRICE_DELIVERY",
+				"EXTERNAL_DELIVERY",
+
+				"OLD_DELIVERY_LOCATION",
+				"OLD_PRICE_DELIVERY",
+				"OLD_CUSTOM_PRICE_DELIVERY",
+				"OLD_ALLOW_DELIVERY",
+				"OLD_DEDUCTED",
+				"OLD_RESERVED",
+				"OLD_DELIVERY_NAME",
+				"OLD_DELIVERY_ID",
+				"OLD_CANCELED",
+				"OLD_MARKED",
+				"OLD_SYSTEM",
+				"OLD_COMPANY_ID",
+				"OLD_DISCOUNT_PRICE",
+				"OLD_BASE_PRICE_DELIVERY",
+				"OLD_EXTERNAL_DELIVERY",
+				),
+			"ENTITY" => "SHIPMENT",
+		),
+
+		"SHIPMENT_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array("DELIVERY_NAME", "DELIVERY_ID", "OLD_DELIVERY_NAME", "OLD_DELIVERY_ID"),
+			"ENTITY" => "SHIPMENT",
+		),
+
+		"SHIPMENT_ITEM_ADD" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"QUANTITY",
+				"RESERVED_QUANTITY",
+				"BASKET_ID",
+				"BASKET_ITEM_NAME",
+				"BASKET_ITEM_PRODUCT_ID",
+				"ORDER_DELIVERY_ID",
+			),
+			"ENTITY" => "SHIPMENT_ITEM",
+		),
+
+		"SHIPMENT_ITEM_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"BASKET_ID",
+				"BASKET_ITEM_NAME",
+				"BASKET_ITEM_PRODUCT_ID",
+				"ORDER_DELIVERY_ID",
+				"QUANTITY",
+				"RESERVED_QUANTITY",
+				"OLD_QUANTITY",
+				"OLD_RESERVED_QUANTITY",
+				),
+			"ENTITY" => "SHIPMENT_ITEM",
+		),
+
+		"TAX_ADD" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "TAX",
+		),
+
+		"TAX_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "TAX",
+		),
+
+		"TAX_DELETED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "TAX",
+		),
+
+		"TAX_DUPLICATE_DELETED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "TAX",
+		),
+
+
+		"TAX_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => 'TAX'
+		),
+
+		"PROPERTY_ADD" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array("NAME", "VALUE", "CODE"),
+			"ENTITY" => "PROPERTY",
+		),
+
+		"PROPERTY_UPDATE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(
+				"NAME",
+				"VALUE",
+				"CODE",
+				"OLD_NAME",
+				"OLD_VALUE",
+				"OLD_CODE"
+			),
+			"ENTITY" => "PROPERTY",
+		),
+
+		"PROPERTY_REMOVE" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array("NAME", "CODE", "VALUE"),
+			"ENTITY" => "PROPERTY",
+		),
+
+		"PROPERTY_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatOrderChange",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => 'PROPERTY'
+		),
+
+		"DISCOUNT_SAVED" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatLog",
+			"DATA_FIELDS" => array(),
+			"ENTITY" => "DISCOUNT",
+		),
+
+		"ORDER_UPDATE_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'ORDER'
+		),
+
+		"BASKET_ITEM_ADD_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'BASKET_ITEM'
+		),
+
+		"BASKET_ITEM_UPDATE_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'BASKET_ITEM'
+		),
+
+		"SHIPMENT_ADD_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT'
+		),
+
+		"SHIPMENT_UPDATE_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT'
+		),
+
+		"SHIPMENT_ITEM_ADD_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT_ITEM'
+		),
+
+		"SHIPMENT_ITEM_UPDATE_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT_ITEM'
+		),
+
+		"SHIPMENT_ITEM_STORE_ADD_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT_ITEM_STORE'
+		),
+
+		"SHIPMENT_ITEM_STORE_UPDATE_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT_ITEM_STORE'
+		),
+
+		"SHIPMENT_ITEM_BASKET_ITEM_EMPTY_ERROR" => array(
+			"TRIGGER_FIELDS" => array(),
+			"FUNCTION" => "FormatErrorLog",
+			"DATA_FIELDS" => array("ERROR"),
+			"ENTITY" => 'SHIPMENT_ITEM'
 		),
 
 	);
@@ -669,24 +1122,47 @@ class CSaleOrderChangeFormat
 
 	public static function FormatOrderDeliverySystemChanged($arData)
 	{
+		$isOrderConverted = \Bitrix\Main\Config\Option::get("main", "~sale_converted_15", 'N');
 		$info = GetMessage("SOC_ORDER_DELIVERY_SYSTEM_CHANGED_INFO");
 		foreach ($arData as $param => $value)
 		{
 			if ($param == "DELIVERY_ID")
 			{
-				if (strpos($value, ":") !== false)
+				if (!array_key_exists('DELIVERY_NAME', $arData) && strval($arData['DELIVERY_NAME']) != '')
 				{
-					$arId = explode(":", $value);
-					$dbDelivery = CSaleDeliveryHandler::GetBySID($arId[0]);
-					$arDelivery = $dbDelivery->Fetch();
+					if (strpos($value, ":") !== false)
+					{
+						$arId = explode(":", $value);
+						$dbDelivery = CSaleDeliveryHandler::GetBySID($arId[0]);
+						$arDelivery = $dbDelivery->Fetch();
 
-					$value =  "\"".htmlspecialcharsEx($arDelivery["NAME"])."\"";
+						$value =  "\"".htmlspecialcharsEx($arDelivery["NAME"])."\"";
+					}
+					elseif (intval($value) > 0)
+					{
+						if ($isOrderConverted == "Y")
+						{
+							$arDelivery = \Bitrix\Sale\Delivery\Services\Manager::getById($value);
+						}
+						else
+						{
+							$arDelivery = CSaleDelivery::GetByID($value);
+						}
+						$value = "\"".$arDelivery["NAME"]."\"";
+					}
 				}
-				elseif (intval($value) > 0)
+				else
 				{
-					$arDelivery = CSaleDelivery::GetByID($value);
-					$value = "\"".$arDelivery["NAME"]."\"";
+					$value = "\"".$arData['DELIVERY_NAME']."\"";
 				}
+			}
+			elseif($param == "DELIVERY_NAME")
+			{
+				$value = "\"".$value."\"";
+			}
+			else
+			{
+				continue;
 			}
 
 			$info = str_replace("#".$param."#", $value, $info);
@@ -818,6 +1294,14 @@ class CSaleOrderChangeFormat
 		);
 	}
 
+	public static function FormatOrderUpdated($arData)
+	{
+		return array(
+			"NAME" => GetMessage("SOC_ORDER_UPDATED"),
+			"INFO" => "",
+		);
+	}
+
 	public static function FormatBasketPriceChanged($arData)
 	{
 		$info = GetMessage("SOC_BASKET_PRICE_CHANGED_INFO");
@@ -889,6 +1373,23 @@ class CSaleOrderChangeFormat
 		);
 	}
 
+	public static function FormatShipmentMarked($arData)
+	{
+		$info = "";
+		if (isset($arData["REASON_MARKED"]) && strlen($arData["REASON_MARKED"]) > 0)
+		{
+			$info = GetMessage("SOC_SHIPMENT_MARKED_INFO");
+			foreach ($arData as $param => $value)
+				$info = str_replace("#".$param."#", $value, $info);
+		}
+
+		return array(
+			"NAME" => GetMessage("SOC_SHIPMENT_MARKED"),
+			"INFO" => $info
+		);
+	}
+
+
 	public static function FormatShipmentItemBasketAdded($arData)
 	{
 		$info = GetMessage("SOC_SHIPMENT_ITEM_BASKET_ADDED_INFO");
@@ -922,6 +1423,28 @@ class CSaleOrderChangeFormat
 		return array(
 			"NAME" => GetMessage("SOC_SHIPMENT_REMOVED"),
 			"INFO" => $info,
+		);
+	}
+
+
+	public static function FormatShipmentCanceled($arData)
+	{
+		if ($arData["CANCELED"] == "Y")
+		{
+			$info = GetMessage("SOC_SHIPMENT_CANCELED_Y");
+			foreach ($arData as $param => $value)
+				$info = str_replace("#".$param."#", $value, $info);
+		}
+		else
+		{
+			$info = GetMessage("SOC_SHIPMENT_CANCELED_N");
+			foreach ($arData as $param => $value)
+				$info = str_replace("#".$param."#", $value, $info);
+		}
+
+		return array(
+			"NAME" => GetMessage("SOC_SHIPMENT_CANCELED"),
+			"INFO" => $info
 		);
 	}
 
@@ -1034,6 +1557,7 @@ class CSaleOrderChangeFormat
 			"INFO" => $info
 		);
 	}
+
 	public static function FormatShipmentQuantityChanged($data)
 	{
 		$info = GetMessage("SOC_SHIPMENT_ITEM_QUANTITY_CHANGE_INFO");
@@ -1045,5 +1569,185 @@ class CSaleOrderChangeFormat
 			"NAME" => GetMessage("SOC_SHIPMENT_ITEM_QUANTITY_CHANGE"),
 			"INFO" => $info
 		);
+	}
+
+	/**
+	 * @param $data
+	 * @param $type
+	 * @param null $entity
+	 *
+	 * @return array
+	 */
+	public static function FormatLog($data, $type, $entity = null)
+	{
+		$info = "";
+		if (!empty($data))
+		{
+			$info = GetMessage("SOC_".ToUpper($type)."_INFO");
+			if (strval($info) != "")
+			{
+				foreach ($data as $param => $value)
+				{
+					$info = str_replace("#".$param."#", $value, $info);
+
+					if (array_key_exists("OLD_".$param, $data))
+					{
+						$info = str_replace("#OLD_".$param."#", $data["OLD_".$param], $info);
+					}
+				}
+			}
+			else
+			{
+				foreach ($data as $param => $value)
+				{
+					if (strpos($param, "OLD_") === 0)
+						continue;
+
+					$info .=(strval($info) != "" ? "; " : ""). $param.": ".$value;
+
+					if (array_key_exists("OLD_".$param, $data))
+					{
+						$info.= " OLD_".$param.": ".$data["OLD_".$param];
+					}
+				}
+			}
+		}
+
+		$title = GetMessage("SOC_".ToUpper($type)."_TITLE");
+
+		if (strval($title) == "")
+			$title = GetMessage("SOC_".ToUpper($entity)."_TITLE");
+
+		return array(
+			"NAME" => $title,
+			"INFO" => $info
+		);
+	}
+	/**
+	 * @param $data
+	 * @param $type
+	 * @param null $entity
+	 *
+	 * @return array
+	 */
+	public static function FormatOrderChange($data, $type, $entity = null)
+	{
+		$info = "";
+		if (!empty($data))
+		{
+			$info = GetMessage("SOC_".ToUpper($type)."_INFO");
+			if (strval($info) != "")
+			{
+				foreach ($data as $param => $value)
+				{
+					$info = str_replace("#".$param."#", $value, $info);
+
+					if (array_key_exists("OLD_".$param, $data))
+					{
+						$info = str_replace("#OLD_".$param."#", $data["OLD_".$param], $info);
+					}
+					else
+					{
+						$info = str_replace("#OLD_".$param."#", "", $info);
+					}
+				}
+			}
+			else
+			{
+				foreach ($data as $param => $value)
+				{
+					if (strpos($param, "OLD_") === 0)
+						continue;
+
+					$info .=(strval($info) != "" ? "; " : ""). $param.": ".$value;
+
+					if (array_key_exists("OLD_".$param, $data))
+					{
+						$info.= " OLD_".$param.": ".$data["OLD_".$param];
+					}
+				}
+			}
+		}
+
+		$title = GetMessage("SOC_".ToUpper($type)."_TITLE");
+
+		if (strval($title) == "")
+			$title = GetMessage("SOC_".ToUpper($entity)."_TITLE");
+
+		return array(
+			"NAME" => $title,
+			"INFO" => $info
+		);
+	}
+
+	/**
+	 * @param $data
+	 * @param $type
+	 * @param null $entity
+	 *
+	 * @return array
+	 */
+	public static function FormatErrorLog($data, $type, $entity = null)
+	{
+		$info = "";
+		if (!empty($data))
+		{
+			$info = GetMessage("SOC_".ToUpper($type)."_INFO");
+
+			foreach ($data as $param => $value)
+			{
+				if (is_array($value) &&  !empty($value))
+				{
+					$errorList = $value;
+					$value = "";
+					foreach ($errorList as $errorMsg)
+					{
+						$value .= (strval($value) != "" ? "\n" : ""). $errorMsg;
+					}
+				}
+
+				$info = str_replace("#".$param."#", $value, $info);
+			}
+		}
+
+		$title = GetMessage("SOC_".ToUpper($type)."_TITLE");
+
+		if (strval($title) == "")
+			$title = GetMessage("SOC_".ToUpper($entity)."_TITLE");
+
+		return array(
+			"NAME" => $title,
+			"INFO" => $info
+		);
+	}
+
+	/**
+	 * @internal
+	 * @param $id
+	 *
+	 * @return bool|mixed|string
+	 * @throws \Bitrix\Main\ArgumentException
+	 */
+	public static function getOrderResponsibleName($id)
+	{
+		static $orderResponsibleList = array();
+
+		if (isset($orderResponsibleList[$id]))
+		{
+			return $orderResponsibleList[$id];
+		}
+		$userIterator = \Bitrix\Main\UserTable::getList(array(
+			'select' => array('ID', 'LOGIN', 'NAME', 'LAST_NAME', 'SECOND_NAME', 'EMAIL'),
+			'filter' => array('=ID' => intval($id))
+		));
+
+		$userName = false;
+		if ($userData = $userIterator->fetch())
+		{
+			$userName = \CUser::FormatName(\CSite::GetNameFormat(true), $userData, true);
+			$orderResponsibleList[$id] = $userName;
+		}
+
+		return $userName;
 	}
 }

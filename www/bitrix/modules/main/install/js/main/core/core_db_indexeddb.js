@@ -161,14 +161,7 @@
 
 		try
 		{
-			if (key)
-			{
-				request = store.put(value, key);
-			}
-			else
-			{
-				request = store.put(value);
-			}
+			request = store.put(value);
 		}
 		catch (e)
 		{
@@ -181,7 +174,7 @@
 				&& typeof obCallback.error == 'function'
 			)
 			{
-				obCallback.error(event);
+				obCallback.error(event, key);
 			}
 		};
 

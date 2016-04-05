@@ -6,6 +6,9 @@ IncludeModuleLangFile(__FILE__);
 */
 class CBPDocument
 {
+	const PARAM_TAGRET_USER = 'TargetUser';
+	const PARAM_MODIFIED_DOCUMENT_FIELDS = 'ModifiedDocumentField';
+
 	public static function MigrateDocumentType($oldType, $newType)
 	{
 		$templateIds = array();
@@ -300,15 +303,16 @@ class CBPDocument
 	}
 
 	/**
-	* Метод запускает рабочий поток по коду его шаблона.
-	*
-	* @param int $workflowTemplateId - код шаблона рабочего потока.
-	* @param array $documentId - код документа в виде массива array(модуль, сущность, код_документа_в_модуле).
-	* @param array $arParameters - массив параметров запуска рабочего потока.
-	* @param array $arErrors - массив ошибок, которые произошли при запуске рабочего потока в виде array(array("code" => код_ошибки, "message" => сообщение, "file" => путь_к_файлу), ...).
-	* @return string - код запущенного рабочего потока.
-	*/
-	public static function StartWorkflow($workflowTemplateId, $documentId, $arParameters, &$arErrors)
+	 * Метод запускает рабочий поток по коду его шаблона.
+	 *
+	 * @param int $workflowTemplateId - код шаблона рабочего потока.
+	 * @param array $documentId - код документа в виде массива array(модуль, сущность, код_документа_в_модуле).
+	 * @param array $arParameters - массив параметров запуска рабочего потока.
+	 * @param array $arErrors - массив ошибок, которые произошли при запуске рабочего потока в виде array(array("code" => код_ошибки, "message" => сообщение, "file" => путь_к_файлу), ...).
+	 * @param array|null $parentWorkflow - Информация о процессе-родителе.
+	 * @return string - код запущенного рабочего потока.
+	 */
+	public static function StartWorkflow($workflowTemplateId, $documentId, $arParameters, &$arErrors, $parentWorkflow = null)
 	{
 		$arErrors = array();
 
@@ -316,12 +320,15 @@ class CBPDocument
 
 		if (!is_array($arParameters))
 			$arParameters = array($arParameters);
-		if (!array_key_exists("TargetUser", $arParameters))
-			$arParameters["TargetUser"] = "user_".intval($GLOBALS["USER"]->GetID());
+		if (!isset($arParameters[static::PARAM_TAGRET_USER]))
+			$arParameters[static::PARAM_TAGRET_USER] = is_object($GLOBALS["USER"]) ? "user_".intval($GLOBALS["USER"]->GetID()) : null;
+
+		if (!isset($arParameters[static::PARAM_MODIFIED_DOCUMENT_FIELDS]))
+			$arParameters[static::PARAM_MODIFIED_DOCUMENT_FIELDS] = false;
 
 		try
 		{
-			$wi = $runtime->CreateWorkflow($workflowTemplateId, $documentId, $arParameters);
+			$wi = $runtime->CreateWorkflow($workflowTemplateId, $documentId, $arParameters, $parentWorkflow);
 			$wi->Start();
 			return $wi->GetInstanceId();
 		}
@@ -354,8 +361,12 @@ class CBPDocument
 
 		if (!is_array($arParameters))
 			$arParameters = array($arParameters);
-		if (!array_key_exists("TargetUser", $arParameters))
-			$arParameters["TargetUser"] =  "user_".intval($GLOBALS["USER"]->GetID());
+
+		if (!isset($arParameters[static::PARAM_TAGRET_USER]))
+			$arParameters[static::PARAM_TAGRET_USER] = is_object($GLOBALS["USER"]) ? "user_".intval($GLOBALS["USER"]->GetID()) : null;
+
+		if (!isset($arParameters[static::PARAM_MODIFIED_DOCUMENT_FIELDS]))
+			$arParameters[static::PARAM_MODIFIED_DOCUMENT_FIELDS] = false;
 
 		$arWT = CBPWorkflowTemplateLoader::SearchTemplatesByDocumentType($documentType, $autoExecute);
 		foreach ($arWT as $wt)
@@ -408,8 +419,9 @@ class CBPDocument
 	* @param string $workflowId - код рабочего потока.
 	* @param array $documentId - код документа в виде массива array(модуль, сущность, код_документа_в_модуле).
 	* @param array $arErrors - массив ошибок, которые произошли при остановке рабочего потока в виде array(array("code" => код_ошибки, "message" => сообщение, "file" => путь_к_файлу), ...).
+	* @param string $stateTitle - state title (workflow status).
 	*/
-	public static function TerminateWorkflow($workflowId, $documentId, &$arErrors)
+	public static function TerminateWorkflow($workflowId, $documentId, &$arErrors, $stateTitle = '')
 	{
 		$arErrors = array();
 
@@ -417,14 +429,14 @@ class CBPDocument
 
 		try
 		{
-			$workflow = $runtime->GetWorkflow($workflowId);
+			$workflow = $runtime->GetWorkflow($workflowId, true);
 			if ($documentId)
 			{
 				$d = $workflow->GetDocumentId();
 				if ($d[0] != $documentId[0] || $d[1] != $documentId[1] || $d[2] != $documentId[2])
 					throw new Exception(GetMessage("BPCGDOC_INVALID_WF"));
 			}
-			$workflow->Terminate(null);
+			$workflow->Terminate(null, $stateTitle);
 		}
 		catch(Exception $e)
 		{
@@ -729,13 +741,14 @@ class CBPDocument
 		}
 	}
 
-	public static function AddShowParameterInit($module, $type, $document_type, $entity = "")
+	public static function AddShowParameterInit($module, $type, $document_type, $entity = "", $document_id = '')
 	{
+		$GLOBALS["BP_AddShowParameterInit_".$module."_".$entity."_".$document_type] = 1;
 		CUtil::InitJSCore(array("window", "ajax"));
 ?>
 <script src="/bitrix/js/bizproc/bizproc.js"></script>
 <script>
-	function BPAShowSelector(id, type, mode, arCurValues)
+	function BPAShowSelector(id, type, mode, arCurValues, arDocumentType)
 	{
 		<?if($type=="only_users"):?>
 		var def_mode = "only_users";
@@ -745,45 +758,31 @@ class CBPDocument
 
 		if (!mode)
 			mode = def_mode;
+		var module = '<?=CUtil::JSEscape($module)?>';
+		var entity = '<?=CUtil::JSEscape($entity)?>';
+		var documentType = '<?=CUtil::JSEscape($document_type)?>';
+		var documentId = '<?=CUtil::JSEscape($document_id)?>';
 
-		<?/* if (type == 'xuser')
+		/*if (arDocumentType && arDocumentType.length == 3)
 		{
-			BX.Access.Init({other:{disabled:true}});
-			BX.Access.ShowForm({
-				callback: function (obSelected)
-				{
-					var result = [];
-					for (var provider in obSelected)
-					{
-						if (obSelected.hasOwnProperty(provider))
-						{
-							for (var varId in obSelected[provider])
-							{
-								if (obSelected[provider].hasOwnProperty(varId))
-								{
-									result.push(BX.Access.GetProviderName(provider) + ' ' + obSelected[provider][varId].name + ' [' + varId + ']');
-								}
-							}
-						}
-					}
-					if (result)
-					{
-						var el = BX(id), v = el.value;
-						if (v)
-							v += '; ';
-						el.value = v + result.join('; ');
-					}
-				}
-			});
-		}
-		else */?>
+			module = arDocumentType[0];
+			entity = arDocumentType[1];
+			documentType = arDocumentType[2];
+		}*/
+
+		var loadAccessLib = (typeof BX.Access === 'undefined');
+
 		if (mode == "only_users")
 		{
 			BX.WindowManager.setStartZIndex(1150);
 			(new BX.CDialog({
-				'content_url': '/bitrix/admin/<?=htmlspecialcharsbx($module)?>_bizproc_selector.php?mode=public&bxpublic=Y&lang=<?=LANGUAGE_ID?>&entity=<?=htmlspecialcharsbx($entity)?>',
+				'content_url': '/bitrix/admin/'+module
+					+'_bizproc_selector.php?mode=public&bxpublic=Y&lang=<?=LANGUAGE_ID?>&entity='
+					+entity
+					+(loadAccessLib? '&load_access_lib=Y':''),
 				'content_post': {
-					'document_type': '<?=CUtil::JSEscape($document_type)?>',
+					'document_type': documentType,
+					'document_id': documentId,
 					'fieldName': id,
 					'fieldType': type,
 					'only_users': 'Y',
@@ -825,7 +824,8 @@ class CBPDocument
 			}
 
 			var p = {
-				'document_type': '<?=CUtil::JSEscape($document_type)?>',
+				'document_type': documentType,
+				'document_id': documentId,
 				'fieldName': id,
 				'fieldType': type,
 				'selectorMode': mode,
@@ -841,7 +841,10 @@ class CBPDocument
 			JSToPHPHidd(p, arWorkflowTemplateCur, 'arWorkflowTemplate');
 
 			(new BX.CDialog({
-				'content_url': '/bitrix/admin/<?=htmlspecialcharsbx($module)?>_bizproc_selector.php?mode=public&bxpublic=Y&lang=<?=LANGUAGE_ID?>&entity=<?=htmlspecialcharsbx($entity)?>',
+				'content_url': '/bitrix/admin/'
+					+module+'_bizproc_selector.php?mode=public&bxpublic=Y&lang=<?=LANGUAGE_ID?>&entity='
+					+entity
+					+(loadAccessLib? '&load_access_lib=Y':''),
 				'content_post': p,
 				'height': 425,
 				'width': 485
@@ -879,7 +882,9 @@ class CBPDocument
 			$s .= 'id="'.htmlspecialcharsbx($id).'" ';
 			$s .= '>'.htmlspecialcharsbx($values);
 			$s .= '</textarea></td>';
-			$s .= '<td valign="top" style="padding-left:4px"><input type="button" value="..." onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');"></td></tr></table>';
+			$s .= '<td valign="top" style="padding-left:4px">';
+			$s .= CBPHelper::renderControlSelectorButton($id, $type);
+			$s .= '</td></tr></table>';
 		}
 		elseif($type == "user")
 		{
@@ -888,18 +893,10 @@ class CBPDocument
 			$s .= 'cols="'.($arParams['cols']>0?intval($arParams['cols']):45).'" ';
 			$s .= 'name="'.htmlspecialcharsbx($name).'" ';
 			$s .= 'id="'.htmlspecialcharsbx($id).'">'.htmlspecialcharsbx($values).'</textarea>';
-			$s .= '</td><td valign="top" style="padding-left:4px"><input type="button" value="..." title="'.GetMessage("BIZPROC_AS_SEL_FIELD_BUTTON").' (Insert)'.'" onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');"></td></tr></table>';
+			$s .= '</td><td valign="top" style="padding-left:4px">';
+			$s .= CBPHelper::renderControlSelectorButton($id, $type, array('title' => GetMessage("BIZPROC_AS_SEL_FIELD_BUTTON").' (Insert)'));
+			$s .= '</td></tr></table>';
 		}
-		/* elseif($type == "xuser")
-		{
-			$s = '<table cellpadding="0" cellspacing="0" border="0"><tr><td valign="top"><textarea onkeydown="if(event.keyCode==45)BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');" ';
-			$s .= 'rows="'.($arParams['rows']>0?intval($arParams['rows']):3).'" ';
-			$s .= 'cols="'.($arParams['cols']>0?intval($arParams['cols']):45).'" ';
-			$s .= 'name="'.htmlspecialcharsbx($name).'" ';
-			$s .= 'id="'.htmlspecialcharsbx($id).'">'.htmlspecialcharsbx($values).'</textarea>';
-			$s .= '</td><td valign="top" style="padding-left:4px"><input type="button" value="..." title="'.GetMessage("BIZPROC_AS_SEL_FIELD_BUTTON").' (Insert)'.'" onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \'user\');">
-			<input type="button" value="[X]" title="'.GetMessage("BIZPROC_AS_SEL_FIELD_BUTTON").' (Insert)'.'" onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');"></td></tr></table>';
-		} */
 		elseif($type == "bool")
 		{
 			$s = '<select name="'.htmlspecialcharsbx($name).'"><option value=""></option><option value="Y"'.($values=='Y'?' selected':'').'>'.GetMessage('MAIN_YES').'</option><option value="N"'.($values=='N'?' selected':'').'>'.GetMessage('MAIN_NO').'</option>';
@@ -908,7 +905,16 @@ class CBPDocument
 			$s .= 'name="'.htmlspecialcharsbx($name).'_X" ';
 			$s .= 'id="'.htmlspecialcharsbx($id).'" ';
 			$s .= 'value="'.($values=="Y" || $values=="N"?"":htmlspecialcharsbx($values)).'"> ';
-			$s .= '<input type="button" value="..." onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');">';
+			$s .= CBPHelper::renderControlSelectorButton($id, $type);
+		}
+		elseif ($type == 'datetime')
+		{
+			$s = '<span style="white-space:nowrap;"><input type="text" ';
+			$s .= 'size="'.($arParams['size']>0?intval($arParams['size']):30).'" ';
+			$s .= 'name="'.htmlspecialcharsbx($name).'" ';
+			$s .= 'id="'.htmlspecialcharsbx($id).'" ';
+			$s .= 'value="'.htmlspecialcharsbx($values).'">'.CAdminCalendar::Calendar(htmlspecialcharsbx($name), "", "", true).'</span> ';
+			$s .= CBPHelper::renderControlSelectorButton($id, $type);
 		}
 		else
 		{
@@ -917,7 +923,7 @@ class CBPDocument
 			$s .= 'name="'.htmlspecialcharsbx($name).'" ';
 			$s .= 'id="'.htmlspecialcharsbx($id).'" ';
 			$s .= 'value="'.htmlspecialcharsbx($values).'"> ';
-			$s .= '<input type="button" value="..." onclick="BPAShowSelector(\''.Cutil::JSEscape(htmlspecialcharsbx($id)).'\', \''.Cutil::JSEscape($type).'\');">';
+			$s .= CBPHelper::renderControlSelectorButton($id, $type);
 		}
 
 		return $s;
@@ -1026,7 +1032,7 @@ class CBPDocument
 		);
 		while ($arWorkflowTemplate = $dbWorkflowTemplate->GetNext())
 		{
-			$arWorkflowTemplate["USER"] = "(".$arWorkflowTemplate["USER_LOGIN"].")".((strlen($arWorkflowTemplate["USER_NAME"]) > 0 || strlen($arWorkflowTemplate["USER_LAST_NAME"]) > 0) ? " " : "").CUser::FormatName(COption::GetOptionString("bizproc", "name_template", CSite::GetNameFormat(false), SITE_ID), array("NAME" => $arWorkflowTemplate["USER_NAME"], "LAST_NAME" => $arWorkflowTemplate["USER_LAST_NAME"], "SECOND_NAME" => $arWorkflowTemplate["USER_SECOND_NAME"]));
+			$arWorkflowTemplate["USER"] = "(".$arWorkflowTemplate["USER_LOGIN"].")".((strlen($arWorkflowTemplate["USER_NAME"]) > 0 || strlen($arWorkflowTemplate["USER_LAST_NAME"]) > 0) ? " " : "").CUser::FormatName(COption::GetOptionString("bizproc", "name_template", CSite::GetNameFormat(false), SITE_ID), array("NAME" => $arWorkflowTemplate["USER_NAME"], "LAST_NAME" => $arWorkflowTemplate["USER_LAST_NAME"], "SECOND_NAME" => $arWorkflowTemplate["USER_SECOND_NAME"]), false, false);
 
 			$arWorkflowTemplate["AUTO_EXECUTE_TEXT"] = "";
 
@@ -1221,6 +1227,24 @@ class CBPDocument
 	}
 
 	/**
+	 * @param array $parameterDocumentId Document Id.
+	 * @return mixed|string
+	 * @throws CBPArgumentNullException
+	 */
+	public static function getDocumentName($parameterDocumentId)
+	{
+		list($moduleId, $entity, $documentId) = CBPHelper::ParseDocumentId($parameterDocumentId);
+
+		if (strlen($moduleId) > 0)
+			CModule::IncludeModule($moduleId);
+
+		if (class_exists($entity) && method_exists($entity, 'getDocumentName'))
+			return call_user_func_array(array($entity, "getDocumentName"), array($documentId));
+
+		return "";
+	}
+
+	/**
 	* Метод возвращает массив заданий для данного пользователя в данном рабочем потоке.
 	* Возвращаемый массив имеет вид:
 	*	array(
@@ -1292,6 +1316,7 @@ class CBPDocument
 				"file" => $e->getFile()." [".$e->getLine()."]"
 			);
 		}
+		return null;
 	}
 
 	public static function GetAllowableUserGroups($parameterDocumentType)
@@ -1311,6 +1336,61 @@ class CBPDocument
 		}
 
 		return array();
+	}
+
+	public static function onAfterTMDayStart($data)
+	{
+		global $DB;
+
+		if (!CModule::IncludeModule("im"))
+			return;
+
+		$userId = (int) $data['USER_ID'];
+
+		$iterator = \Bitrix\Bizproc\WorkflowInstanceTable::getList(
+			array(
+				'select' => array(new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(\'x\')')),
+				'filter' => array(
+					'=STATE.STARTED_BY' => $userId,
+					'<OWNED_UNTIL' => date($DB->DateFormatToPHP(FORMAT_DATETIME),
+						time() - \Bitrix\Bizproc\WorkflowInstanceTable::LOCKED_TIME_INTERVAL)
+				),
+			)
+		);
+		$row = $iterator->fetch();
+		if (!empty($row['CNT']))
+		{
+			CIMNotify::Add(array(
+				'FROM_USER_ID' => 0,
+				'TO_USER_ID' => $userId,
+				"NOTIFY_TYPE" => IM_NOTIFY_SYSTEM,
+				"NOTIFY_MODULE" => "bizproc",
+				"NOTIFY_EVENT" => "wi_locked",
+				'TITLE' => GetMessage('BPCGDOC_WI_LOCKED_NOTICE_TITLE'),
+				'MESSAGE' => 	GetMessage('BPCGDOC_WI_LOCKED_NOTICE_MESSAGE', array(
+					'#PATH#' => \Bitrix\Main\Config\Option::get("bizproc", "locked_wi_path", "/services/bp/instances.php?type=is_locked"),
+					'#CNT#' => $row['CNT']
+				))
+			));
+		}
+	}
+
+	/**
+	 * Method returns map of document fields aliases.
+	 * @param array $fieds Document fields.
+	 * @return array Aliases.
+	 */
+	public static function getDocumentFieldsAliasesMap(array $fieds)
+	{
+		$aliases = array();
+		foreach ($fieds as $key => $property)
+		{
+			if (isset($property['Alias']))
+			{
+				$aliases[$property['Alias']] = $key;
+			}
+		}
+		return $aliases;
 	}
 
 	/**

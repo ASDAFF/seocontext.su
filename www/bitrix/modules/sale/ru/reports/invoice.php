@@ -308,11 +308,15 @@ ClearVars("b_");
 				</td>
 				<td bgcolor="#ffffff" style="border: 1pt solid #000000; border-right:none; border-top:none;">
 					Доставка <?
-					$arDelivery_tmp = CSaleDelivery::GetByID($arOrder["DELIVERY_ID"]);
-					if (strlen($arDelivery_tmp["NAME"]) > 0)
-					{
-						echo "(".$arDelivery_tmp["NAME"].")";
-					}
+					$res = \Bitrix\Sale\Delivery\Services\Table::getList(array(
+						'filter' => array(
+							'=CODE' => $arOrder["DELIVERY_ID"]
+						)
+					));
+
+					if ($deliveryService = $res->fetch())
+						if(strlen($deliveryService["NAME"]) > 0)
+							echo "(".$deliveryService["NAME"].")";
 
 					$basket_tax = CSaleOrderTax::CountTaxes(DoubleVal($arOrder["PRICE_DELIVERY"]), $arTaxList, $arOrder["CURRENCY"]);
 					$nds_val = 0;

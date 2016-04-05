@@ -60,6 +60,7 @@ class im extends CModule
 		RegisterModule("im");
 		RegisterModuleDependences('main', 'OnAddRatingVote', 'im', 'CIMEvent', 'OnAddRatingVote');
 		RegisterModuleDependences('main', 'OnCancelRatingVote', 'im', 'CIMEvent', 'OnCancelRatingVote');
+		RegisterModuleDependences('main', 'OnAfterUserAdd', 'im', 'CIMEvent', 'OnAfterUserAdd');
 		RegisterModuleDependences('main', 'OnAfterUserUpdate', 'im', 'CIMEvent', 'OnAfterUserUpdate');
 		RegisterModuleDependences('main', 'OnUserDelete', 'im', 'CIMEvent', 'OnUserDelete');
 		RegisterModuleDependences("pull", "OnGetDependentModule", "im", "CIMEvent", "OnGetDependentModule");
@@ -84,7 +85,6 @@ class im extends CModule
 
 		if (CIMConvert::ConvertCount() > 0)
 		{
-			Cmodule::IncludeModule("im");
 			CAdminNotify::Add(Array(
 				"MESSAGE" => GetMessage("IM_CONVERT_MESSAGE", Array("#A_TAG_START#" => '<a href="/bitrix/admin/im_convert.php?lang='.LANGUAGE_ID.'">', "#A_TAG_END#" => "</a>")),
 				"TAG" => "IM_CONVERT",
@@ -93,6 +93,8 @@ class im extends CModule
 			));
 			CAgent::AddAgent("CIMConvert::UndeliveredMessageAgent();", "im", "N", 20, "", "Y", ConvertTimeStamp(time()+CTimeZone::GetOffset()+20, "FULL"));
 		}
+
+		CIMChat::InstallGeneralChat();
 
 		$this->InstallEvents();
 		$this->InstallUserFields();
@@ -225,7 +227,10 @@ class im extends CModule
 		$this->errors = false;
 
 		if (!$arParams['savedata'])
+		{
 			$this->errors = $DB->RunSQLBatch($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/im/install/db/".strtolower($DB->type)."/uninstall.sql");
+			COption::RemoveOption("im", "general_chat_id");
+		}
 
 		if(is_array($this->errors))
 			$arSQLErrors = $this->errors;
@@ -244,6 +249,7 @@ class im extends CModule
 		UnRegisterModuleDependences("im", "OnGetNotifySchema", "im", "CIMNotifySchema", "OnGetNotifySchema");
 		UnRegisterModuleDependences("perfmon", "OnGetTableSchema", "im", "CIMTableSchema", "OnGetTableSchema");
 		UnRegisterModuleDependences('main', 'OnAddRatingVote', 'im', 'CIMEvent', 'OnAddRatingVote');
+		UnRegisterModuleDependences('main', 'OnAfterUserAdd', 'im', 'CIMEvent', 'OnAfterUserAdd');
 		UnRegisterModuleDependences('main', 'OnUserDelete', 'im', 'CIMEvent', 'OnUserDelete');
 		UnRegisterModuleDependences('main', 'OnCancelRatingVote', 'im', 'CIMEvent', 'OnCancelRatingVote');
 		UnRegisterModuleDependences('main', 'OnAfterUserUpdate', 'im', 'CIMEvent', 'OnAfterUserUpdate');

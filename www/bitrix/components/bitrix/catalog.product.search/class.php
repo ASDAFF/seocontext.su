@@ -940,7 +940,7 @@ class ProductSearchComponent extends \CBitrixComponent
 				array("id" => "ACTIVE", "content" => Loc::getMessage("SOPS_ACTIVE"), "sort" => "ACTIVE", "default" => true),
 				array("id" => "DETAIL_PICTURE", "default" => true, "content" => Loc::getMessage("SPS_FIELD_DETAIL_PICTURE"), "align" => "center"),
 				array("id" => "NAME", "content" => Loc::getMessage("SPS_NAME"), "sort" => "NAME", "default" => true),
-				array("id" => "BALANCE", "content" => $balanceTitle, "sort" => "", "default" => true, "align" => "right"),
+				array("id" => "BALANCE", "content" => $balanceTitle, "default" => true, "align" => "right"),
 				array("id" => "CODE", "content" => Loc::getMessage("SPS_FIELD_CODE"), "sort" => "CODE"),
 				array("id" => "EXTERNAL_ID", "content" => Loc::getMessage("SPS_FIELD_XML_ID"), "sort" => "EXTERNAL_ID"),
 				array("id" => "SHOW_COUNTER", "content" => Loc::getMessage("SPS_FIELD_SHOW_COUNTER"), "sort" => "SHOW_COUNTER", "align" => "right"),
@@ -953,33 +953,45 @@ class ProductSearchComponent extends \CBitrixComponent
 				array("id" => "ACTION", "content" =>  Loc::getMessage("SPS_FIELD_ACTION"),  "default" => true),
 			);
 			$arProps = $this->getProps(true);
-			foreach ($arProps as $prop)
+			if (!empty($arProps))
 			{
-				$this->arHeaders[] = array(
-					"id" => "PROPERTY_" . $prop['ID'], "content" => $prop['NAME'],
-					"align" => ($prop["PROPERTY_TYPE"] == 'N' ? "right" : "left"),
-					"sort" => ($prop["MULTIPLE"] != 'Y' ? "PROPERTY_" . $prop['ID'] : "")
-				);
+				foreach ($arProps as &$prop)
+				{
+					$this->arHeaders[] = array(
+						"id" => "PROPERTY_".$prop['ID'], "content" => $prop['NAME'],
+						"align" => ($prop["PROPERTY_TYPE"] == 'N' ? "right" : "left"),
+						"sort" => ($prop["MULTIPLE"] != 'Y' ? "PROPERTY_".$prop['ID'] : "")
+					);
+				}
+				unset($prop);
 			}
 			$arProps = $this->getSkuProps(true);
-			foreach ($arProps as $prop)
+			if (!empty($arProps))
 			{
-				$this->arHeaders[] = array(
-					"id" => "PROPERTY_" . $prop['ID'], "content" => $prop['NAME'].' ('.Loc::getMessage("SPS_OFFER").')',
-					"align" => ($prop["PROPERTY_TYPE"] == 'N' ? "right" : "left"),
-					"sort" => ($prop["MULTIPLE"] != 'Y' ? "PROPERTY_" . $prop['ID'] : "")
-				);
+				foreach ($arProps as &$prop)
+				{
+					$this->arHeaders[] = array(
+						"id" => "PROPERTY_".$prop['ID'], "content" => $prop['NAME'].' ('.Loc::getMessage("SPS_OFFER").')',
+						"align" => ($prop["PROPERTY_TYPE"] == 'N' ? "right" : "left"),
+					);
+				}
+				unset($prop);
 			}
+			unset($arProps);
 			$arPrices = $this->getPrices();
-			foreach ($arPrices AS $price)
+			if (!empty($arPrices))
 			{
-				$this->arHeaders[] = array(
-					"id" => "PRICE" . $price["ID"],
-					"content" => htmlspecialcharsex(!empty($price["NAME_LANG"]) ? $price["NAME_LANG"] : $price["NAME"]),
-					"default" => ($price["BASE"] == 'Y') ? true : false
-				);
+				foreach ($arPrices as &$price)
+				{
+					$this->arHeaders[] = array(
+						"id" => "PRICE".$price["ID"],
+						"content" => htmlspecialcharsex(!empty($price["NAME_LANG"]) ? $price["NAME_LANG"] : $price["NAME"]),
+						"default" => ($price["BASE"] == 'Y') ? true : false
+					);
+				}
+				unset($price);
 			}
-
+			unset($arPrices);
 		}
 		return $this->arHeaders;
 	}

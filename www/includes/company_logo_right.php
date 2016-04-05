@@ -1,7 +1,7 @@
 <table class="call">
     <tr>
         <td class="number">
-            <div class="phone"><span style="color: #959595;">+7 (495)</span> 123-45-67</div>
+            <a href="79898998393" class="phone"><span style="color: #959595;">+7 (989)</span> 899-83-93</a>
             <div class="text">круглосуточно,<br /> без перерыва, без выходных</div>
         </td>
         <td class="buttons">

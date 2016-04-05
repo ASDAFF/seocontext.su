@@ -36,7 +36,8 @@ class Comment extends BaseObject
 			"AUTHOR_EMAIL" => trim($params["AUTHOR_EMAIL"]),
 			"USE_SMILES" => ($params["USE_SMILES"] == "Y" ? "Y" : "N"),
 			"APPROVED" => $this->topic["APPROVED"],
-			"XML_ID" => $this->getEntity()->getXmlId()
+			"XML_ID" => $this->getEntity()->getXmlId(),
+			"USER_ID" => $this->getUser()->getId()
 		);
 		$errorCollection = new ErrorCollection();
 		if (strlen($result["POST_MESSAGE"]) <= 0)
@@ -85,7 +86,8 @@ class Comment extends BaseObject
 		}
 		else
 		{
-			$GLOBALS["USER_FIELD_MANAGER"]->EditFormAddFields("FORUM_MESSAGE", $result);
+			global $USER_FIELD_MANAGER;
+			$USER_FIELD_MANAGER->EditFormAddFields("FORUM_MESSAGE", $result);
 			$params = $result;
 			return true;
 		}
@@ -128,6 +130,7 @@ class Comment extends BaseObject
 			"USE_SMILES" => $params["USE_SMILES"],
 			"FILES" => $params["FILES"]
 		);
+
 		if ($this->prepareFields($params, $this->errorCollection))
 		{
 			$AUTHOR_IP = $AUTHOR_IP_tmp = \ForumGetRealIP();
@@ -140,6 +143,7 @@ class Comment extends BaseObject
 			$params["AUTHOR_IP"] = ($AUTHOR_IP!==False) ? $AUTHOR_IP : "<no address>";
 			$params["AUTHOR_REAL_IP"] = ($AUTHOR_REAL_IP!==False) ? $AUTHOR_REAL_IP : "<no address>";
 			$params["GUEST_ID"] = $_SESSION["SESS_GUEST_ID"];
+
 			if (!(($mid = \CForumMessage::Add($params, false)) > 0))
 			{
 				$text = Loc::getMessage("ADDMESS_ERROR_ADD_MESSAGE");
@@ -403,7 +407,7 @@ class Comment extends BaseObject
 	public static function createFromId(Feed $feed, $id)
 	{
 		$forum = $feed->getForum();
-		$comment = new Comment($forum["ID"], $feed->getEntity()->getFullId());
+		$comment = new Comment($forum["ID"], $feed->getEntity()->getFullId(), $feed->getUser()->getId());
 		$comment->getEntity()->setPermission($feed->getEntity()->getPermission());
 		$comment->setComment($id);
 		return $comment;
@@ -417,7 +421,7 @@ class Comment extends BaseObject
 	public static function create(Feed $feed)
 	{
 		$forum = $feed->getForum();
-		$comment = new Comment($forum["ID"], $feed->getEntity()->getFullId());
+		$comment = new Comment($forum["ID"], $feed->getEntity()->getFullId(), $feed->getUser()->getId());
 		$comment->getEntity()->setPermission($feed->getEntity()->getPermission());
 		return $comment;
 	}

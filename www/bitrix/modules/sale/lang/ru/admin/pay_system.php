@@ -14,6 +14,7 @@ $MESS ['SALE_LID'] = "Сайт";
 $MESS ['SALE_H_CURRENCY'] = "Валюта";
 $MESS ['SALE_ACTIVE'] = "Акт.";
 $MESS ['SALE_SORT'] = "Сорт.";
+$MESS ['SALE_ALLOW_EDIT_PAYMENT'] = "Разрешить автопересчет оплаты";
 $MESS ['SALE_ACTION'] = "Действия";
 $MESS ['SALE_EDIT'] = "Изменить";
 $MESS ['SALE_CONFIRM_DEL_MESSAGE'] = "Вы уверены, что хотите удалить платежную систему? Платежные системы, к которым привязаны заказы, удалить невозможно.";

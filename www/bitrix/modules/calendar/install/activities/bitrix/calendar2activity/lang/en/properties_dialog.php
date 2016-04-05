@@ -6,4 +6,5 @@ $MESS["BPSNMA_PD_CNAME"] = "Event name";
 $MESS["BPSNMA_PD_CDESCR"] = "Event description";
 $MESS["BPSNMA_PD_CFROM"] = "Start date";
 $MESS["BPSNMA_PD_CTO"] = "End date";
+$MESS["BPSNMA_PD_CALENDAR_SECTION"] = "Calendar section ID (optional)";
 ?>

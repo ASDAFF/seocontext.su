@@ -56,7 +56,12 @@ BX.LiveFeedClass = (function ()
 			{
 				if(result.status == 'success')
 				{
-					BX('bx-lists-template-id').value = result.templateId;
+					var value = '', k;
+					for(k in result.templateData)
+					{
+						value += k + ',';
+					}
+					BX('bx-lists-template-id').value = value;
 					if(result.admin === true)
 					{
 						this.setResponsible();
@@ -662,7 +667,64 @@ BX.LiveFeedClass = (function ()
 			{
 				if(result.status == 'success')
 				{
-					document.location.href = BX('bx-lists-lists-page').value+BX('bx-lists-selected-list').value+'/bp_edit/'+result.templateId+'/';
+					var k;
+					if(result.manyTemplate)
+					{
+						var html = '<p>'+BX.message("LISTS_DESIGNER_POPUP_DESCRIPTION")+'</p>';
+						for(k in result.templateData)
+						{
+							var url = BX('bx-lists-lists-page').value+BX('bx-lists-selected-list').value+'/bp_edit/'+result.templateData[k].ID+'/';
+							html += '<a href="'+url+'"><div class="bx-lists-designer-item">'+result.templateData[k].NAME+'</div></a>';
+						}
+						html += '';
+						BX('bx-lists-designer-template-popup-content').innerHTML = html;
+						this.modalWindow({
+							modalId: 'bx-lists-popup',
+							title: BX.message("LISTS_DESIGNER_POPUP_TITLE"),
+							overlay: false,
+							contentStyle: {
+								width: '400px',
+								paddingTop: '10px',
+								paddingBottom: '10px'
+							},
+							content: [BX('bx-lists-designer-template-popup-content')],
+							events : {
+								onPopupClose : function() {
+									BX('bx-lists-designer-template-popup').appendChild(BX('bx-lists-designer-template-popup-content'));
+									this.destroy();
+								},
+								onAfterPopupShow : function(popup) {
+									var title = BX.findChild(popup.contentContainer, {className: 'bx-lists-popup-title'}, true);
+									if (title)
+									{
+										title.style.cursor = "move";
+										BX.bind(title, "mousedown", BX.proxy(popup._startDrag, popup));
+									}
+									BX.PopupMenu.destroy('settings-lists');
+								}
+							},
+							buttons: [
+								BX.create('a', {
+									text : BX.message("LISTS_CANCEL_BUTTON_CLOSE"),
+									props: {
+										className: 'webform-small-button webform-button-cancel'
+									},
+									events : {
+										click : BX.delegate(function (e) {
+											BX.PopupWindowManager.getCurrentPopup().close();
+										}, this)
+									}
+								})
+							]
+						});
+					}
+					else
+					{
+						for(k in result.templateData)
+						{
+							document.location.href = BX('bx-lists-lists-page').value+BX('bx-lists-selected-list').value+'/bp_edit/'+result.templateData[k].ID+'/';
+						}
+					}
 				}
 				else
 				{

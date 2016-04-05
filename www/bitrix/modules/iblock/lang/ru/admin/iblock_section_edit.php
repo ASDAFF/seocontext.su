@@ -32,6 +32,7 @@ $MESS["IBSEC_E_WARNING"] = "Предупреждение.";
 $MESS["IBSEC_E_TRANSLATION_SERVICE_NOT_CONFIGURED"] = "Внешний сервис перевода не настроен. Выполните настройку сервиса в <a href=\"settings.php?mid=main\">главном модуле</a>.";
 $MESS["IBSEC_E_SECTION_PROPERTY_FIELD"] = "Свойства элементов";
 $MESS["IBSEC_E_PROP_TABLE_NAME"] = "Название";
+$MESS["IBSEC_E_PROP_TABLE_CODE"] = "Символьный код";
 $MESS["IBSEC_E_PROP_TABLE_TYPE"] = "Тип";
 $MESS["IBSEC_E_PROP_TABLE_SMART_FILTER"] = "Показать в умном фильтре";
 $MESS["IBSEC_E_PROP_TABLE_DISPLAY_TYPE"] = "Вид в умном фильтре";

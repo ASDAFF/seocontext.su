@@ -95,6 +95,7 @@ if(strlen($SITE_ID) > 0)
 	}
 	else
 	{
+		$SITE_ID = $arSite['LID'];
 		$arSite['DOMAINS'] = array();
 
 		$robotsFile = new RobotsFile($SITE_ID);

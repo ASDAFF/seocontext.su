@@ -85,6 +85,8 @@ $splits += array(
 
 // RATES
 
+$scale = array(0.5, 1, 1.5, 2, 5);
+
 if ($rateTypes = RateManager::getTypes(array('ACTIVE' => true)))
 {
 	$topRateName = $_GET['rate'] ?: $userOptions['rate'];
@@ -98,13 +100,15 @@ if ($rateTypes = RateManager::getTypes(array('ACTIVE' => true)))
 		list ($topRateName, $topRateType) = each($rateTypes);
 	}
 
-	$scale = $topRateType['SCALE'];
+	if (is_array($topRateType['SCALE']) && count($topRateType['SCALE']) === 5)
+	{
+		$scale = $topRateType['SCALE'];
+	}
 }
 else
 {
 	$topRateName = null;
 	$topRateType = null;
-	$scale = array(0.5, 1, 1.5, 2, 5);
 }
 
 // FILTER

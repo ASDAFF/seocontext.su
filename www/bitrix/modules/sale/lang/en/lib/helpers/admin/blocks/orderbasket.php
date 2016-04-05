@@ -72,4 +72,6 @@ $MESS["SALE_ORDER_BASKET_POSITION_EXISTS"] = "the product \"#NAME#\" is already 
 $MESS["SALE_ORDER_BASKET_SETTINGS_COL_CUR_AMOUNT"] = "Shipment";
 $MESS["SALE_ORDER_BASKET_SETTINGS_COL_REMAINING_QUANTITY"] = "Qty available";
 $MESS["SALE_ORDER_BASKET_PROMO"] = "Coupon";
+$MESS["SALE_ORDER_BASKET_ACTUALIZE_DATA"] = "Recalculate";
+$MESS["SALE_ORDER_BASKET_COUPONS_NOTE"] = "Discount coupons for goods tied to price types cannot be used.";
 ?>

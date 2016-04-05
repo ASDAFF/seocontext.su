@@ -1210,7 +1210,6 @@ elseif (
 				/Content search
 ********************************************************************/
 
-
 /********************************************************************
 				Buziness-process
 ********************************************************************/
@@ -1223,49 +1222,92 @@ elseif ($componentPage == "bizproc_task_list")
 	$componentPage = "bizproc";
 }
 /********************************************************************
-				/Buziness-process
+				/Business-process
 ********************************************************************/
 if (
 	!in_array($componentPage, array("message_form_mess", "messages_chat", "messages_users_messages"))
 	&& IntVal($arResult["VARIABLES"]["user_id"]) > 0 
 	&& $arResult["VARIABLES"]["user_id"] != $USER->GetID()
-	&& $bExtranetEnabled
-	&& CModule::IncludeModule('extranet') 
-	&& !CExtranet::IsProfileViewableByID($arResult["VARIABLES"]["user_id"]) 
 )
 {
-	if ($componentPage = "user_blog_post")
+	$arContext = array();
+	if (
+		isset($_REQUEST["entityType"])
+		&& strlen($_REQUEST["entityType"]) > 0
+	)
 	{
-		if (
-			isset($arResult["VARIABLES"]["post_id"])
-			&& intval($arResult["VARIABLES"]["post_id"]) > 0
-		)
-		{
-			$rsLog = CSocNetLog::GetList(
-				array(), 
-				array(
-					"EVENT_ID" => array("blog_post", "blog_post_important"),
-					"SOURCE_ID" => intval($arResult["VARIABLES"]["post_id"])
-				),
-				false,
-				false,
-				array("ID"),
-				array(
-					"CHECK_RIGHTS" => "Y"
-				)
-			);
-			if ($arLog = $rsLog->Fetch())
-			{
-				$bAccessFound = true;
-			}
-		}
+		$arContext["ENTITY_TYPE"] = $_REQUEST["entityType"];
 	}
 
-	if (!$bAccessFound)
+	if (
+		isset($_REQUEST["entityId"])
+		&& intval($_REQUEST["entityId"]) > 0
+	)
 	{
-		ShowError(GetMessage("SONET_ACCESS_DENIED"));
-		return;
+		$arContext["ENTITY_ID"] = intval($_REQUEST["entityId"]);
 	}
+
+	if (!CSocNetUser::CanProfileView($USER->GetID(), intval($arResult["VARIABLES"]["user_id"]), SITE_ID, $arContext))
+	{
+		if ($componentPage = "user_blog_post")
+		{
+			if (
+				isset($arResult["VARIABLES"]["post_id"])
+				&& intval($arResult["VARIABLES"]["post_id"]) > 0
+			)
+			{
+				$rsLog = CSocNetLog::GetList(
+					array(),
+					array(
+						"EVENT_ID" => array("blog_post", "blog_post_important"),
+						"SOURCE_ID" => intval($arResult["VARIABLES"]["post_id"])
+					),
+					false,
+					false,
+					array("ID"),
+					array(
+						"CHECK_RIGHTS" => "Y"
+					)
+				);
+				if ($arLog = $rsLog->Fetch())
+				{
+					$bAccessFound = true;
+				}
+			}
+		}
+
+		if (!$bAccessFound)
+		{
+			ShowError(GetMessage("SONET_ACCESS_DENIED"));
+			return;
+		}
+	}
+}
+
+//registering routes for building preview
+Bitrix\Main\UrlPreview\Router::setRouteHandler(
+		$arParams['SEF_FOLDER'].$arUrlTemplates['user_blog_post'],
+		'socialnetwork',
+		'\Bitrix\Socialnetwork\Ui\Preview\Post',
+		array(
+				'postId' => '$post_id',
+				'userId' => '$user_id',
+				'PATH_TO_USER_PROFILE' => $arParams['SEF_FOLDER'].$arUrlTemplates['user'],
+		)
+);
+if(\Bitrix\Main\ModuleManager::isModuleInstalled('tasks'))
+{
+	Bitrix\Main\UrlPreview\Router::setRouteHandler(
+			$arParams['SEF_FOLDER'].$arUrlTemplates['user_tasks_task'],
+			'tasks',
+			'\Bitrix\Tasks\Ui\Preview\Task',
+			array(
+					'taskId' => '$task_id',
+					'userId' => '$user_id',
+					'action' => '$action',
+					'PATH_TO_USER_PROFILE' => $arParams['SEF_FOLDER'].$arUrlTemplates['user'],
+			)
+	);
 }
 
 CUtil::InitJSCore(array("window", "ajax"));

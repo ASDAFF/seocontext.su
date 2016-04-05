@@ -622,58 +622,13 @@ function __blogPostSetFollow(log_id)
 
 window.BXfpdPostSelectCallback = function(item, type, search)
 {
-	if(!BX.findChild(BX('feed-add-post-destination-item-post'), { attr : { 'data-id' : item.id }}, false, false))
-	{
-		var type1 = type;
-		prefix = 'S';
-		if (type == 'sonetgroups')
-			prefix = 'SG';
-		else if (type == 'groups')
-		{
-			prefix = 'UA';
-			type1 = 'all-users';
-		}
-		else if (type == 'users')
-			prefix = 'U';
-		else if (type == 'department')
-			prefix = 'DR';
-
-		var stl = (type == 'sonetgroups' && typeof window['arExtranetGroupID'] != 'undefined' && BX.util.in_array(item.entityId, window['arExtranetGroupID']) ? ' feed-add-post-destination-extranet' : '');
-
-		BX('feed-add-post-destination-item-post').appendChild(BX.create("span", { 
-			attrs : { 
-				'data-id' : item.id 
-			}, 
-			props : { 
-				className : "feed-add-post-destination feed-add-post-destination-"+type1+stl
-			}, 
-			children: [
-				BX.create("input", { attrs : { 'type' : 'hidden', 'name' : 'SPERM['+prefix+'][]', 'value' : item.id }}),
-				BX.create("span", { props : { 'className' : "feed-add-post-destination-text" }, html : item.name}),
-				BX.create("span", { 
-					props : { 
-						'className' : "feed-add-post-del-but"
-					}, 
-					events : {
-						'click' : function(e){
-							BX.SocNetLogDestination.deleteItem(item.id, type, BXSocNetLogDestinationFormNamePost);
-							BX.PreventDefault(e);
-						}, 
-						'mouseover' : function(){
-							BX.addClass(this.parentNode, 'feed-add-post-destination-hover');
-						}, 
-						'mouseout' : function(){
-							BX.removeClass(this.parentNode, 'feed-add-post-destination-hover');
-						}
-					}
-				})
-			]}));
-	}
-
-	BX('feed-add-post-destination-input-post').value = '';
-
-	BX.SocNetLogDestination.BXfpSetLinkName({
-		formName: window.BXSocNetLogDestinationFormNamePost,
+	BX.SocNetLogDestination.BXfpSelectCallback({
+		item: item,
+		type: type,
+		bUndeleted: false,
+		containerInput: BX('feed-add-post-destination-item-post'),
+		valueInput: BX('feed-add-post-destination-input-post'),
+		formName: BXSocNetLogDestinationFormNamePost,
 		tagInputName: 'bx-destination-tag-post',
 		tagLink1: BX.message('BX_FPD_LINK_1'),
 		tagLink2: BX.message('BX_FPD_LINK_2')
@@ -802,6 +757,70 @@ window.sharingPost = function()
 		BX.addClass(BX('sharePostSubmitButton'), 'feed-add-button-load');
 	}
 
+	shareForm.action = actUrl;
+	shareForm.target = '';
+
+	var i, s = "";
+	var n = shareForm.elements.length;
+
+	var delim = '';
+	for(i=0; i<n; i++)
+	{
+		if (s != '') delim = '&';
+		var el = shareForm.elements[i];
+		if (el.disabled)
+			continue;
+
+		switch(el.type.toLowerCase())
+		{
+			case 'text':
+			case 'hidden':
+				s += delim + el.name + '=' + BX.util.urlencode(el.value);
+				break;
+			default:
+				break;
+		}
+	}
+	s += "&save=Y&MODE=RECORD&AJAX_POST=Y&ENTITY_XML_ID=BLOG_" + postId;
+
+	var newNodes = renderSharingPost(postId);
+
+	BX.ajax({
+		'method': 'POST',
+		'dataType': 'json',
+		'url': actUrl,
+		'data': s,
+//		'async': true,
+//		'processData': false,
+		'onsuccess': function(data)
+		{
+			if (
+				typeof data == 'undefined'
+				|| typeof data.status == 'undefined'
+				|| data.status != 'success'
+			)
+			{
+				hideRenderedSharingNodes(newNodes);
+			}
+			else
+			{
+				var true_data = data;
+				BX.onCustomEvent(window, 'OnUCAfterRecordAdd', ['BLOG_' + postId, data, true_data]);
+			}
+		},
+		onfailure: function(data)
+		{
+			hideRenderedSharingNodes(newNodes);
+		}
+	});
+	closeSharing();
+}
+
+window.renderSharingPost = function(postId)
+{
+	var res = [];
+	var nodeId = '';
+
 	var elements = BX.findChildren(BX('feed-add-post-destination-item-post'), {className : 'feed-add-post-destination'}, true);
 	if (elements != null)
 	{
@@ -829,26 +848,36 @@ window.sharingPost = function()
 					type = 'groups';
 				else if(obj.name == "SPERM[U][]")
 					type = 'users';
+				else if(obj.name == "SPERM[UE][]")
+					type = 'users';
 				else if(obj.name == "SPERM[UA][]")
 					type = 'groups';
 
 				if (type.length > 0)
 				{
 					window["postDest" + postId].push({
-						id: id, 
-						name: name, 
+						id: id,
+						name: name,
 						type: type
 					});
-					var destText = BX.create("span", { children: [
-								BX.create("span", {html : ', '}),
-								BX.create("a", {
-									props: {
-										'className': "feed-add-post-destination-new"
-									},
-									href: '', 
-									html : name
-								})
-								]});
+					nodeId = 'post_' + postId + '_dest_' + id
+					res.push(nodeId);
+
+					var destText = BX.create("span", {
+						props: {
+							id: nodeId
+						},
+						children: [
+							BX.create("span", {html : ', '}),
+							BX.create("a", {
+								props: {
+									'className': "feed-add-post-destination-new"
+								},
+								href: '',
+								html : name
+							})
+						]}
+					);
 					if(hiddenDest)
 					{
 						hiddenDest.appendChild(destText);
@@ -862,40 +891,19 @@ window.sharingPost = function()
 		}
 	}
 
-	shareForm.action = actUrl;
-	shareForm.target = '';
+	return res;
+}
 
-	var i, s = "";
-	var n = shareForm.elements.length;
-
-	var delim = '';
-	for(i=0; i<n; i++)
+window.hideRenderedSharingNodes = function(newNodes)
+{
+	var nodeId = false;
+	for(i=0; i<newNodes.length; i++)
 	{
-		if (s != '') delim = '&';
-		var el = shareForm.elements[i];
-		if (el.disabled)
-			continue;
-
-		switch(el.type.toLowerCase())
+		nodeId = newNodes[i];
+		if (BX(nodeId))
 		{
-			case 'text':
-			case 'hidden':
-				s += delim + el.name + '=' + BX.util.urlencode(el.value);
-				break;
-			default:
-				break;
+			BX.cleanNode(BX(nodeId), true);
 		}
 	}
-	s += "&save=Y"
 
-	BX.ajax({
-		'method': 'POST',
-		'dataType': 'html',
-		'url': actUrl,
-		'data': s,
-		'async': true,
-		'processData': false
-
-	});
-	closeSharing();
 }

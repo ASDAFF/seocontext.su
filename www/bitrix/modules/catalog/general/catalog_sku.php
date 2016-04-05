@@ -605,6 +605,7 @@ class CAllCatalogSKU
 			$iblockFields = $fields;
 			$iblockFields[] = $skuProperty;
 			$skuProperty .= '_VALUE';
+			$skuPropertyId = $skuProperty.'_ID';
 			$offersLinks = array();
 
 			$offersIterator = CIBlockElement::GetList(
@@ -618,6 +619,8 @@ class CAllCatalogSKU
 			{
 				$offerProduct = (int)$offer[$skuProperty];
 				unset($offer[$skuProperty]);
+				if (isset($offer[$skuPropertyId]))
+					unset($offer[$skuPropertyId]);
 				if (!isset($result[$offerProduct]))
 					continue;
 				$offer['ID'] = (int)$offer['ID'];
@@ -808,6 +811,7 @@ class CAllCatalogSKU
 		self::$arProductCache = array();
 		self::$arPropertyCache = array();
 		self::$arIBlockCache = array();
+		self::$parentCache = array();
 	}
 }
 

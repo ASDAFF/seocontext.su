@@ -86,8 +86,9 @@ class CBPWhileActivity
 	{
 		$this->cycleCounter++;
 		if ($this->cycleCounter > self::CYCLE_LIMIT)
-			throw new Exception('Cycle limit exceed');
-
+		{
+			throw new Exception(GetMessage("BPWA_CYCLE_LIMIT"));
+		}
 		if (($this->executionStatus == CBPActivityExecutionStatus::Canceling) || ($this->executionStatus == CBPActivityExecutionStatus::Faulting))
 			return false;
 

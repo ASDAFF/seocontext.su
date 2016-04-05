@@ -169,6 +169,10 @@ class LiveFeedAjaxController extends Controller
 		));
 	}
 
+	/**
+	 * Displays a form to fill constants
+	 * return html
+	 */
 	protected function processActionSetResponsible()
 	{
 		$this->checkRequiredPostParams(array('iblockId'));
@@ -190,15 +194,32 @@ class LiveFeedAjaxController extends Controller
 		}
 
 		$documentType = BizprocDocument::generateDocumentComplexType(COption::GetOptionString("lists", "livefeed_iblock_type_id"), $this->iblockId);
-		$templateObject = CBPWorkflowTemplateLoader::getTemplatesList(
+		$templateQuery = CBPWorkflowTemplateLoader::getTemplatesList(
 			array('ID' => 'DESC'),
 			array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
 			false,
 			false,
-			array('ID')
+			array('ID', 'NAME')
 		);
-		$template = $templateObject->fetch();
-		if(empty($template))
+		$html = '';
+		while($template = $templateQuery->fetch())
+		{
+			$html .= '<span class="bx-lists-template-name">'.htmlspecialcharsbx($template['NAME']).'</span>';
+			ob_start();
+			$this->getApplication()->includeComponent(
+				'bitrix:bizproc.workflow.setconstants',
+				'',
+				Array(
+					'ID' => $template['ID'],
+					'POPUP' => 'Y'
+				)
+			);
+			$html .= ob_get_contents();
+			ob_end_clean();
+			$html .= '<hr class="bx-lists-constants-form-hr">';
+		}
+
+		if(empty($html))
 		{
 			$this->errorCollection->add(array(new Error(Loc::getMessage('LISTS_NOT_BIZPROC_TEMPLATE_NEW'))));
 		}
@@ -208,15 +229,7 @@ class LiveFeedAjaxController extends Controller
 			ShowError($errorObject->getMessage());
 			return;
 		}
-
-		$this->getApplication()->includeComponent(
-			'bitrix:bizproc.workflow.setconstants',
-			'',
-			Array(
-				'ID' => $template['ID'],
-				'POPUP' => 'Y'
-			)
-		);
+		echo $html;
 	}
 
 	protected function processActionIsConstantsTuned()
@@ -237,16 +250,10 @@ class LiveFeedAjaxController extends Controller
 		{
 			$this->sendJsonErrorResponse();
 		}
-		$documentType = BizprocDocument::generateDocumentComplexType(COption::GetOptionString("lists", "livefeed_iblock_type_id"), $this->iblockId);
-		$templateObject = CBPWorkflowTemplateLoader::getTemplatesList(
-			array('ID' => 'DESC'),
-			array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
-			false,
-			false,
-			array('ID')
-		);
-		$template = $templateObject->fetch();
-		if(empty($template))
+
+		$templateData = $this->getTemplatesIdList($this->iblockId);
+
+		if(empty($templateData))
 		{
 			$this->errorCollection->add(array(new Error(Loc::getMessage('LISTS_NOT_BIZPROC_TEMPLATE_NEW'))));
 		}
@@ -259,19 +266,55 @@ class LiveFeedAjaxController extends Controller
 		if($this->listPerm < CListPermissions::IS_ADMIN && !CIBlockRights::UserHasRightTo($this->iblockId, $this->iblockId, 'iblock_edit'))
 			$admin = false;
 
-		if(CBPWorkflowTemplateLoader::isConstantsTuned($template['ID']))
+		$isConstantsTuned = true;
+		foreach($templateData as $templateId)
+		{
+			if(!CBPWorkflowTemplateLoader::isConstantsTuned($templateId))
+				$isConstantsTuned = false;
+		}
+		if($isConstantsTuned)
 		{
 			$this->sendJsonSuccessResponse(array(
-				'templateId' => $template['ID'],
+				'templateData' => $templateData,
 			));
 		}
 		else
 		{
 			$this->sendJsonSuccessResponse(array(
 				'admin' => $admin,
-				'templateId' => $template['ID'],
+				'templateData' => $templateData,
 			));
 		}
+	}
+
+	/**
+	 * @param $iblockId
+	 * @return array
+	 */
+	protected function getTemplatesIdList($iblockId)
+	{
+		if(!Loader::includeModule('bizproc'))
+		{
+			return array();
+		}
+
+		$documentType = BizprocDocument::generateDocumentComplexType(
+			COption::GetOptionString("lists", "livefeed_iblock_type_id"),
+			$iblockId
+		);
+		$templateQuery = CBPWorkflowTemplateLoader::getTemplatesList(
+			array('ID' => 'DESC'),
+			array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
+			false,
+			false,
+			array('ID')
+		);
+		$templateData = array();
+		while($template = $templateQuery->fetch())
+		{
+			$templateData[$template['ID']] = $template['ID'];
+		}
+		return $templateData;
 	}
 
 	protected function processActionGetListAdmin()
@@ -430,15 +473,22 @@ class LiveFeedAjaxController extends Controller
 			$this->sendJsonErrorResponse();
 		}
 		$documentType = BizprocDocument::generateDocumentComplexType(COption::GetOptionString("lists", "livefeed_iblock_type_id"), $this->iblockId);
-		$templateObject = CBPWorkflowTemplateLoader::getTemplatesList(
+		$templateQuery = CBPWorkflowTemplateLoader::getTemplatesList(
 			array('ID' => 'DESC'),
 			array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
 			false,
 			false,
-			array('ID')
+			array('ID', 'NAME')
 		);
-		$template = $templateObject->fetch();
-		if(empty($template))
+		$isAvailable = false;
+		$templateData = array();
+		while($template = $templateQuery->fetch())
+		{
+			$isAvailable = true;
+			$templateData[$template['ID']]['ID'] = $template['ID'];
+			$templateData[$template['ID']]['NAME'] = $template['NAME'];
+		}
+		if(!$isAvailable)
 		{
 			$this->errorCollection->add(array(new Error(Loc::getMessage('LISTS_NOT_BIZPROC_TEMPLATE_NEW'))));
 		}
@@ -446,9 +496,15 @@ class LiveFeedAjaxController extends Controller
 		{
 			$this->sendJsonErrorResponse();
 		}
+		$manyTemplate = false;
+		if(count($templateData) > 1)
+		{
+			$manyTemplate = true;
+		}
 
 		$this->sendJsonSuccessResponse(array(
-			'templateId' => $template['ID'],
+			'templateData' => $templateData,
+			'manyTemplate' => $manyTemplate
 		));
 	}
 
@@ -552,8 +608,13 @@ class LiveFeedAjaxController extends Controller
 				$userGroups = CUser::getUserGroup($userId);
 				if(!in_array(1, $userGroups))
 				{
-					$userQuery = CUser::getByID($userId);
-					if ($user = $userQuery->getNext())
+					$userQuery = CUser::getList(
+						$by = 'ID', $order = 'ASC',
+						array('ID' => $userId),
+						array('FIELDS' => array('ID' ,'LOGIN', 'NAME', 'LAST_NAME', 'SECOND_NAME', 'TITLE', 'EMAIL')
+						)
+					);
+					if ($user = $userQuery->fetch())
 					{
 						$listUser[$count]['id'] = $right['GROUP_CODE'];
 						$listUser[$count]['name'] = CUser::formatName($nameTemplate, $user, false);
@@ -608,14 +669,26 @@ class LiveFeedAjaxController extends Controller
 			$this->sendJsonErrorResponse();
 		}
 
-		$templateId = intval($_POST['TEMPLATE_ID']);
 		$documentType = BizprocDocument::generateDocumentComplexType(COption::GetOptionString("lists", "livefeed_iblock_type_id"), $this->iblockId);
 
-		if(!empty($templateId))
+		$templateIdString = $_POST['TEMPLATE_ID'];
+		$templateData = explode(',', $templateIdString);
+
+		if(!empty($templateData))
 		{
 			if(CModule::IncludeModule('bizproc'))
 			{
-				if(!CBPWorkflowTemplateLoader::isConstantsTuned($templateId))
+				$isConstantsTuned = true;
+				foreach($templateData as $templateId)
+				{
+					if(!empty($templateId))
+					{
+						if(!CBPWorkflowTemplateLoader::isConstantsTuned($templateId))
+							$isConstantsTuned = false;
+					}
+				}
+
+				if(!$isConstantsTuned)
 				{
 					$this->errorCollection->add(array(new Error(Loc::getMessage('LISTS_IS_CONSTANTS_TUNED_NEW'))));
 					$this->sendJsonErrorResponse();
@@ -626,17 +699,17 @@ class LiveFeedAjaxController extends Controller
 		{
 			if(CModule::IncludeModule("bizproc"))
 			{
-				$templateObject = CBPWorkflowTemplateLoader::getTemplatesList(
-					array('ID' => 'DESC'),
-					array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
-					false,
-					false,
-					array('ID')
-				);
-				$template = $templateObject->fetch();
-				if(!empty($template))
+				$templateData = $this->getTemplatesIdList($this->iblockId);
+
+				if(!empty($templateData))
 				{
-					if(!CBPWorkflowTemplateLoader::isConstantsTuned($template["ID"]))
+					$isConstantsTuned = true;
+					foreach($templateData as $templateId)
+					{
+						if(!CBPWorkflowTemplateLoader::isConstantsTuned($templateId))
+							$isConstantsTuned = false;
+					}
+					if(!$isConstantsTuned)
 					{
 						$this->errorCollection->add(array(new Error(Loc::getMessage('LISTS_IS_CONSTANTS_TUNED_NEW'))));
 						$this->sendJsonErrorResponse();
@@ -809,6 +882,7 @@ class LiveFeedAjaxController extends Controller
 		}
 
 		$bizprocParametersValues = array();
+		$stringError = '';
 		foreach ($documentStates as $documentState)
 		{
 			if(strlen($documentState["ID"]) <= 0)
@@ -820,7 +894,6 @@ class LiveFeedAjaxController extends Controller
 					$documentType,
 					$errors
 				);
-				$stringError = '';
 				foreach($errors as $e)
 					$stringError .= $e['message'].'<br />';
 			}
@@ -1216,7 +1289,7 @@ class LiveFeedAjaxController extends Controller
 					'height' => '200px',
 					'iblockId' => ''
 				);
-				if($field["MULTIPLE"] == "Y")
+				if($field["MULTIPLE"] == "Y"  && $field["TYPE"] != "S:DiskFile")
 				{
 					$checkHtml = false;
 					$html = '<table id="tbl'.$fieldId.'">';
@@ -1227,6 +1300,7 @@ class LiveFeedAjaxController extends Controller
 							$checkHtml = true;
 							$fieldIdForHtml = 'id_'.$fieldId.'__'.$key.'_';
 							$fieldNameForHtml = $fieldId."[".$key."][VALUE][TEXT]";
+							$html .= '<input type="hidden" name="'.$fieldId.'['.$key.'][VALUE][TYPE]" value="html">';
 							$html .= '<tr><td>'.$this->connectionHtmlEditor($fieldIdForHtml, $fieldNameForHtml, $params, is_array($value['VALUE']) ? $value['VALUE']['TEXT']: '').'</td></tr>';
 						}
 						elseif($field['TYPE'] == 'S:DateTime')
@@ -1299,6 +1373,7 @@ class LiveFeedAjaxController extends Controller
 						{
 							$fieldNameForHtml = $fieldId."[".$key."][VALUE][TEXT]";
 							$html = $this->connectionHtmlEditor($fieldId, $fieldNameForHtml, $params, is_array($value['VALUE']) ? $value['VALUE']['TEXT']: '');
+							$html .= '<input type="hidden" name="'.$fieldId.'['.$key.'][VALUE][TYPE]" value="html">';
 						}
 						elseif($field['TYPE'] == 'S:DateTime')
 						{
@@ -1684,6 +1759,7 @@ class LiveFeedAjaxController extends Controller
 			if($viewWorkflow)
 			{
 				$templateId = intval($documentState['TEMPLATE_ID']);
+				$templateName = $documentState['TEMPLATE_NAME'];
 				$workflowParameters = $documentState['TEMPLATE_PARAMETERS'];
 				if(!is_array($workflowParameters))
 					$workflowParameters = array();
@@ -1725,7 +1801,8 @@ class LiveFeedAjaxController extends Controller
 							"title" => $arParameter["Description"],
 							"type" => "custom",
 							"value" => $html,
-							'show' => 'Y'
+							'show' => 'Y',
+							'templateName' => $templateName
 						);
 					}
 				}
@@ -1823,6 +1900,7 @@ class LiveFeedAjaxController extends Controller
 	protected function createHtml($method)
 	{
 		$classTable = '';
+		$manyParameters = false;
 		if($method == 'lists')
 		{
 			$dataArray = $this->lists['PREPARED_FIELDS'];
@@ -1846,19 +1924,16 @@ class LiveFeedAjaxController extends Controller
 				case 'bitrix_holiday':
 					$blueDudeId = 1304136;
 					break;
-
 				default:
 					$blueDudeId = 0;
 					break;
 			}
-			if(!IsModuleInstalled('bitrix24'))
-				$blueDudeId = 0;
 			?>
 			<div class="bx-lists-iblock-description">
 				<?= nl2br($this->iblockDescription) ?>
 				<? if(!empty($blueDudeId)): ?>
 					<br><br>
-					<a style="cursor:pointer;" onclick='BX.Bitrix24.Helper.show("redirect=detail&HD_SOURCE=article&HD_ID=<?=$blueDudeId ?>");'>
+					<a style="cursor:pointer;" onclick='BX.Helper.show("redirect=detail&HD_SOURCE=article&HD_ID=<?=$blueDudeId ?>");'>
 						<?= Loc::getMessage('LISTS_IS_DESRIPTION_DETAIL') ?>
 					</a>
 				<? endif; ?>
@@ -1872,17 +1947,32 @@ class LiveFeedAjaxController extends Controller
 			$classTable = 'bx-lists-table-content-bizproc';
 			$dataArray = $this->lists['BIZPROC_FIELDS'];
 			if(!empty($dataArray)):
-				?>
+				if(count($dataArray) > 1)
+				{
+					$title = Loc::getMessage('LISTS_BIZPROC_PARAMETERS');
+					$manyParameters = true;
+				}
+				else
+					$title = Loc::getMessage('LISTS_IS_BIZPROC_PARAMETERS');
+			?>
+
 				<div class="bx-lists-bizproc-parameters-title">
-					<?= Loc::getMessage('LISTS_IS_BIZPROC_PARAMETERS') ?>
+					<?= $title ?>
 				</div>
-				<?
-			endif;
+
+			<?endif;
 		}
 
 		if(!empty($dataArray)):
 		?><table class="bx-lists-table-content <?= $classTable ?>"><?
 			foreach($dataArray as $field):
+
+				if($method == 'bizproc' && $manyParameters): ?>
+					<tr class="bx-lists-bp-parameters-template">
+						<td colspan="2"><?= $field["templateName"] ?></td>
+					</tr>
+				<? endif;
+
 				$val = (isset($field['value'])? $field['value'] : $this->lists['FORM_DATA'][$field['id']]);
 				$params = '';
 				if(is_array($field['params']) && $field['type'] <> 'file')

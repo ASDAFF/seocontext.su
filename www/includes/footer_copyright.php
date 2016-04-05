@@ -1,1 +1,1 @@
-Copyright В© 2015 - <a href="/">Студия СеоКонтекст</a>
+Copyright © 2015 - 2016 <a href="/" titile="Digital-студия SeoContext">Студия СеоКонтекст</a>

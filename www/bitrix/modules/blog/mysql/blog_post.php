@@ -21,7 +21,7 @@ class CBlogPost extends CAllBlogPost
 
 		if (!CBlogPost::CheckFields("ADD", $arFields))
 			return false;
-		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_POST", 0, $arFields))
+		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_POST", 0, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false)))
 			return false;
 
 		foreach(GetModuleEvents("blog", "OnBeforePostAdd", true) as $arEvent)
@@ -71,7 +71,7 @@ class CBlogPost extends CAllBlogPost
 			foreach(GetModuleEvents("blog", "OnBeforePostUserFieldUpdate", true) as $arEvent)
 				ExecuteModuleEventEx($arEvent, Array("BLOG_POST", $ID, $arFields));
 
-			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_POST", $ID, $arFields);
+			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_POST", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false));
 		}
 
 		if ($ID)
@@ -263,7 +263,7 @@ class CBlogPost extends CAllBlogPost
 
 		if (!CBlogPost::CheckFields("UPDATE", $arFields, $ID))
 			return false;
-		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_POST", $ID, $arFields))
+		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_POST", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false)))
 			return false;
 
 		foreach(GetModuleEvents("blog", "OnBeforePostUpdate", true) as $arEvent)
@@ -312,7 +312,7 @@ class CBlogPost extends CAllBlogPost
 			foreach(GetModuleEvents("blog", "OnBeforePostUserFieldUpdate", true) as $arEvent)
 				ExecuteModuleEventEx($arEvent, Array("BLOG_POST", $ID, $arFields));
 
-			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_POST", $ID, $arFields);
+			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_POST", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false));
 		}
 		else
 		{
@@ -539,6 +539,10 @@ class CBlogPost extends CAllBlogPost
 		}
 
 		BXClearCache(true, '/blog/socnet_post/gen/'.intval($ID / 100)."/".$ID);
+		if(defined("BX_COMP_MANAGED_CACHE"))
+		{
+			$GLOBALS["CACHE_MANAGER"]->ClearByTag("blog_post_".$ID);
+		}
 
 		return $ID;
 	}

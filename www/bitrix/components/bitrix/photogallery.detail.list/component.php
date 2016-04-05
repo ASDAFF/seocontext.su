@@ -594,6 +594,11 @@ if (!is_array($arResult["ELEMENTS_LIST"]) || empty($arResult["ELEMENTS_LIST"]))
 				$fileId = $obFile['ID'];
 				$obFile["SRC"] = CFile::GetFileSRC($obFile);
 
+				$io = CBXVirtualIo::GetInstance();
+				$fName = $io->ExtractNameFromPath($obFile["SRC"]);
+				$fPath = $io->ExtractPathFromPath($obFile["SRC"]);
+				$obFile["SRC"] = $fPath.'/'.urlencode($fName);
+
 				if ($ind = $arFileIndex[$fileId])
 				{
 					$arElements[$ind]["PICTURE"] = $obFile;

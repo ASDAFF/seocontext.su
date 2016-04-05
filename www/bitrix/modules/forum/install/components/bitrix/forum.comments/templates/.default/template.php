@@ -5,6 +5,7 @@
  * @var array $arResult
  */
 CUtil::InitJSCore(array('ajax'));
+$request = \Bitrix\Main\Context::getCurrent()->getRequest();
 // ************************* Input params***************************************************************
 ?>
 <div class="feed-wrap">
@@ -38,13 +39,13 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 
 		"ERROR_MESSAGE" => $arResult["ERROR_MESSAGE"],
 		"OK_MESSAGE" => $arResult["OK_MESSAGE"],
-		"RESULT" => $arResult["RESULT"],
+		"RESULT" => ($arResult["RESULT"] ?: $request->getQuery("MID")),
 		"PUSH&PULL" => $arResult["PUSH&PULL"],
 		"VIEW_URL" => ($arParams["SHOW_LINK_TO_MESSAGE"] == "Y" ? $link : ""),
 		"EDIT_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "GET"), false, false),
 		"MODERATE_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "#ACTION#"), false, false),
 		"DELETE_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "DEL"), false, false),
-		"AUTHOR_URL" => $arParams["PATH_TO_USER"],
+		"AUTHOR_URL" => $arParams["URL_TEMPLATES_PROFILE_VIEW"],
 
 		"AVATAR_SIZE" => $arParams["AVATAR_SIZE_COMMENT"],
 		"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"],
@@ -59,6 +60,7 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 		"SHOW_POST_FORM" => $arResult["SHOW_POST_FORM"],
 
 		"IMAGE_SIZE" => $arParams["IMAGE_SIZE"],
+		"BIND_VIEWER" => $arParams["BIND_VIEWER"],
 		"mfi" => $arParams["mfi"]
 	),
 	$this->__component

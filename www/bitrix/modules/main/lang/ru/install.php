@@ -315,4 +315,5 @@ $MESS["MP_MORE"] = "Подробнее";
 $MESS["MP_COUPON"] = "Купон";
 $MESS["MP_ACTIVATE"] = "Активировать";
 $MESS["SC_EA_ER"] = "Модуль PHP eAccelerator не поддерживается.";
+$MESS["ERR_DATABASE_NAME"] = "Неверное имя базы данных.";
 ?>

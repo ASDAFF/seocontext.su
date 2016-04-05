@@ -45,8 +45,8 @@ class CBPCalendar2Activity
 		if ($fromTs == $toTs && !$arFields["SKIP_TIME"])
 			$toTs += 3600 /* HOUR LENGTH*/;
 
-		$arFields['DT_FROM_TS'] = $fromTs;
-		$arFields['DT_TO_TS'] = $toTs;
+		$arFields['DATE_FROM'] = CCalendar::Date($fromTs);
+		$arFields['DATE_TO'] = CCalendar::Date($toTs);
 
 		if ($this->CalendarSection && intVal($this->CalendarSection) > 0)
 		{

@@ -669,4 +669,4 @@ if (!empty($arResult['ITEMS']))
 <?
 }
 
-$frame->end();?>
+$frame->end();

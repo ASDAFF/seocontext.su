@@ -47,7 +47,8 @@ window.__blogEditComment = function(key, postId){
 			arImages : top["arComFiles"+key],
 			arDocs : top["arComDocs"+key],
 			arFiles : top["arComFilesUf"+key],
-			arDFiles : top["arComDFiles"+key]}
+			arDFiles : top["arComDFiles"+key],
+			UrlPreview : top["UrlPreview"+key]}
 	};
 	BX.onCustomEvent(window, 'OnUCAfterRecordEdit', ['BLOG_' + postId, key, data, 'EDIT']);
 };
@@ -139,6 +140,11 @@ window.onLightEditorShow = function(content, data){
 			USER_TYPE_ID : "disk_file",
 			FIELD_NAME : "UF_BLOG_COMMENT_FILE[]",
 			VALUE : BX.clone(data["arDFiles"])};
+	if (data["UrlPreview"])
+		res["UF_BLOG_COMMENT_URL_PRV"] = {
+			USER_TYPE_ID : "url_preview",
+			FIELD_NAME : "UF_BLOG_COMMENT_URL_PRV",
+			VALUE : BX.clone(data["UrlPreview"])};
 	LHEPostForm.reinitData(SBPC.editorId, content, res);
 	if (data["arImages"])
 	{

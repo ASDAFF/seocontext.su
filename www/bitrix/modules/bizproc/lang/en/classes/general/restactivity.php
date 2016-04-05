@@ -14,4 +14,6 @@ $MESS["BPRA_PD_TIME_H"] = "hours";
 $MESS["BPRA_PD_TIME_M"] = "minutes";
 $MESS["BPRA_PD_TIME_S"] = "seconds";
 $MESS["BPRA_PD_ERROR_EMPTY_PROPERTY"] = "This field is required: #NAME#";
+$MESS["BPRA_PD_TIMEOUT_LIMIT"] = "Minimum wait time";
+$MESS["BPRA_NOT_FOUND_ERROR"] = "Application activity is not installed.";
 ?>

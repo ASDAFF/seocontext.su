@@ -40,6 +40,18 @@ $GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/report/construct.js');
 
 CJSCore::Init(array('date'));
 
+// filter fields selectors
+if (is_array($arResult['ufInfo']))
+{
+	$APPLICATION->IncludeComponent(
+		'bitrix:report.filter.field.selector',
+		'',
+		array('ufInfo' => $arResult['ufInfo']),
+		false,
+		array('HIDE_ICONS' => true)
+	);
+}
+
 ?>
 
 <script type="text/javascript">
@@ -1031,24 +1043,6 @@ $name = $APPLICATION->IncludeComponent(
 		"ON_SELECT" => "RTFilter_chooseGroupCatch", //callback
 	), null, array("HIDE_ICONS" => "Y")
 );
-
-?>
-
-
-<!-- filter fields selectors -->
-
-<?php
-
-if (is_array($arResult['ufInfo']))
-{
-	$APPLICATION->IncludeComponent(
-		'bitrix:report.filter.field.selector',
-		'',
-		array('ufInfo' => $arResult['ufInfo']),
-		false,
-		array('HIDE_ICONS' => true)
-	);
-}
 
 ?>
 

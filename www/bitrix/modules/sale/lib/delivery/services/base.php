@@ -2,9 +2,11 @@
 namespace Bitrix\Sale\Delivery\Services;
 
 use Bitrix\Main\Event;
+use Bitrix\Sale\Result;
 use Bitrix\Sale\Delivery;
 use Bitrix\Sale\Shipment;
 use Bitrix\Main\EventResult;
+use Bitrix\Sale\Internals\Input;
 use Bitrix\Main\SystemException;
 use Bitrix\Main\Localization\Loc;
 
@@ -20,22 +22,26 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/sale/lib/delivery/inputs
  */
 abstract class Base
 {
-	public $name = "";
-	public $description = "";
-	public $parentId = 0;
-
-	public $id = 0;
-
-	public $sort = 100;
-	public $logotip = 0;
-
-	public $countPriceImmediately = false;
-
-	protected $extraServices = array();
+	protected $id = 0;
+	protected $name = "";
 	protected $code = "";
-	protected $active = false;
-	protected $config = array();
+	protected $sort = 100;
+	protected $logotip = 0;
+	protected $parentId = 0;
 	protected $currency = "";
+	protected $active = false;
+	protected $description = "";
+	protected $config = array();
+	protected $restricted = false;
+	protected $trackingClass = "";
+	protected $extraServices = array();
+	protected $trackingParams = array();
+	protected $allowEditShipment = array();
+
+	protected static $isProfile = false;
+	protected static $canHasProfiles = false;
+	protected static $isCalculatePriceImmediately = false;
+	protected static $whetherAdminExtraServicesShow = false;
 
 	const EVENT_ON_CALCULATE = "onSaleDeliveryServiceCalculate";
 
@@ -89,6 +95,14 @@ abstract class Base
 		if(isset($initParams["CURRENCY"]))
 			$this->currency = $initParams["CURRENCY"];
 
+		if(isset($initParams["ALLOW_EDIT_SHIPMENT"]))
+			$this->allowEditShipment = $initParams["ALLOW_EDIT_SHIPMENT"];
+
+		if(isset($initParams["RESTRICTED"]))
+			$this->restricted = $initParams["RESTRICTED"];
+
+		$this->trackingParams = is_array($initParams["TRACKING_PARAMS"]) ? $initParams["TRACKING_PARAMS"] : array();
+
 		if(isset($initParams["EXTRA_SERVICES"]))
 			$this->extraServices = new \Bitrix\Sale\Delivery\ExtraServices\Manager($initParams["EXTRA_SERVICES"], $this->currency);
 		elseif($this->id > 0)
@@ -100,9 +114,10 @@ abstract class Base
 	/**
 	 * Calculates delivery price
 	 * @param \Bitrix\Sale\Shipment $shipment.
+	 * @param array $extraServices.
 	 * @return \Bitrix\Sale\Delivery\CalculationResult
 	 */
-	public function calculate(\Bitrix\Sale\Shipment $shipment = null) // null for compability with old configurable services
+	public function calculate(\Bitrix\Sale\Shipment $shipment = null, $extraServices = array()) // null for compability with old configurable services api
 	{
 		if($shipment && !$shipment->getCollection())
 			return false;
@@ -111,10 +126,10 @@ abstract class Base
 
 		if($shipment)
 		{
-			$this->extraServices->setValues(
-				$shipment->getExtraServices()
-			);
+			if(empty($extraServices))
+				$extraServices = $shipment->getExtraServices();
 
+			$this->extraServices->setValues($extraServices);
 			$this->extraServices->setOperationCurrency($shipment->getCurrency());
 			$extraServicePrice = $this->extraServices->getTotalCost();
 
@@ -211,7 +226,6 @@ abstract class Base
 	 * @return array
 	 * @throws SystemException
 	 */
-
 	public function prepareFieldsForSaving(array $fields)
 	{
 		$strError = "";
@@ -286,7 +300,6 @@ abstract class Base
 	 * @return array
 	 * @throws SystemException
 	 */
-
 	public function getConfig()
 	{
 		$configStructure = $this->getConfigStructure();
@@ -330,7 +343,7 @@ abstract class Base
 	 */
 	public static function canHasProfiles()
 	{
-		return false;
+		return self::$canHasProfiles;
 	}
 
 	/**
@@ -338,10 +351,7 @@ abstract class Base
 	 */
 	public static function getChildrenClassNames()
 	{
-		$classNamesList = Manager::getHandlersClassNames();
-		unset($classNamesList[array_search('\Bitrix\Sale\Delivery\Services\Group', $classNamesList)]);
-		unset($classNamesList[array_search('\Bitrix\Sale\Delivery\Services\AutomaticProfile', $classNamesList)]);
-		return $classNamesList;
+		return array();
 	}
 
 	/**
@@ -366,6 +376,30 @@ abstract class Base
 	public function getName()
 	{
 		return $this->name;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getDescription()
+	{
+		return $this->description;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getParentId()
+	{
+		return $this->parentId;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function getSort()
+	{
+		return $this->sort;
 	}
 
 	/**
@@ -443,15 +477,34 @@ abstract class Base
 	*/
 	public static function whetherAdminExtraServicesShow()
 	{
-		return false;
+		return self::$whetherAdminExtraServicesShow;
 	}
 
 	/**
-	 * @param $serviceId
+	 * @param int $serviceId
 	 * @param array $fields
 	 * @return bool
 	 */
 	public static function onAfterAdd($serviceId, array $fields = array())
+	{
+		return true;
+	}
+
+	/**
+	 * @param int $serviceId
+	 * @param array $fields
+	 * @return bool
+	 */
+	public static function onAfterUpdate($serviceId, array $fields = array())
+	{
+		return true;
+	}
+
+	/**
+	 * @param int $serviceId
+	 * @return bool
+	 */
+	public static function onAfterDelete($serviceId)
 	{
 		return true;
 	}
@@ -476,8 +529,130 @@ abstract class Base
 	/**
 	 * @return bool
 	 */
-	public function isProfile()
+	public static function isProfile()
 	{
-		return false;
+		return self::$isProfile;
+	}
+
+	/**
+	 * @return string Class name inherited from \Bitrix\Sale\Delivery\Tracking\Base
+	 */
+	public function getTrackingClass()
+	{
+		return $this->trackingClass;
+	}
+
+	/**
+	 * @param string $class Class name inherited from \Bitrix\Sale\Delivery\Tracking\Base
+	 */
+	public function setTrackingClass($class)
+	{
+		$this->trackingClass = $class;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getTrackingParams()
+	{
+		return $this->trackingParams;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isCalculatePriceImmediately()
+	{
+		return self::$isCalculatePriceImmediately;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isRestricted()
+	{
+		return $this->restricted;
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function onGetBusinessValueConsumers()
+	{
+		return array();
+	}
+
+	/**
+	 * @return bool
+	 */
+	public static function isInstalled()
+	{
+		return true;
+	}
+
+	public static function install()
+	{
+		return true;
+	}
+
+	public static function unInstall()
+	{
+		return true;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function isAllowEditShipment()
+	{
+		return $this->allowEditShipment != 'N';
+	}
+
+	/**
+	 * Show message on service edit page.
+	 * @return array
+	 * array("MESSAGE"=>"", "TYPE"=>("ERROR"|"OK"|"PROGRESS"), "DETAILS"=>"", "HTML"=>true)
+	 * @see \CAdminMessage::CAdminMessage
+	 */
+	public function getAdminMessage()
+	{
+		return array();
+	}
+
+	/**
+	 * Execute some code on service edit page if need.
+	 * @return Result
+	 */
+	public function execAdminAction()
+	{
+		return new Result();
+	}
+
+	/**
+	 * @param Shipment $shipment
+	 * @return array
+	 */
+	public function getAdditionalInfoShipmentEdit(Shipment $shipment)
+	{
+		return array();
+	}
+
+	/**
+	 * @param Shipment $shipment
+	 * @param array $requestData
+	 * @return Shipment|null
+	 */
+	public function processAdditionalInfoShipmentEdit(Shipment $shipment, array $requestData)
+	{
+		return $shipment;
+	}
+
+	/**
+	 * @param Shipment $shipment
+	 * @return array
+	 */
+	public function getAdditionalInfoShipmentView(Shipment $shipment)
+	{
+		return array();
 	}
 }

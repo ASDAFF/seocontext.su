@@ -237,7 +237,7 @@ input.bxu-file-input{
 }
 
 .bxu-start-block-cont {
-	top: 12%;
+	top: 7%;
 	left: 9.5%;
 	position: absolute;
 	width: 81%;
@@ -276,6 +276,7 @@ input.bxu-file-input{
 	display: block;
 	width: 75%;
 	margin: 5% auto 2.5%;
+	min-width: 630px;
 	overflow: hidden;
 }
 .bxu-start-block-spacer-img {
@@ -294,7 +295,6 @@ input.bxu-file-input{
 	position: absolute !important;
 	right: 0 !important;
 	top: 0 !important;
-	filter: alpha(opacity=0)!important;
 	z-index: 120;
 }
 
@@ -312,6 +312,7 @@ input.bxu-file-input{
 	border-radius: 4px;
 	height: 34px;
 	margin: 0 -2px;
+	overflow: hidden;
 	padding:7px 21px 0 20px;
 	position: relative;
 	z-index: 2;
@@ -515,10 +516,10 @@ input.bxu-file-input{
 	display: inline-block;
 	margin-bottom: 35px;
 	max-width: 380px;
+	min-width: 210px;
 	vertical-align: top;
 	width: 16.6%;
 }
-
 
 .bxu-item-block {
 	background-color: #fff;
@@ -727,14 +728,12 @@ input.bxu-file-input{
 	color: #4f5d67;
 	display: block;
 	font-size: 14px;
-	font-weight: bold;
 	margin-top: 10px;
 }
 
 
 
 .bxu-bottom-block {
-	height: 61px;
 	overflow: hidden;
 	padding: 0 12px 0 28px;
 }
@@ -780,6 +779,7 @@ input.bxu-file-input{
 
 .bxu-main-block-reduced-size .bxu-item {
 	max-width: 192px;
+	min-width: 144px;
 	width: 20%;
 }
 
@@ -839,7 +839,9 @@ input.bxu-file-input{
 	height: 27px;
 }
 .bxu-main-block-reduced-size .bxu-error-text {
-	font-size: 12px;
+	font-size: 11px;
+	margin-top: 7px;
+	font-weight: normal;
 }
 
 
@@ -850,7 +852,7 @@ input.bxu-file-input{
 	.bxu-main-block-reduced-size .bxu-item {
 		max-width: 100%;
 		width: 20%;
-    }
+	}
 
 	.bxu-start-block-text {
 	  font-size: 23px;
@@ -925,63 +927,126 @@ input.bxu-file-input{
 
 /* Webforms buttons */
 
-.bxu-thumbnails .webform-button, .webform-button-left, .webform-button-right, .webform-button-text {
-	display: inline-block; vertical-align: top !important; height:36px; line-height:36px; cursor:pointer; text-decoration:none !important; outline:none; white-space: nowrap;
+.bxu-thumbnails .webform-button {
+	background: #ecedef;
+	-webkit-box-shadow: 0 0 0 1px #c6cdd3 inset;
+	box-shadow: 0 0 0 1px #c6cdd3 inset;
+	border-radius: 2px;
+	cursor: pointer;
+	color: #7a818a;
+	display: inline-block;
+	height: 47px;
+	line-height: 47px;
+	margin: 0 16px 0 0;
+	font-family: "OpenSans-Bold", Helvetica, Arial, sans-serif;
+	font-size: 12px;
+	outline: none;
+	padding: 0 18px;
+	vertical-align: middle;
+	text-decoration: none;
+	text-transform: uppercase;
+	text-shadow: none;
+	white-space: nowrap;
+	-webkit-font-smoothing: antialiased;
+
+	-webkit-transition: background-color 0.25s linear;
+	transition: background-color 0.25s linear;
 }
 
-.bxu-thumbnails .webform-button { margin: 0 16px 0 0;  background: url(images/interface/buttons-sprite.png) repeat-x 0 -584px; -webkit-font-smoothing: antialiased; }
-.bxu-thumbnails .webform-button-text { font: normal normal bold 14px/33px "Helvetica Neue", Helvetica, Arial, sans-serif; padding:0 7px; color: #555555; background: none;  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9); }
-.bxu-thumbnails .webform-button-left { width: 6px; position: relative; left: -6px; background: url(images/interface/buttons-sprite.png) no-repeat -74px -313px; }
-.bxu-thumbnails .webform-button-right { width: 6px; position: relative; left: 6px; background: url(images/interface/buttons-sprite.png) no-repeat -80px -313px;}
-.bxu-thumbnails .webform-button:hover {  background: url(images/interface/buttons-sprite.png) repeat-x 0 -623px;}
-.bxu-thumbnails .webform-button:hover .webform-button-text { background: none; }
-.bxu-thumbnails .webform-button:hover .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -87px -313px; }
-.bxu-thumbnails .webform-button:hover .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -93px -313px; }
-.bxu-thumbnails .webform-button:active { background: url(images/interface/buttons-sprite.png) repeat-x 0 -662px; }
-.bxu-thumbnails .webform-button:active .webform-button-text { background: none; }
-.bxu-thumbnails .webform-button:active .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -99px -313px; }
-.bxu-thumbnails .webform-button:active .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -105px -313px; }
+
+.bxu-thumbnails .webform-button-text {
+
+	background: none !important;
+	border: none;
+	display: inline;
+	height: auto;
+	font-family: "OpenSans-Bold", Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	line-height: 47px;
+	font: normal normal bold 14px/47px "Helvetica Neue", Helvetica, Arial, sans-serif;
+	text-shadow: none !important;
+	text-transform: uppercase;
+	padding:0 7px;
+
+	-webkit-font-smoothing: antialiased;
+
+	-webkit-transition: color 0.25s linear;
+	transition: color 0.25s linear;
+}
+
+.bxu-thumbnails .webform-button-left,
+.bxu-thumbnails .webform-button-right {
+	display: none;
+}
+
+.bxu-thumbnails .webform-button:hover {
+	color: #7a818a;
+	font-size: 12px;
+	font-family: "OpenSans-Bold", Helvetica, Arial, sans-serif;
+	line-height: 47px;
+	text-shadow: none;
+}
+
+.bxu-thumbnails .webform-button:active {background: url(images/interface/buttons-sprite.png) repeat-x 0 -662px;}
 
 .bxu-thumbnails .webform-button-accept,
-.bxu-thumbnails .webform-button-create {  background: url(images/interface/buttons-sprite.png) repeat-x 0 -355px;}
-.bxu-thumbnails .webform-button-accept .webform-button-text,
-.bxu-thumbnails .webform-button-create .webform-button-text { background: none; color: #fff; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.1), -1px 1px 1px rgba(0, 0, 0, 0.1);}
-.bxu-thumbnails .webform-button-accept .webform-button-left,
-.bxu-thumbnails .webform-button-create .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat 0 -313px; }
-.bxu-thumbnails .webform-button-accept .webform-button-right,
-.bxu-thumbnails .webform-button-create .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -6px -313px; }
+.bxu-thumbnails .webform-button-create {
+	background: #bbed21;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	color: #535c69;
+}
+
+
 .bxu-thumbnails .webform-button-accept:hover,
-.bxu-thumbnails .webform-button-create:hover { background: url(images/interface/buttons-sprite.png) repeat-x 0 -394px;  }
-.bxu-thumbnails .webform-button-accept:hover .webform-button-text,
-.bxu-thumbnails .webform-button-create:hover .webform-button-text { background: none; }
-.bxu-thumbnails .webform-button-accept:hover .webform-button-left,
-.bxu-thumbnails .webform-button-create:hover .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -13px -313px; }
-.bxu-thumbnails .webform-button-accept:hover .webform-button-right,
-.bxu-thumbnails .webform-button-create:hover .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -19px -313px; }
+.bxu-thumbnails .webform-button-create:hover {
+	background: #d2f95f;
+	color: #535c69;
+}
+
 .bxu-thumbnails .webform-button-accept:active,
-.bxu-thumbnails .webform-button-create:active { background: url(images/interface/buttons-sprite.png) repeat-x 0 -434px; }
-.bxu-thumbnails .webform-button-accept:active .webform-button-text,
-.bxu-thumbnails .webform-button-create:active .webform-button-text { background: none; }
-.bxu-thumbnails .webform-button-accept:active .webform-button-left,
-.bxu-thumbnails .webform-button-create:active .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -25px -313px; }
-.bxu-thumbnails .webform-button-accept:active .webform-button-right,
-.bxu-thumbnails .webform-button-create:active .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -31px -313px; }
+.webform-button-accept.webform-button-active,
+.bxu-thumbnails .webform-button-create:active,
+.webform-button-create.webform-button-active {
+	background: #b2e233 !important;
+	color: #535c69;
+}
+
 
 .bxu-thumbnails .webform-button-decline { background: url(images/interface/buttons-sprite.png) repeat-x 0 -470px; }
 .bxu-thumbnails .webform-button-decline .webform-button-text { background: none;  color: #fff; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.1), -1px 1px 1px rgba(0, 0, 0, 0.1);}
-.bxu-thumbnails .webform-button-decline .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -37px -313px; }
-.bxu-thumbnails .webform-button-decline .webform-button-right {  background: url(images/interface/buttons-sprite.png) no-repeat -43px -313px; }
 .bxu-thumbnails .webform-button-decline:hover { background: url(images/interface/buttons-sprite.png) repeat-x 0 -508px;  }
 .bxu-thumbnails .webform-button-decline:hover .webform-button-text { background:  none; }
-.bxu-thumbnails .webform-button-decline:hover .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -50px -313px; }
-.bxu-thumbnails .webform-button-decline:hover .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -56px -313px; }
 .bxu-thumbnails .webform-button-decline:active { background: url(images/interface/buttons-sprite.png) repeat-x 0 -547px; }
 .bxu-thumbnails .webform-button-decline:active .webform-button-text { background:  none; }
-.bxu-thumbnails .webform-button-decline:active .webform-button-left { background: url(images/interface/buttons-sprite.png) no-repeat -62px -313px; }
-.bxu-thumbnails .webform-button-decline:active .webform-button-right { background: url(images/interface/buttons-sprite.png) no-repeat -68px -313px; }
 
 .bxu-thumbnails .webform-button-link {  font: normal normal normal 14px/normal "Helvetica Neue", Helvetica, Arial, sans-serif; }
 .bxu-thumbnails .webform-button-link-cancel  { color: #d20000 !important; }
+
+.bxu-thumbnails .webform-button-blue {
+	background: #3bc8f5;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	color: #fff;
+}
+
+.bxu-thumbnails .webform-button-blue:hover{
+	background: #3fddff;
+	color: #fff;
+}
+
+.bxu-thumbnails .webform-button-blue:active,
+.bxu-thumbnails .webform-button-blue.webform-button-active {
+	background: #13b1e3!important;
+	color: #fff;
+}
+
+.bxu-thumbnails .webform-button-blue.webform-button-disable {
+	background: #3bc8f5 !important;
+	-webkit-box-shadow: none!important;
+	box-shadow: none!important;
+	color: #95e3fa!important;
+}
 
 .bxu-top-block-inp {
 	border: 1px solid;

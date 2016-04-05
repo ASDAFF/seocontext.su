@@ -14,7 +14,7 @@ if(CModule::IncludeModule('fileman')):
 			handler : function (p)
 			{
 				this.bNotFocus = true;
-				ShowCategoryInsert();
+				wikiMainEditor.ShowCategoryInsert();
 			}
 		};
 
@@ -26,7 +26,7 @@ if(CModule::IncludeModule('fileman')):
 			handler : function (p)
 			{
 				this.bNotFocus = true;
-				ShowImageUpload();
+				wikiMainEditor.ShowImageUpload();
 			}
 		};
 		window.LHEButtons['ImageLink'] = {
@@ -37,7 +37,7 @@ if(CModule::IncludeModule('fileman')):
 			handler : function (p)
 			{
 				this.bNotFocus = true;
-				ShowImageInsert();
+				wikiMainEditor.ShowImageInsert();
 			},
 			parser : {
 				name: 'wiki_img',
@@ -60,9 +60,9 @@ if(CModule::IncludeModule('fileman')):
 								}
 								else
 								{
-									for (var i in arWikiImg)
+									for (var i in wikiMainEditor.arWikiImg)
 									{
-										if (arWikiImg[i] == f)
+										if (wikiMainEditor.arWikiImg[i] == f)
 										{
 											id = i;
 											imageSrc = BX(id).src;
@@ -109,7 +109,7 @@ if(CModule::IncludeModule('fileman')):
 			title : '<?=GetMessage('WIKI_BUTTON_SIGNATURE')?>',
 			handler : function (p)
 			{
-				wiki_signature();
+				wikiMainEditor.wiki_signature();
 			}
 		};
 
@@ -121,7 +121,7 @@ if(CModule::IncludeModule('fileman')):
 			handler : function (p)
 			{
 				this.bNotFocus = true;
-				ShowInsertLink(false);
+				wikiMainEditor.ShowInsertLink(false);
 			}
 		};
 
@@ -237,7 +237,7 @@ if(CModule::IncludeModule('fileman')):
 	}
 	?>
 	<script>
-		BX.addCustomEvent('LHE_OnInit', setEditorContentAfterLoad);
+
 	</script>
 	<?
 
@@ -246,9 +246,9 @@ if(CModule::IncludeModule('fileman')):
 		'height' => '300',
 		'inputName' => 'POST_MESSAGE_HTML',
 		'inputId' => 'POST_MESSAGE_HTML',
+		'id' => 'pLEditorWiki',
 		'jsObjName' => 'pLEditorWiki',
-		//'content' => $arResult['ELEMENT']['~DETAIL_TEXT'],
-		'content' => '',
+		'content' => $arResult['ELEMENT']['~DETAIL_TEXT'],
 		'bUseFileDialogs' => false,
 		'bFloatingToolbar' => false,
 		'bArisingToolbar' => false,

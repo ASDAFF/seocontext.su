@@ -58,4 +58,7 @@ $MESS["SCALE_PANEL_JS_REFRESH_TITLE"] = "Reloading page";
 $MESS["SCALE_PANEL_JS_REFRESH_TEXT"] = "Please wait while the page is reloading....";
 $MESS["SCALE_PANEL_JS_BX_VER_ERROR"] = "Error getting version";
 $MESS["SCALE_PANEL_JS_BX_ENV_NEED_UPDATE2"] = "requires update";
+$MESS["SCALE_PANEL_JS_PROVIDER_CHOOSE"] = "Select VPS provider";
+$MESS["SCALE_PANEL_JS_PROVIDER_ORDER_SUCCESS"] = "A request ###ORDER_ID## has been sent to provider ##PROVIDER_ID##.";
+$MESS["SCALE_PANEL_JS_PROVIDER_ORDER_SUCCESS_TITLE"] = "Sending request";
 ?>

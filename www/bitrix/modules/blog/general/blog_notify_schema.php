@@ -17,6 +17,10 @@ class CBlogNotifySchema
 						"NAME" => GetMessage('BLG_NS_POST'),
 						"PUSH" => 'Y'
 					),
+					"post_mail" => Array(
+						"NAME" => GetMessage('BLG_NS_POST_MAIL'),
+						"PUSH" => 'Y'
+					),
 					"comment" => Array(
 						"NAME" => GetMessage('BLG_NS_COMMENT'),
 						"PUSH" => 'N'

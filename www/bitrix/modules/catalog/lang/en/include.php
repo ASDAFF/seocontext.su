@@ -17,4 +17,6 @@ $MESS["CATALOG_ERR_NO_PRODUCT"] = "The product was not found.";
 $MESS["CATALOG_ERR_PRODUCT_RUN_OUT"] = "The product is out of stock.";
 $MESS["CATALOG_ERR_NO_IBLOCK_ELEMENT"] = "The information block element was not found.";
 $MESS["CATALOG_ERR_NO_SUBSCRIBE"] = "This product cannot be subscribed to.";
+$MESS["CATALOG_ERR_CANNOT_ADD_SKU"] = "You cannot add to cart a product that has multiple SKU's. Only a specific SKU can be added to cart.";
+$MESS["CATALOG_ERR_CANNOT_SUBSCRIBE_SKU"] = "You cannot subscribe to a product that has multiple SKU's. Only a specific SKU can be subscribed to.";
 ?>

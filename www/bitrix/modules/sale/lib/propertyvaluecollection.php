@@ -8,6 +8,7 @@
 
 namespace Bitrix\Sale;
 
+use Bitrix\Main;
 use	Bitrix\Sale\Internals\Input,
 	Bitrix\Sale\Internals\OrderPropsGroupTable,
 	Bitrix\Main\ArgumentOutOfRangeException,
@@ -124,51 +125,126 @@ class PropertyValueCollection
 		return $propertyCollection;
 	}
 
-
-	public function dump($i)
-	{
-		$s = '';
-		/** @var PropertyValue $item */
-		foreach ($this->collection as $item)
-		{
-			$s .= $item->dump($i);
-		}
-		return $s;
-	}
-
 	/**
 	 * @return Entity\Result
+	 * @throws Main\ArgumentException
+	 * @throws Main\ObjectNotFoundException
+	 * @throws \Exception
 	 */
 	public function save()
 	{
 		$result = new Entity\Result();
 
+		/** @var Order $order */
+		if (!$order = $this->getOrder())
+		{
+			throw new Main\ObjectNotFoundException('Entity "Order" not found');
+		}
+
 		$itemsFromDb = array();
-		if ($this->getOrder()->getId() > 0)
+		if ($order->getId() > 0)
 		{
 			$itemsFromDbList = Internals\OrderPropsValueTable::getList(
 				array(
 					"filter" => array("ORDER_ID" => $this->getOrder()->getId()),
-					"select" => array("ID")
+					"select" => array("ID", "NAME", "CODE", "VALUE")
 				)
 			);
 			while ($itemsFromDbItem = $itemsFromDbList->fetch())
-				$itemsFromDb[$itemsFromDbItem["ID"]] = true;
+				$itemsFromDb[$itemsFromDbItem["ID"]] = $itemsFromDbItem;
 		}
 
 		/** @var PropertyValue $property */
 		foreach ($this->collection as $property)
 		{
+			$isNew = (bool)($property->getId() <= 0);
+			$isChanged = $property->isChanged();
+
+			if ($order->getId() > 0 && $isChanged)
+			{
+				$logFields = array(
+					"NAME" => $property->getField("NAME"),
+					"VALUE" => $property->getField("VALUE"),
+					"CODE" => $property->getField("CODE"),
+				);
+
+				if (!$isNew)
+				{
+					$fields = $property->getFields();
+					$originalValues = $fields->getOriginalValues();
+					if (array_key_exists("NAME", $originalValues))
+						$logFields['OLD_NAME'] = $originalValues["NAME"];
+
+					if (array_key_exists("VALUE", $originalValues))
+						$logFields['OLD_VALUE'] = $originalValues["VALUE"];
+
+					if (array_key_exists("CODE", $originalValues))
+						$logFields['OLD_CODE'] = $originalValues["CODE"];
+				}
+
+			}
+
 			$r = $property->save();
-			if (!$r->isSuccess())
+			if ($r->isSuccess())
+			{
+				if ($order->getId() > 0)
+				{
+					if ($isChanged)
+					{
+						OrderHistory::addLog('PROPERTY', $order->getId(), $isNew ? 'PROPERTY_ADD' : 'PROPERTY_UPDATE', $property->getId(), $property,
+										 $logFields, OrderHistory::SALE_ORDER_HISTORY_LOG_LEVEL_1);
+					}
+				}
+			}
+			else
+			{
 				$result->addErrors($r->getErrors());
+			}
 
 			if (isset($itemsFromDb[$property->getId()]))
 				unset($itemsFromDb[$property->getId()]);
 		}
 
+		if ($result->isSuccess() && $order->getId() > 0)
+		{
+			OrderHistory::addAction(
+				'PROPERTY',
+				$order->getId(),
+				"PROPERTY_SAVED"
+			);
+		}
+
+		$itemEventName = PropertyValue::getEntityEventName();
 		foreach ($itemsFromDb as $k => $v)
+		{
+			/** @var Main\Event $event */
+			$event = new Main\Event('sale', "OnBefore".$itemEventName."Deleted", array(
+					'VALUES' => $v,
+			));
+			$event->send();
+
 			Internals\OrderPropsValueTable::delete($k);
+
+			/** @var Main\Event $event */
+			$event = new Main\Event('sale', "On".$itemEventName."Deleted", array(
+					'VALUES' => $v,
+			));
+			$event->send();
+
+			if ($order->getId() > 0)
+			{
+				OrderHistory::addAction('PROPERTY', $order->getId(), 'PROPERTY_REMOVE', $k, null, array(
+					"NAME" => $v['NAME'],
+					"CODE" => $v['CODE'],
+					"VALUE" => $v['VALUE'],
+				));
+			}
+		}
+
+		if ($order->getId() > 0)
+		{
+			OrderHistory::collectEntityFields('PROPERTY', $order->getId());
+		}
 
 		return $result;
 	}
@@ -254,17 +330,6 @@ class PropertyValueCollection
 		return $this->getAttribute('IS_ADDRESS');
 	}
 
-//	function getValues()
-//	{
-//		$values = array();
-//
-//		foreach ($this->collection as $property)
-//			if ($propertyId = $property->getId())
-//				$values[$propertyId] = $property->getValue();
-//
-//		return $values;
-//	}
-
 	function setValuesFromPost($post, $files)
 	{
 		$post = Input\File::getPostWithFiles($post, $files);
@@ -282,22 +347,40 @@ class PropertyValueCollection
 		return $result;
 	}
 
-//	function getErrors()
-//	{
-//		$errors = array();
-//
-//		foreach ($this->collection as $property)
-//			if ($error = $property->getError())
-//				$errors[$property->getId()] = $error;
-//
-//		return $errors;
-//	}
+	/**
+	 * @param $fields
+	 * @param $files
+	 *
+	 * @return Result
+	 */
+	public function checkErrors($fields, $files)
+	{
+		$fields = Input\File::getPostWithFiles($fields, $files);
 
-//	function addErrorsTo(Entity\Result $result)
-//	{
-//		foreach ($this->collection as $property)
-//			$property->addErrorTo($result);
-//	}
+		$result = new Result();
+
+		/** @var PropertyValue $property */
+		foreach ($this->collection as $property)
+		{
+			$propertyData = $property->getProperty();
+
+			$key = isset($propertyData["ID"]) ? $propertyData["ID"] : "n".$property->getId();
+			$value = isset($fields['PROPERTIES'][$key]) ? $fields['PROPERTIES'][$key] : null;
+
+			if (!isset($fields['PROPERTIES'][$key]))
+			{
+				$value = $property->getValue();
+			}
+
+			$r = $property->checkValue($key, $value);
+			if (!$r->isSuccess())
+			{
+				$result->addErrors($r->getErrors());
+			}
+		}
+
+		return $result;
+	}
 
 	public function getGroups()
 	{

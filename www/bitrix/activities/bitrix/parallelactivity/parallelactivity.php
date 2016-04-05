@@ -16,9 +16,9 @@ class CBPParallelActivity
 	public function Cancel()
 	{
 		$flag = true;
-		for ($i = 0; $i < count($this->arActivities); $i++)
+		for ($i = 0, $s = count($this->arActivities); $i < $s; $i++)
 		{
-			$activity = $this->arActivities[i];
+			$activity = $this->arActivities[$i];
 			if ($activity->executionStatus == CBPActivityExecutionStatus::Executing)
 			{
 				$this->workflow->CancelActivity($activity);
@@ -39,7 +39,7 @@ class CBPParallelActivity
 	public function Execute()
 	{
 		$this->isExecuting = true;
-		for ($i = 0; $i < count($this->arActivities); $i++)
+		for ($i = 0, $s = count($this->arActivities); $i < $s; $i++)
 		{
 			$activity = $this->arActivities[$i];
 			$activity->AddStatusChangeHandler(self::ClosedEvent, $this);
@@ -57,7 +57,7 @@ class CBPParallelActivity
 		$sender->RemoveStatusChangeHandler(self::ClosedEvent, $this);
 
 		$flag = true;
-		for ($i = 0; $i < count($this->arActivities); $i++)
+		for ($i = 0, $s = count($this->arActivities); $i < $s; $i++)
 		{
 			$activity = $this->arActivities[$i];
 			if (($activity->executionStatus != CBPActivityExecutionStatus::Initialized) && ($activity->executionStatus != CBPActivityExecutionStatus::Closed))

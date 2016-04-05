@@ -3,18 +3,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/currency/general/currenc
 
 class CCurrencyRates extends CAllCurrencyRates
 {
-	function ConvertCurrency($valSum, $curFrom, $curTo, $valDate = "")
-	{
-		return doubleval(doubleval($valSum) * CCurrencyRates::GetConvertFactor($curFrom, $curTo, $valDate));
-	}
-
-	function GetConvertFactor($curFrom, $curTo, $valDate = "")
-	{
-		$obRates = new CCurrencyRates;
-		return $obRates->GetConvertFactorEx($curFrom, $curTo, $valDate);
-	}
-
-	function _get_last_rates($valDate, $cur)
+	public static function _get_last_rates($valDate, $cur)
 	{
 		global $DB;
 
@@ -32,4 +21,3 @@ class CCurrencyRates extends CAllCurrencyRates
 		return $db_res->Fetch();
 	}
 }
-?>

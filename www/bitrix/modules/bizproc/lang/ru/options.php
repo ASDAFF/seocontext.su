@@ -13,4 +13,10 @@ $MESS["BIZPROC_OPT_USE_GZIP_COMPRESSION"] = "Использовать компр
 $MESS["BIZPROC_OPT_USE_GZIP_COMPRESSION_EMPTY"] = "по умолчанию";
 $MESS["BIZPROC_OPT_USE_GZIP_COMPRESSION_Y"] = "да";
 $MESS["BIZPROC_OPT_USE_GZIP_COMPRESSION_N"] = "нет";
+$MESS["BIZPROC_OPT_LOCKED_WI_PATH"] = "Путь к списку зависших бизнес-процессов";
+$MESS["BIZPROC_OPT_TIME_LIMIT"] = "Минимальное время ожидания для действий";
+$MESS["BIZPROC_OPT_TIME_LIMIT_S"] = "секунд";
+$MESS["BIZPROC_OPT_TIME_LIMIT_M"] = "минут";
+$MESS["BIZPROC_OPT_TIME_LIMIT_H"] = "часов";
+$MESS["BIZPROC_OPT_TIME_LIMIT_D"] = "дней";
 ?>

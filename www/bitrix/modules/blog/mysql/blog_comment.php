@@ -20,7 +20,7 @@ class CBlogComment extends CAllBlogComment
 
 		if (!CBlogComment::CheckFields("ADD", $arFields))
 			return false;
-		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_COMMENT", 0, $arFields))
+		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_COMMENT", 0, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false)))
 			return false;
 
 		foreach(GetModuleEvents("blog", "OnBeforeCommentAdd", true) as $arEvent)
@@ -54,24 +54,34 @@ class CBlogComment extends CAllBlogComment
 
 		if ($ID)
 		{
-			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_COMMENT", $ID, $arFields);
+			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_COMMENT", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false));
 
 			$arComment = CBlogComment::GetByID($ID);
-			if($arComment["PUBLISH_STATUS"] == BLOG_PUBLISH_STATUS_PUBLISH)
+			if ($arComment["PUBLISH_STATUS"] == BLOG_PUBLISH_STATUS_PUBLISH)
+			{
 				CBlogPost::Update($arComment["POST_ID"], array("=NUM_COMMENTS" => "NUM_COMMENTS + 1"), false);
+			}
 		}
 
 		$arBlog = CBlog::GetByID($arComment["BLOG_ID"]);
-		if($arBlog["USE_SOCNET"] == "Y")
+		if ($arBlog["USE_SOCNET"] == "Y")
+		{
 			$arFields["SC_PERM"] = CBlogComment::GetSocNetCommentPerms($arComment["POST_ID"]);
+		}
 
 		foreach(GetModuleEvents("blog", "OnCommentAdd", true) as $arEvent)
+		{
 			ExecuteModuleEventEx($arEvent, Array($ID, &$arFields));
+		}
+
 		if (CModule::IncludeModule("search"))
 		{
 			if (CBlogUserGroup::GetGroupPerms(1, $arComment["BLOG_ID"], $arComment["POST_ID"], BLOG_PERMS_POST) >= BLOG_PERMS_READ)
 			{
-				if($arBlog["SEARCH_INDEX"] == "Y" && $arComment["PUBLISH_STATUS"] == BLOG_PUBLISH_STATUS_PUBLISH)
+				if (
+					$arBlog["SEARCH_INDEX"] == "Y"
+					&& $arComment["PUBLISH_STATUS"] == BLOG_PUBLISH_STATUS_PUBLISH
+				)
 				{
 					$arGroup = CBlogGroup::GetByID($arBlog["GROUP_ID"]);
 					if(strlen($arFields["PATH"]) > 0)
@@ -91,6 +101,25 @@ class CBlogComment extends CAllBlogComment
 									$arBlog["SOCNET_GROUP_ID"]
 								)
 						);
+					}
+
+					if (
+						$arBlog["USE_SOCNET"] == "Y"
+						&& CModule::IncludeModule("extranet")
+					)
+					{
+						$arPostSiteExt = CExtranet::GetSitesByLogDestinations($arFields["SC_PERM"]);
+						foreach($arPostSiteExt as $lid)
+						{
+							if (!array_key_exists($lid, $arCommentSite))
+							{
+								$arCommentSite[$lid] = str_replace(
+									array("#user_id#", "#post_id#"),
+									array($arBlog["OWNER_ID"], $arComment["POST_ID"]),
+									COption::GetOptionString("socialnetwork", "userblogpost_page", false, $lid)
+								);
+							}
+						}
 					}
 
 					$searchContent = blogTextParser::killAllTags($arComment["POST_TEXT"]);
@@ -192,7 +221,7 @@ class CBlogComment extends CAllBlogComment
 
 		if (!CBlogComment::CheckFields("UPDATE", $arFields, $ID))
 			return false;
-		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_COMMENT", $ID, $arFields))
+		elseif(!$GLOBALS["USER_FIELD_MANAGER"]->CheckFields("BLOG_COMMENT", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false)))
 			return false;
 
 		foreach(GetModuleEvents("blog", "OnBeforeCommentUpdate", true) as $arEvent)
@@ -228,9 +257,9 @@ class CBlogComment extends CAllBlogComment
 			$DB->Query($strSql, False, "File: ".__FILE__."<br>Line: ".__LINE__);
 			unset($GLOBALS["BLOG_COMMENT"]["BLOG_COMMENT_CACHE_".$ID]);
 			
-			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_COMMENT", $ID, $arFields);
+			$GLOBALS["USER_FIELD_MANAGER"]->Update("BLOG_COMMENT", $ID, $arFields, (isset($arFields["AUTHOR_ID"]) && intval($arFields["AUTHOR_ID"]) > 0 ? intval($arFields["AUTHOR_ID"]) : false));
 
-			$arComment = CBlogComment::GetByID($ID);			
+			$arComment = CBlogComment::GetByID($ID);
 			$arBlog = CBlog::GetByID($arComment["BLOG_ID"]);
 			if($arBlog["USE_SOCNET"] == "Y")
 				$arFields["SC_PERM"] = CBlogComment::GetSocNetCommentPerms($arComment["POST_ID"]);

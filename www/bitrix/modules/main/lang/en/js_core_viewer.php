@@ -51,4 +51,6 @@ $MESS["JS_CORE_VIEWER_SERVICE_LOCAL"] = "my computer";
 $MESS["JS_CORE_VIEWER_DOWNLOAD_B24_DESKTOP"] = "Download";
 $MESS["JS_CORE_VIEWER_SERVICE_LOCAL_INSTALL_DESKTOP"] = "To enable the optimal method for editing and accessing documents from your computer, install the Desktop App and enable Bitrix24.Drive. ";
 $MESS["JS_CORE_VIEWER_SERVICE_B24_DISK"] = "Bitrix24.Drive";
+$MESS["JS_CORE_VIEWER_SHOW_FILE_DIALOG_OAUTH_NOTICE"] = "Please log in to your <a id=\"bx-js-disk-run-oauth-modal\" href=\"#\">#SERVICE#</a> account to view the file.";
+$MESS["JS_CORE_VIEWER_SERVICE_OFFICE365"] = "Office 365";
 ?>

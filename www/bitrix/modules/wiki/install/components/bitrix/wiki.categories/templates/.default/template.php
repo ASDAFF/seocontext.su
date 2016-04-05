@@ -14,14 +14,6 @@ else:
 	<div id="wiki-post-content">
 	<form action="<?=POST_FORM_ACTION_URI?>" method="get">
 	<?
-	if (!empty($_SERVER['QUERY_STRING'])):
-	$arGetParams = explode('&', $_SERVER['QUERY_STRING']);
-	foreach($arGetParams as $strParam)
-	{
-		$arGetParam = explode('=', $strParam);
-		?> <input type="hidden" value="<?=$arGetParam[1]?>" name="<?=$arGetParam[0]?>" /><?
-	}
-	endif;
 	if (!empty($arResult['CATEGORIES']) || isset($arResult['QUERY'])):
 		?>
 		<input type="text" name="q" value="<?=$arResult['QUERY']?>" size="40" />

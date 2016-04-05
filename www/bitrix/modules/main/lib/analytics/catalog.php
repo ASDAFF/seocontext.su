@@ -290,7 +290,7 @@ class Catalog
 		}
 	}
 
-	protected static function getOrderInfo($orderId)
+	public static function getOrderInfo($orderId)
 	{
 		// order itself
 		$order = \CSaleOrder::getById($orderId);

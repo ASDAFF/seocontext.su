@@ -714,10 +714,11 @@ $user_name = $abtest['USER_ID'] ? CUser::formatName(
 					</span>
 				</div>
 				<? endif; ?>
+				<? $value = floatval(isset($data['QUANTITY']) ? $data['QUANTITY'] : $data['NUMERATOR']); ?>
 				<div class="stat-item-block">
 					<span class="stat-item-block-inner">
 						<span class="stat-item-block-title"><?=getMessage('ABTEST_CONVERSION_CNT_TITLE'); ?></span>
-						<span class="stat-item-block-digit scale-num-cnt scale-num-30-2"><?=number_format(floatval($data['NUMERATOR']), 0, '', ' '); ?></span>
+						<span class="stat-item-block-digit scale-num-cnt scale-num-30-2"><?=number_format($value, 0, '', ' '); ?></span>
 					</span>
 				</div>
 			</div>
@@ -754,10 +755,11 @@ $user_name = $abtest['USER_ID'] ? CUser::formatName(
 					</span>
 				</div>
 				<? endif; ?>
+				<? $value = floatval(isset($data['QUANTITY']) ? $data['QUANTITY'] : $data['NUMERATOR']); ?>
 				<div class="stat-item-block">
 					<span class="stat-item-block-inner">
 						<span class="stat-item-block-title"><?=getMessage('ABTEST_CONVERSION_CNT_TITLE'); ?></span>
-						<span class="stat-item-block-digit scale-num-cnt scale-num-30-2"><?=number_format(floatval($data['NUMERATOR']), 0, '', ' '); ?></span>
+						<span class="stat-item-block-digit scale-num-cnt scale-num-30-2"><?=number_format($value, 0, '', ' '); ?></span>
 					</span>
 				</div>
 			</div>

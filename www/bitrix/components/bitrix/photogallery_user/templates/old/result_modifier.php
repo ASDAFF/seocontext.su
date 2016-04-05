@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && !empty($_REQUEST["from_detail_list"]
 		$arSections = array();
 		@set_time_limit(0);
 		foreach ($_REQUEST["items"] as $item):
-			$db_res = CIBlockElement::GetList(array(), array("IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $item), false, false, 
+			$db_res = CIBlockElement::GetList(array(), array("IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $item), false, false,
 				array("ID", "ACTIVE", "IBLOCK_SECTION_ID", "PROPERTY_REAL_PICTURE"));
 			if (!($db_res && $res = $db_res->Fetch()))
 				continue;
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && !empty($_REQUEST["from_detail_list"]
 
 				PClearComponentCacheEx($arParams["IBLOCK_ID"], array($res["IBLOCK_SECTION_ID"]));
 			}
-			
+
 			if ($_REQUEST["ACTION"] == "active" || $_REQUEST["ACTION"] == "drop")
 			{
 				$iFileSize = 0;
@@ -47,11 +47,11 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && !empty($_REQUEST["from_detail_list"]
 					$iFileSize = intVal($res["REAL_PICTURE"]["FILE_SIZE"]);
 					CIBlockElement::Delete($item);
 				}
-				// section 
+				// section
 				if (is_set($arSections, $res["IBLOCK_SECTION_ID"])):
 					$res = $arSections[$res["IBLOCK_SECTION_ID"]];
 				else:
-					$db_res = CIBlockSection::GetList(array(), array("ID" => $res["IBLOCK_SECTION_ID"]), false, 
+					$db_res = CIBlockSection::GetList(array(), array("ID" => $res["IBLOCK_SECTION_ID"]), false,
 						array("ID", "IBLOCK_SECTION_ID", "LEFT_MARGIN", "RIGHT_MARGIN"));
 					if ($db_res && $res = $db_res->Fetch()):
 						$arSections[$res["ID"]] = $res;
@@ -85,10 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && !empty($_REQUEST["from_detail_list"]
 	endif;
 }
 
-
-
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/result_modifier.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 
 $arParams["SHOW_BEST_ELEMENT"] = ($arParams["SHOW_BEST_ELEMENT"] == "N" ? "N" : "Y");
 $arResult["MENU_VARIABLES"] = array();
@@ -104,12 +101,12 @@ if ($this->__page !== "menu"):
 	elseif (empty($arResult["MENU_VARIABLES"]["USER_ALIAS"])):
 		//CHTTP::SetStatus("404 Not Found");
 		return false;
-	elseif ($arResult["VARIABLES"]["USER_ALIAS"] != $arResult["MENU_VARIABLES"]["USER_ALIAS"] || 
+	elseif ($arResult["VARIABLES"]["USER_ALIAS"] != $arResult["MENU_VARIABLES"]["USER_ALIAS"] ||
 			$arResult["VARIABLES"]["SECTION_ID"] != $arResult["MENU_VARIABLES"]["SECTION_ID"]):
 		if ($arParams["SEF_MODE"] != "Y"):
 			$url = $GLOBALS["APPLICATION"]->GetCurPageParam(
 				$arResult["ALIASES"]["USER_ALIAS"]."=".$arResult["MENU_VARIABLES"]["USER_ALIAS"]."&".
-					$arResult["ALIASES"]["SECTION_ID"]."=".$arResult["MENU_VARIABLES"]["SECTION_ID"], 
+					$arResult["ALIASES"]["SECTION_ID"]."=".$arResult["MENU_VARIABLES"]["SECTION_ID"],
 				array($arResult["ALIASES"]["USER_ALIAS"], $arResult["ALIASES"]["SECTION_ID"]));
 		else:
 			$res = $arResult["VARIABLES"];

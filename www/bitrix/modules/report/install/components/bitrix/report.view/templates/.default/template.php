@@ -1374,6 +1374,32 @@ function getResultColumnDataType(&$viewColumnInfo, &$customColumnTypes = array()
 						'UF_NAME' => $chFilter['ufName']
 					);
 				}
+
+				// filter fields selectors
+				$ufInfoUsed = array();
+				foreach ($arResult['changeableFilters'] as $chFilter)
+				{
+					if (isset($chFilter['isUF']) && $chFilter['isUF'] === true && isset($chFilter['data_type'])
+						&& ($chFilter['data_type'] === 'crm' || $chFilter['data_type'] === 'crm_status'
+							|| $chFilter['data_type'] === 'iblock_element' || $chFilter['data_type'] === 'iblock_section')
+						&& isset($chFilter['ufId']) && isset($chFilter['ufName'])
+						&& is_array($arResult['ufInfo'][$chFilter['ufId']][$chFilter['ufName']]))
+					{
+						if (!isset($ufInfoUsed[$chFilter['ufId']][$chFilter['ufName']]))
+							$ufInfoUsed[$chFilter['ufId']][$chFilter['ufName']] =
+								&$arResult['ufInfo'][$chFilter['ufId']][$chFilter['ufName']];
+					}
+				}
+				if (!empty($ufInfoUsed))
+				{
+					$APPLICATION->IncludeComponent(
+						'bitrix:report.filter.field.selector',
+						'',
+						array('ufInfo' => $ufInfoUsed),
+						false,
+						array('HIDE_ICONS' => true)
+					);
+				}
 			?>
 			<script type="text/javascript">
 
@@ -1712,32 +1738,6 @@ function getResultColumnDataType(&$viewColumnInfo, &$customColumnTypes = array()
 
 			</script>
 			<?
-			// filter fields selectors
-			$ufInfoUsed = array();
-			foreach ($arResult['changeableFilters'] as $chFilter)
-			{
-				if (isset($chFilter['isUF']) && $chFilter['isUF'] === true && isset($chFilter['data_type'])
-					&& ($chFilter['data_type'] === 'crm' || $chFilter['data_type'] === 'crm_status'
-						|| $chFilter['data_type'] === 'iblock_element' || $chFilter['data_type'] === 'iblock_section')
-					&& isset($chFilter['ufId']) && isset($chFilter['ufName'])
-					&& is_array($arResult['ufInfo'][$chFilter['ufId']][$chFilter['ufName']]))
-				{
-					if (!isset($ufInfoUsed[$chFilter['ufId']][$chFilter['ufName']]))
-						$ufInfoUsed[$chFilter['ufId']][$chFilter['ufName']] =
-							&$arResult['ufInfo'][$chFilter['ufId']][$chFilter['ufName']];
-				}
-			}
-			if (!empty($ufInfoUsed))
-			{
-				$APPLICATION->IncludeComponent(
-					'bitrix:report.filter.field.selector',
-					'',
-					array('ufInfo' => $ufInfoUsed),
-					false,
-					array('HIDE_ICONS' => true)
-				);
-			}
-
 			foreach ($arResult['changeableFilters'] as $chFilter)
 			{
 				/** @var \Bitrix\Main\Entity\ReferenceField[] $chFilter */

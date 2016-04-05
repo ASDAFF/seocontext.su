@@ -3,6 +3,21 @@
 /** @var string $strWarning */
 /** @var int $IBLOCK_ID */
 /** @var int $ID */
+
+/** @global string $CAT_BASE_WEIGHT */
+/** @global string $CAT_BASE_WIDTH */
+/** @global string $CAT_BASE_LENGTH */
+/** @global string $CAT_BASE_HEIGHT */
+/** @global string $CAT_MEASURE */
+/** @global string $CAT_BASE_QUANTITY */
+/** @global string $CAT_PRICE_TYPE */
+/** @global string $CAT_RECUR_SCHEME_TYPE */
+/** @global string $CAT_RECUR_SCHEME_LENGTH */
+/** @global string $CAT_TRIAL_PRICE_ID */
+/** @global string $CAT_WITHOUT_ORDER */
+/** @global string $CAT_MEASURE_RATIO */
+/** @global array $arCatalogBaseGroup */
+
 if ($USER->CanDoOperation('catalog_price'))
 {
 	$IBLOCK_ID = (int)$IBLOCK_ID;
@@ -77,16 +92,7 @@ if ($USER->CanDoOperation('catalog_price'))
 				$useStore = $_POST['USE_STORE'];
 				if(!$useStore || $useStore == '')
 					$useStore = 'D';
-				if ('Y' == $useStore || ('D' == $useStore && 'Y' == $availCanBuyZero))
-				{
-					$negativeAmount = $useStore;
-				}
-				else
-				{
-					$negativeAmount = $_POST['NEGATIVE_AMOUNT'];
-					if(!$negativeAmount || $negativeAmount == '')
-						$negativeAmount = 'D';
-				}
+
 				$barcodeMultiply = $_POST["CAT_BARCODE_MULTIPLY"];
 				if(!$barcodeMultiply || $barcodeMultiply == '')
 					$barcodeMultiply = 'N';
@@ -194,7 +200,6 @@ if ($USER->CanDoOperation('catalog_price'))
 					"VAT_ID" => $CAT_VAT_ID,
 					"VAT_INCLUDED" => $CAT_VAT_INCLUDED,
 					"CAN_BUY_ZERO" => $useStore,
-					"NEGATIVE_AMOUNT_TRACE" => $negativeAmount,
 					"PRICE_TYPE" => false,
 					"RECUR_SCHEME_TYPE" => false,
 					"RECUR_SCHEME_LENGTH" => false,

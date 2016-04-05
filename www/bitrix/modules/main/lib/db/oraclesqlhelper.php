@@ -8,7 +8,7 @@ use Bitrix\Main\Entity;
 class OracleSqlHelper extends SqlHelper
 {
 	/**
-	 * Identificator escaping - left char
+	 * Returns an identificator escaping left character.
 	 *
 	 * @return string
 	 */
@@ -18,7 +18,7 @@ class OracleSqlHelper extends SqlHelper
 	}
 
 	/**
-	 * Identificator escaping - left char
+	 * Returns an identificator escaping right character.
 	 *
 	 * @return string
 	 */
@@ -165,10 +165,10 @@ class OracleSqlHelper extends SqlHelper
 	 * - M      A short textual representation of a month, three letters
 	 * - DD     Day of the month, 2 digits with leading zeros
 	 * - HH     24-hour format of an hour with leading zeros
-	 * - H      12-hour format of an hour with leading zeros
-	 * - GG     24-hour format of an hour with leading zeros
-	 * - G      12-hour format of an hour with leading zeros
-	 * - SS     Minutes with leading zeros
+	 * - H      24-hour format of an hour without leading zeros
+	 * - GG     12-hour format of an hour with leading zeros
+	 * - G      12-hour format of an hour without leading zeros
+	 * - SS     Seconds with leading zeros
 	 * - TT     AM or PM
 	 * - T      AM or PM
 	 * <p>
@@ -638,7 +638,7 @@ class OracleSqlHelper extends SqlHelper
 	 *
 	 * @param string $sql Sql text.
 	 * @param integer $limit Maximum number of rows to return.
-	 * @param integer $offset Offset of the first row to return.
+	 * @param integer $offset Offset of the first row to return, starting from 0.
 	 *
 	 * @return string
 	 * @throws Main\ArgumentException
@@ -653,6 +653,7 @@ class OracleSqlHelper extends SqlHelper
 
 		if ($limit > 0)
 		{
+			//The first row selected has a ROWNUM of 1, the second has 2, and so on
 			if ($offset <= 0)
 			{
 				$sql =
@@ -667,9 +668,9 @@ class OracleSqlHelper extends SqlHelper
 					"FROM (".
 					"   SELECT rownum_query_alias.*, ROWNUM rownum_alias ".
 					"   FROM (".$sql.") rownum_query_alias ".
-					"   WHERE ROWNUM <= ".($offset + $limit - 1)." ".
+					"   WHERE ROWNUM <= ".($offset + $limit)." ".
 					") ".
-					"WHERE rownum_alias >= ".$offset;
+					"WHERE rownum_alias >= ".($offset + 1);
 			}
 		}
 		return $sql;

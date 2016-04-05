@@ -1,7 +1,5 @@
 <?
 $MESS["WIKI_TAGS"] = "Tags";
-$MESS["WIKI_DELETE_CONFIRM"] = "Are you sure you want to delete it?";
-$MESS["WIKI_DELETE_PAGE"] = "Are you sure you want to delete the page and the changelog entirely?";
 $MESS["WIKI_PAGE_TEXT"] = "Page Text";
 $MESS["WIKI_NAME"] = "Page Title";
 $MESS["WIKI_PUBLISH"] = "Publish";
@@ -45,7 +43,6 @@ $MESS["WIKI_CATEGORY_NAME"] = "Name";
 $MESS["WIKI_CATEGORY_SELECT"] = "Select Category";
 $MESS["WIKI_BUTTON_INSERT"] = "Insert";
 $MESS["WIKI_BUTTON_CANCEL"] = "Cancel";
-$MESS["WIKI_BUTTON_DELETE"] = "Delete";
 $MESS["WIKI_TEXT_ENTER_URL"] = "Enter Wiki Page Link";
 $MESS["WIKI_TEXT_ENTER_URL_NAME"] = "Enter Page Title";
 $MESS["WIKI_TEXT_ENTER_URL_EXTERNAL"] = "Enter the full address (URL)";
@@ -55,10 +52,6 @@ $MESS["WIKI_ERROR_NO_URL"] = "URL is not specified.";
 $MESS["WIKI_ERROR_NO_TITLE"] = "The title is not specified.";
 $MESS["FILEMAN_MODULE_NOT_INSTALLED"] = "The Site Explorer module is not installed.";
 $MESS["WIKI_BUTTON_INSERT_CODE"] = "Enclose text in code tag";
-$MESS["WIKI_DIALOG_RENAME_PAGE_NAME"] = "New name";
-$MESS["WIKI_DIALOG_RENAME_TITLE"] = "Rename";
-$MESS["WIKI_DIALOG_RENAME_BUT_RENAME"] = "Rename";
-$MESS["WIKI_DIALOG_RENAME_ERROR"] = "Cannot rename.";
 $MESS["WIKI_POST_TO_FEED_CB"] = "Publish in Activity Stream";
 $MESS["WIKI_POST_TO_FEED_CB_TITLE"] = "If this box is checked, clicking \"Publish\" or \"Apply\" will post an update in the workgroup newsfeed.";
 $MESS["WIKI_ADD_MODIFY_COMMENT_LINK"] = "Add comment on update";

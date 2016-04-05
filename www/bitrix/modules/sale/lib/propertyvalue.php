@@ -8,6 +8,8 @@
 
 namespace Bitrix\Sale;
 
+use Bitrix\Main\ArgumentException;
+use Bitrix\Main\ArgumentNullException;
 use	Bitrix\Sale\Internals\Input,
 	Bitrix\Sale\Internals\OrderPropsTable,
 	Bitrix\Sale\Internals\OrderPropsValueTable,
@@ -22,6 +24,8 @@ class PropertyValue
 {
 	private $property = array();
 	private $savedValue;
+
+	protected static $mapFields;
 
 	public static function create(PropertyValueCollection $collection, array $property = array())
 	{
@@ -65,6 +69,8 @@ class PropertyValue
 		if (!empty($relation))
 			$property['RELATION'] = $relation;
 
+		$this->savedValue = $value['VALUE']; //Input\File::getValue($property, $value['VALUE']);
+
 		switch($property['TYPE'])
 		{
 			case 'ENUM':
@@ -86,7 +92,6 @@ class PropertyValue
 		}
 
 		$this->property = $property;
-		$this->savedValue = Input\File::getValue($property, $value['VALUE']);
 
 		parent::__construct($value); //TODO field
 	}
@@ -147,20 +152,19 @@ class PropertyValue
 	/** @return Entity\Result */
 	public function save()
 	{
+		$result = new Result();
 		$value = self::getValueForDB($this->fields->get('VALUE'));
 
 		if ($valueId = $this->getId())
 		{
-			if ($value == $this->savedValue)
+			if ($value != $this->savedValue)
 			{
-				$result = new Entity\UpdateResult();
-			}
-			else
-			{
-				$result = Internals\OrderPropsValueTable::update($valueId, array('VALUE' => $value));
+				$r = Internals\OrderPropsValueTable::update($valueId, array('VALUE' => $value));
 
-				if ($result->isSuccess())
+				if ($r->isSuccess())
 					$this->savedValue = $value;
+				else
+					$result->addErrors($r->getErrors());
 			}
 		}
 		else
@@ -168,22 +172,22 @@ class PropertyValue
 			if ($value !== null)
 			{
 				$property = $this->property;
-				$result = Internals\OrderPropsValueTable::add(array(
+				$r = Internals\OrderPropsValueTable::add(array(
 					'ORDER_ID' => $this->getParentOrderId(),
 					'ORDER_PROPS_ID' => $property['ID'],
 					'NAME' => $property['NAME'],
 					'VALUE' => $value,
 					'CODE' => $property['CODE'],
 				));
-				if ($result->isSuccess())
+				if ($r->isSuccess())
 				{
 					$this->savedValue = $value;
-					$this->setFieldNoDemand('ID', $result->getId());
+					$this->setFieldNoDemand('ID', $r->getId());
 				}
-			}
-			else
-			{
-				$result = new Entity\AddResult();
+				else
+				{
+					$result->addErrors($r->getErrors());
+				}
 			}
 		}
 
@@ -200,8 +204,15 @@ class PropertyValue
 
 		if (isset($post['PROPERTIES'][$key]))
 			$this->setValue($value);
-		else
-			$value = $this->getValue();
+
+		return $result;
+	}
+
+	public function checkValue($key, $value)
+	{
+		static $errorsList = array();
+		$result = new Result();
+		$property = $this->getProperty();
 
 		$error = Input\Manager::getError($property, $value);
 
@@ -215,7 +226,29 @@ class PropertyValue
 		}
 
 		foreach ($error as $e)
-			$result->addError(new ResultError($property['NAME'].' '.$e, "PROPERTIES[$key]"));
+		{
+			if (!empty($e) && is_array($e))
+			{
+				foreach ($e as $errorMsg)
+				{
+					if (isset($errorsList[$property['ID']]) && in_array($errorMsg, $errorsList[$property['ID']]))
+						continue;
+
+					$result->addError(new ResultError($property['NAME'].' '.$errorMsg, "PROPERTIES[".$key."]"));
+
+					$errorsList[$property['ID']][] = $errorMsg;
+				}
+			}
+			else
+			{
+				if (isset($errorsList[$property['ID']]) && in_array($e, $errorsList[$property['ID']]))
+					continue;
+
+				$result->addError(new ResultError($property['NAME'].' '.$e, "PROPERTIES[$key]"));
+
+				$errorsList[$property['ID']][] = $e;
+			}
+		}
 
 		return $result;
 	}
@@ -249,15 +282,11 @@ class PropertyValue
 	 */
 	public static function getAllFields()
 	{
-		static $fields = null;
-		if ($fields == null)
-			$fields = array_keys(Internals\OrderPropsValueTable::getMap());
-		return $fields;
-	}
-
-	public function dump($i)
-	{
-		return str_repeat(' ', $i)."Property: Id=".$this->getId().", PropertyId=".$this->getPropertyId().", Name=".$this->getName().", Value=".$this->getValue()."\n";
+		if (empty(static::$mapFields))
+		{
+			static::$mapFields = parent::getAllFieldsByMap(Internals\OrderPropsValueTable::getMap());
+		}
+		return static::$mapFields;
 	}
 
 	function getProperty()
@@ -319,6 +348,44 @@ class PropertyValue
 	function isRequired()
 	{
 		return $this->property['REQUIRED'] == 'Y';
+	}
+
+	public static function getMeaningfulValues($personTypeId, $request)
+	{
+		$personTypeId = intval($personTypeId);
+		if ($personTypeId <= 0)
+			throw new ArgumentNullException("personTypeId");
+
+		if (!is_array($request))
+			throw new ArgumentNullException("request");
+
+		$result = array();
+
+		$db = OrderPropsTable::getList(array(
+			'select' => array('ID', 'IS_LOCATION', 'IS_EMAIL', 'IS_PROFILE_NAME',
+				'IS_PAYER', 'IS_LOCATION4TAX', 'CODE', 'IS_ZIP', 'IS_PHONE', 'IS_ADDRESS',
+			),
+			'filter' => array(
+				'ACTIVE' => 'Y',
+				'UTIL' => 'N',
+				'PERSON_TYPE_ID' => $personTypeId
+			)
+		));
+		while ($row = $db->fetch())
+		{
+			if (array_key_exists($row["ID"], $request))
+			{
+				foreach ($row as $key => $value)
+				{
+					if (($value === "Y") && (substr($key, 0, 3) === "IS_"))
+					{
+						$result[substr($key, 3)] = $request[$row["ID"]];
+					}
+				}
+			}
+		}
+
+		return $result;
 	}
 
 	public static function loadForOrder(Order $order)
@@ -396,7 +463,7 @@ class PropertyValue
 			}
 			else
 			{
-				if ($property['ACTIVE'] == 'N' || $property['UTIL'] == 'Y')
+				if ($property['ACTIVE'] == 'N') // || $property['UTIL'] == 'Y')
 					continue;
 
 				$fields = null;

@@ -108,6 +108,8 @@ function CheckForm(form)
 					BX("photo_album_password_" + result['ID']).style.display = 'none';
 			}
 			PhotoMenu.PopupHide('photo_section_edit');
+			BX.cleanNode(BX('photo_section_edit'), 1);
+			BX.cleanNode(BX('photo_section_edit_shadow'), 1);
 		}
 		catch(e)
 		{
@@ -158,6 +160,8 @@ function CheckFormEditIcon(form)
 				else if (BX("photo_album_cover_" + result['ID']))
 					BX("photo_album_cover_" + result['ID']).style.backgroundImage = "url(" + result['SRC'] + ")";
 				PhotoMenu.PopupHide('photo_section_edit');
+				BX.cleanNode(BX('photo_section_edit'), 1);
+				BX.cleanNode(BX('photo_section_edit_shadow'), 1);
 			}
 			catch(e)
 			{
@@ -175,12 +179,16 @@ function CheckFormEditIcon(form)
 function CheckFormEditIconCancel()
 {
 	PhotoMenu.PopupHide('photo_section_edit');
+	BX.cleanNode(BX('photo_section_edit'), 1);
+	BX.cleanNode(BX('photo_section_edit_shadow'), 1);
 	return false;
 }
 
 function CancelSubmit()
 {
 	PhotoMenu.PopupHide('photo_section_edit');
+	BX.cleanNode(BX('photo_section_edit'), 1);
+	BX.cleanNode(BX('photo_section_edit_shadow'), 1);
 	return false;
 }
 

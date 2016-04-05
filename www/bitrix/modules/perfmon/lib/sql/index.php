@@ -155,7 +155,7 @@ class Index extends BaseObject
 		case "MYSQL":
 			return "DROP INDEX ".$this->name." ON ".$this->parent->name;
 		case "MSSQL":
-			return "DROP INDEX ".$this->name;
+			return "DROP INDEX ".$this->name." ON ".$this->parent->name;
 		case "ORACLE":
 			return "DROP INDEX ".$this->name;
 		default:

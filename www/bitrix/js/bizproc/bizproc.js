@@ -23,13 +23,23 @@ function CreateActivity(oActivity)
 		a = eval("new "+arAllActivities[t.toLowerCase()]['JSCLASS']+"()");
 		if(!oActivity.Properties)
 			oActivity.Properties = {};
+		else if (oActivity.Properties instanceof Array)
+		{
+			var k, properties = BX.clone(oActivity.Properties);
+			oActivity.Properties = {};
+			for (k in properties)
+				if (properties.hasOwnProperty(k))
+					oActivity.Properties[k] = properties[k];
+		}
 		if(!oActivity.Properties['Title'])
 			oActivity.Properties['Title'] = arAllActivities[t.toLowerCase()]['NAME'];
 		if(!oActivity.Icon && arAllActivities[t.toLowerCase()]['ICON'])
 			oActivity.Icon = arAllActivities[t.toLowerCase()]['ICON'];
 	}
+	else if (typeof window[t] !== 'undefined')
+		a = eval("new " + t + "()");
 	else
-		a = eval("new "+t+"()");
+		a = new UnknownBizProcActivity();
 
 	a.Init(oActivity);
 	return a;
@@ -37,6 +47,19 @@ function CreateActivity(oActivity)
 
 function JSToPHPHidd(v, ob, varname)
 {
+	if (typeof BPDesignerUseJson !== 'undefined'  && BPDesignerUseJson)
+	{
+		v[varname] = JSON.stringify(ob, function (i, v)
+			{
+				if (typeof(v) == 'boolean')
+				{
+					return v ? '1' : '0';
+				}
+				return v;
+			});
+		return true;
+	}
+
 	var res, i, key;
 	if(typeof(ob)=='object')
 	{
@@ -84,6 +107,17 @@ function JSToPHPHidd(v, ob, varname)
 
 function JSToPHP(ob, varname)
 {
+	if (typeof BPDesignerUseJson !== 'undefined'  && BPDesignerUseJson)
+	{
+		return varname + '=' + encodeURIComponent(JSON.stringify(ob, function (i, v)
+			{
+				if (typeof(v) == 'boolean')
+				{
+					return v ? '1' : '0';
+				}
+				return v;
+			}));
+	}
 	var res, i, key;
 	if(typeof(ob)=='object')
 	{
@@ -354,6 +388,7 @@ BizProcActivity = function()
 				break;
 			}
 		}
+		BPTemplateIsModified = true;
 	}
 
 	ob.SetError = function (s)
@@ -438,6 +473,7 @@ BizProcActivity = function()
 			act.style.paddingLeft = '24px';
 			act.style.textAlign = 'left';
 			act.innerHTML = HTMLEncode(ob['Properties']['Title']);
+			act.setAttribute('title', ob['Properties']['Title']);
 		}
 
 		var d3 = ob.div.appendChild(document.createElement('DIV'));
@@ -619,6 +655,66 @@ function _DragNDrop()
 	}
 
 }
+
+UnknownBizProcActivity = function()
+{
+	var ob = new BizProcActivity();
+
+	ob.Draw = function (divC)
+	{
+		ob.div = divC.appendChild(document.createElement('DIV'));
+		ob.div.className = 'activityerr';
+		var d1 = ob.div.appendChild(document.createElement('DIV'));
+		d1.className = 'activityhead';
+		var d11 = d1.appendChild(document.createElement('DIV'));
+		d11.className = 'activityheadr';
+		var d111 = d11.appendChild(document.createElement('DIV'));
+		d111.className = 'activityheadl';
+
+		var a1 = d111.appendChild(document.createElement('A'));
+		a1.className = 'activitydel';
+
+		a1.onclick = this.OnRemoveClick;// this!
+
+		var sp = d111.appendChild(document.createElement('DIV'));
+		//sp.innerHTML = HTMLEncode(ob['Properties']['Title']);
+		sp.style.padding = '5px';
+		sp.style.cursor = 'not-allowed';
+
+		var d2 = ob.div.appendChild(document.createElement('DIV'));
+		d2.style.backgroundColor = '#E6E6E6';
+		d2.style.borderLeft = '2px #bebabb solid';
+		d2.style.borderRight = '2px #bebabb solid';
+		d2.style.overflowX = 'hidden';
+		d2.style.overflowY = 'hidden';
+		d2.style.height = (ob.activityHeight ? ob.activityHeight : '30px');
+
+		var act = d2.appendChild(document.createElement('DIV'));
+		act.style.background = 'url(/bitrix/images/bizproc/act_icon.gif) left center no-repeat';
+		act.style.height = '30px';
+		act.style.margin = '2px';
+		act.style.paddingLeft = '24px';
+		act.style.textAlign = 'left';
+		act.innerHTML = HTMLEncode(ob['Properties']['Title']);
+		act.setAttribute('title', ob['Properties']['Title']);
+
+		var d3 = ob.div.appendChild(document.createElement('DIV'));
+		d3.style.background = 'url(/bitrix/images/bizproc/act_bt.gif)';
+		d3.style.backgroundColor = '#E6E6E6';
+		d3.style.height = '4px';
+		d3.style.overflowY = 'hidden';
+		var d33 = d3.appendChild(document.createElement('DIV'));
+		d33.style.background = 'url(/bitrix/images/bizproc/act_br.gif) right top no-repeat';
+		var d333 = d33.appendChild(document.createElement('DIV'));
+		d333.style.background = 'url(/bitrix/images/bizproc/act_bl.gif) left top no-repeat';
+		d333.style.height = '4px';
+
+		ob.div.style.margin = '0 auto';
+		ob.div.style.width = (ob.activityWidth ? ob.activityWidth : '170px');
+	};
+
+	return ob;
+};
 
 BX.namespace('BX.Bizproc');
 BX.Bizproc.cloneTypeControl = function(tableID)

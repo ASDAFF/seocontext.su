@@ -184,8 +184,10 @@ $tabControl->BeginNextTab();
 			<?=\Bitrix\Sender\TemplateTable::initEditor(array(
 				'FIELD_NAME' => 'MESSAGE',
 				'FIELD_VALUE' => $str_CONTENT,
+				'CONTENT_URL' => '/bitrix/admin/sender_template_admin.php?action=get_template&template_type=USER&template_id=' . $ID . '&lang=' . LANGUAGE_ID . '&' . bitrix_sessid_get(),
 				'HAVE_USER_ACCESS' => $isUserHavePhpAccess,
-				'SHOW_SAVE_TEMPLATE' => false
+				'SHOW_SAVE_TEMPLATE' => false,
+				'IS_TEMPLATE_MODE' => false,
 			));?>
 			<input type="hidden" name="IS_TEMPLATE_LIST_SHOWN" id="IS_TEMPLATE_LIST_SHOWN" value="<?=(empty($str_CONTENT) ?"Y":"N")?>">
 		</td>

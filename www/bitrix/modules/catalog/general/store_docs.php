@@ -237,6 +237,7 @@ class CAllCatalogDocs
 			}
 			return $DB->Query("delete from b_catalog_store_barcode where PRODUCT_ID = ".$productID, true);
 		}
+		return true;
 	}
 
 	function OnCatalogStoreDelete($storeID)
@@ -259,7 +260,7 @@ class CAllCatalogDocs
 			$dbStoreDocs = CCatalogDocs::getList(array(), array("PRODUCTS_ELEMENT_ID" => $productID, "STATUS" => "Y"), false, false, array('ID'));
 			if ($arStoreDocs = $dbStoreDocs->fetch())
 			{
-				$APPLICATION->ThrowException(GetMessage("CAT_DOC_ERROR_ELEMENT_IN_DOCUMENT"));
+				$APPLICATION->ThrowException(GetMessage("CAT_DOC_ERROR_ELEMENT_IN_DOCUMENT_EXT"));
 				return false;
 			}
 		}

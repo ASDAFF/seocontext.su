@@ -203,20 +203,186 @@ if($arCurrentValues["BEHAVIOUR"] == "USER")
 		"PARENT" => "URL_TEMPLATES",
 		"NAME" => GetMessage("IBLOCK_GALLERY_URL"),
 		"TYPE" => "STRING",
-		"DEFAULT" => "gallery.php?USER_ALIAS=#USER_ALIAS#");
+		"DEFAULT" => "gallery.php?USER_ALIAS=#USER_ALIAS#"
+	);
 }
 $arComponentParameters["PARAMETERS"]["DETAIL_URL"] = array(
 	"PARENT" => "URL_TEMPLATES",
 	"NAME" => GetMessage("IBLOCK_DETAIL_URL"),
 	"TYPE" => "STRING",
 	"DEFAULT" => "detail.php?".($arCurrentValues["BEHAVIOUR"] == "USER" ? "USER_ALIAS=#USER_ALIAS#" : "").
-		"SECTION_ID=#SECTION_ID#&ELEMENT_ID=#ELEMENT_ID#");
+		"SECTION_ID=#SECTION_ID#&ELEMENT_ID=#ELEMENT_ID#"
+);
 $arComponentParameters["PARAMETERS"]["DETAIL_SLIDE_SHOW_URL"] = array(
-	"PARENT" => "URL_TEMPLATES",
-	"NAME" => GetMessage("IBLOCK_DETAIL_SLIDE_SHOW_URL"),
-	"TYPE" => "STRING",
-	"DEFAULT" => "slide_show.php?".($arCurrentValues["BEHAVIOUR"] == "USER" ? "USER_ALIAS=#USER_ALIAS#" : "").
-		"SECTION_ID=#SECTION_ID#&ELEMENT_ID=#ELEMENT_ID#");
+		"PARENT" => "URL_TEMPLATES",
+		"NAME" => GetMessage("IBLOCK_DETAIL_SLIDE_SHOW_URL"),
+		"TYPE" => "STRING",
+		"DEFAULT" => "slide_show.php?".($arCurrentValues["BEHAVIOUR"] == "USER" ?"USER_ALIAS=#USER_ALIAS#" : "")."SECTION_ID=#SECTION_ID#&ELEMENT_ID=#ELEMENT_ID#"
+	);
+
+
+
+if (IsModuleInstalled("blog") || IsModuleInstalled("forum"))
+{
+	$arComponentParameters["GROUPS"]["REVIEW_SETTINGS"] = array("NAME" => GetMessage("T_IBLOCK_DESC_REVIEW_SETTINGS"), "SORT" => 400);
+
+	$arComponentParameters["PARAMETERS"]["USE_COMMENTS"] = array(
+		"PARENT" => "REVIEW_SETTINGS",
+		"NAME" => GetMessage("T_IBLOCK_DESC_USE_COMMENTS"),
+		"TYPE" => "CHECKBOX",
+		"DEFAULT" => "N",
+		"REFRESH" => "Y");
+
+	if ($arCurrentValues["USE_COMMENTS"]=="Y")
+	{
+		$arr = array();
+		$default = "";
+
+		if (IsModuleInstalled("blog"))
+		{
+			$arr["blog"] = GetMessage("P_COMMENTS_TYPE_BLOG");
+			$default = "blog";
+		}
+		if (IsModuleInstalled("forum"))
+		{
+			$arr["forum"] = GetMessage("P_COMMENTS_TYPE_FORUM");
+			$default = "forum";
+		}
+
+		$arComponentParameters["PARAMETERS"]["COMMENTS_TYPE"] = Array(
+			"PARENT" => "REVIEW_SETTINGS",
+			"NAME" => GetMessage("P_COMMENTS_TYPE"),
+			"TYPE" => "LIST",
+			"VALUES" => $arr,
+			"DEFAULT" => $default,
+			"REFRESH" => "Y");
+
+		$arCurrentValues["COMMENTS_TYPE"] = ($arCurrentValues["COMMENTS_TYPE"] == "forum" || $arCurrentValues["COMMENTS_TYPE"] == "blog" ? $arCurrentValues["COMMENTS_TYPE"] : $default);
+
+		if (IsModuleInstalled("blog") && $arCurrentValues["COMMENTS_TYPE"]=="blog")
+		{
+			$arBlogs = array();
+			if(CModule::IncludeModule("blog"))
+			{
+				$rsBlog = CBlog::GetList();
+				while($arBlog=$rsBlog->Fetch())
+				{
+					$arBlogs[$arBlog["URL"]] = $arBlog["NAME"];
+					$url = $arBlog["URL"];
+				}
+			}
+			$arComponentParameters["PARAMETERS"]["BLOG_URL"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_BLOG_URL"),
+				"TYPE" => "LIST",
+				"VALUES" => $arBlogs,
+				"DEFAULT" => $url);
+			$arComponentParameters["PARAMETERS"]["COMMENTS_COUNT"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_COMMENTS_COUNT"),
+				"TYPE" => "STRING",
+				"DEFAULT" => 25,
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["PATH_TO_BLOG"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("P_PATH_TO_BLOG"),
+				"TYPE" => "STRING",
+				"DEFAULT" => ""
+			);
+			$arComponentParameters["PARAMETERS"]["PATH_TO_SMILE"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_PATH_TO_SMILE"),
+				"TYPE" => "STRING",
+				"DEFAULT" => "/bitrix/images/blog/smile/",
+				"HIDDEN" => $hidden
+			);
+		}
+		elseif (IsModuleInstalled("forum") && $arCurrentValues["COMMENTS_TYPE"]=="forum")
+		{
+			$arForum = array();
+			$fid = 0;
+			if (CModule::IncludeModule("forum"))
+			{
+				$db_res = CForumNew::GetList(array(), array());
+				if ($db_res && ($res = $db_res->GetNext()))
+				{
+					do
+					{
+						$arForum[intVal($res["ID"])] = $res["NAME"];
+						$fid = intVal($res["ID"]);
+					}while ($res = $db_res->GetNext());
+				}
+			}
+			$arComponentParameters["PARAMETERS"]["FORUM_ID"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_FORUM_ID"),
+				"TYPE" => "LIST",
+				"VALUES" => $arForum,
+				"DEFAULT" => $fid);
+			$arComponentParameters["PARAMETERS"]["COMMENTS_COUNT"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_COMMENTS_COUNT"),
+				"TYPE" => "STRING",
+				"DEFAULT" => COption::GetOptionString("forum", "MESSAGES_PER_PAGE", "10"),
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["URL_TEMPLATES_READ"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_READ_TEMPLATE"),
+				"TYPE" => "STRING",
+				"DEFAULT" => "",
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["URL_TEMPLATES_PROFILE_VIEW"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_PROFILE_VIEW_TEMPLATE"),
+				"TYPE" => "STRING",
+				"DEFAULT" => "",
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["PATH_TO_SMILE"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_PATH_TO_SMILE"),
+				"TYPE" => "STRING",
+				"DEFAULT" => "/bitrix/images/forum/smile/",
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["USE_CAPTCHA"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_USE_CAPTCHA"),
+				"TYPE" => "CHECKBOX",
+				"DEFAULT" => "N",
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["PREORDER"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_PREORDER"),
+				"TYPE" => "CHECKBOX",
+				"DEFAULT" => "N",
+				"HIDDEN" => $hidden
+			);
+			$arComponentParameters["PARAMETERS"]["POST_FIRST_MESSAGE"] = Array(
+				"PARENT" => "REVIEW_SETTINGS",
+				"NAME" => GetMessage("F_POST_FIRST_MESSAGE"),
+				"TYPE" => "CHECKBOX",
+				"DEFAULT" => "N",
+				"HIDDEN" => $hidden
+			);
+		}
+
+		$arComponentParameters["PARAMETERS"]["NAME_TEMPLATE"] = array(
+			"PARENT" => "REVIEW_SETTINGS",
+			"TYPE" => "LIST",
+			"NAME" => GetMessage("P_SONET_NAME_TEMPLATE"),
+			"VALUES" => CComponentUtil::GetDefaultNameTemplates(),
+			"MULTIPLE" => "N",
+			"ADDITIONAL_VALUES" => "Y",
+			"DEFAULT" => ""
+		);
+	}
+}
+
 
 if (IsModuleInstalled("search"))
 {

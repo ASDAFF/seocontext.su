@@ -681,7 +681,13 @@ class CAllSearch extends CDBResult
 			if(substr($r["URL"], 0, 1)=="=")
 			{
 				foreach (GetModuleEvents("search", "OnSearchGetURL", true) as $arEvent)
-					$r["URL"] = ExecuteModuleEventEx($arEvent, array($r));
+				{
+					$newUrl = ExecuteModuleEventEx($arEvent, array($r));
+					if (isset($newUrl))
+					{
+						$r["URL"] = $newUrl;
+					}
+				}
 			}
 
 			$r["URL"] = str_replace(
@@ -1349,7 +1355,7 @@ class CAllSearch extends CDBResult
 		return $ID;
 	}
 
-	function KillEntities($str)
+	public static function KillEntities($str)
 	{
 		static $arAllEntities = array(
 			'UMLYA' => ARRAY(
@@ -1409,9 +1415,16 @@ class CAllSearch extends CDBResult
 				'&CLUBS;','&HEARTS;','&DIAMS;',
 			),
 		);
-		foreach($arAllEntities as $key => $entities)
-			$str = str_replace($entities, "", $str);
-		return $str;
+		static $pregEntities = false;
+		if (!$pregEntities)
+		{
+			$pregEntities = array();
+			foreach($arAllEntities as $key => $entities)
+			{
+				$pregEntities[$key] = implode("|", $entities);
+			}
+		}
+		return preg_replace("/(".implode("|", $pregEntities).")/i", "", $str);
 	}
 
 	function ReindexFile($path, $SEARCH_SESS_ID="")

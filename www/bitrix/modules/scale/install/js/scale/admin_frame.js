@@ -221,7 +221,7 @@
 						{
 							settMenu.push({
 								TEXT: BX.Scale.sitesList[s].NAME,
-								ONCLICK: "BX.Scale.actionsCollection.getObject('"+key+"').start('',{SITE_NAME: '"+BX.Scale.sitesList[s].NAME+"',SMTP_HOST: BX.Scale.sitesList['"+s+"'].SMTPHost,SMTP_PORT: BX.Scale.sitesList['"+s+"'].SMTPPort,SMTP_USER: BX.Scale.sitesList['"+s+"'].SMTPUser,EMAIL: BX.Scale.sitesList['"+s+"'].EmailAddress,SMTPTLS: (BX.Scale.sitesList['"+s+"'].SMTPTLS == 'on' ? 'Y' : 'N')});"
+								ONCLICK: "BX.Scale.actionsCollection.getObject('"+key+"').start('',{SITE_NAME_CONF: '"+BX.Scale.sitesList[s].SiteName+"', SITE_NAME: '"+BX.Scale.sitesList[s].NAME+"',SMTP_HOST: BX.Scale.sitesList['"+s+"'].SMTPHost,SMTP_PORT: BX.Scale.sitesList['"+s+"'].SMTPPort,SMTP_USER: BX.Scale.sitesList['"+s+"'].SMTPUser,EMAIL: BX.Scale.sitesList['"+s+"'].EmailAddress,SMTPTLS: (BX.Scale.sitesList['"+s+"'].SMTPTLS == 'on' ? 'Y' : 'N')});"
 							});
 						}
 

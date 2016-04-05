@@ -39,6 +39,7 @@ window.JCCatalogElement = function (arParams)
 		showSkuProps: false,
 		showOfferGroup: false,
 		useCompare: false,
+		useStickers: false,
 		mainPictureMode: 'IMG',
 		showBasisPrice: false,
 		basketAction: ['BUY'],
@@ -50,6 +51,7 @@ window.JCCatalogElement = function (arParams)
 	this.stepQuantity = 1;
 	this.isDblQuantity = false;
 	this.canBuy = true;
+	this.isGift = false;
 	this.currentBasisPrice = {};
 	this.canSubscription = true;
 	this.currentIsSet = false;
@@ -301,6 +303,72 @@ window.JCCatalogElement = function (arParams)
 		BX.ready(BX.delegate(this.Init,this));
 	}
 	this.params = {};
+
+	BX.addCustomEvent('onSaleProductIsGift', BX.delegate(this.onSaleProductIsGift, this));
+	BX.addCustomEvent('onSaleProductIsNotGift', BX.delegate(this.onSaleProductIsNotGift, this));
+};
+
+window.JCCatalogElement.prototype.onSaleProductIsGift = function(productId, offerId)
+{
+	var findOfferById = function(offers, offerId)
+	{
+		for (var i = 0; i < offers.length; i++)
+		{
+			if(offers[i] && offers[i].ID == offerId)
+			{
+				return offers[i];
+			}
+		}
+
+		return null;
+	};
+
+	if(!!offerId && this.offers && this.offers[this.offerNum].ID == offerId)
+	{
+		this.setGift();
+	}
+};
+
+window.JCCatalogElement.prototype.onSaleProductIsNotGift = function(productId, offerId)
+{
+	if(!!offerId && this.offers && this.offers[this.offerNum].ID == offerId)
+	{
+		this.restoreSticker();
+		this.isGift = false;
+		this.setPrice(BX.clone(this.offers[this.offerNum].PRICE, true));
+	}
+};
+
+window.JCCatalogElement.prototype.reloadGiftInfo = function()
+{
+	if(this.productType === 3)
+	{
+		this.checkQuantity = true;
+		this.maxQuantity = 1;
+
+		this.setPrice(BX.clone(this.offers[this.offerNum].PRICE, true));
+		BX.hide(this.obBasisPrice);
+		this.redrawSticker({text: BX.message('PRODUCT_GIFT_LABEL')});
+	}
+};
+
+window.JCCatalogElement.prototype.setGift = function()
+{
+	if(this.productType === 3)
+	{
+		//sku
+		this.isGift = true;
+	}
+	if(this.productType === 1 || this.productType === 2)
+	{
+		//simple
+		this.isGift = true;
+	}
+	if(this.productType === 0)
+	{
+		this.isGift = false;
+	}
+	this.reloadGiftInfo();
 };
 
 window.JCCatalogElement.prototype.Init = function()
@@ -595,6 +663,7 @@ window.JCCatalogElement.prototype.initConfig = function()
 		this.config.showSkuProps = !!this.params.CONFIG.SHOW_SKU_PROPS;
 		this.config.showOfferGroup = !!this.params.CONFIG.OFFER_GROUP;
 		this.config.useCompare = !!this.params.CONFIG.DISPLAY_COMPARE;
+		this.config.useStickers = !!this.params.CONFIG.USE_STICKERS;
 		if (!!this.params.CONFIG.MAIN_PICTURE_MODE)
 		{
 			this.config.mainPictureMode = this.params.CONFIG.MAIN_PICTURE_MODE;
@@ -663,6 +732,10 @@ window.JCCatalogElement.prototype.initConfig = function()
 	if (this.config.useCompare)
 	{
 		this.initVisualParams('compare');
+	}
+	if (this.config.useStickers)
+	{
+		this.initVisualParams('stickers');
 	}
 };
 
@@ -1608,7 +1681,7 @@ window.JCCatalogElement.prototype.QuantityUp = function()
 		boolSet = true,
 		calcPrice;
 
-	if (0 === this.errorCode && this.config.showQuantity && this.canBuy)
+	if (0 === this.errorCode && this.config.showQuantity && this.canBuy && !this.isGift)
 	{
 		curValue = (this.isDblQuantity ? parseFloat(this.obQuantity.value) : parseInt(this.obQuantity.value, 10));
 		if (!isNaN(curValue))
@@ -1648,7 +1721,7 @@ window.JCCatalogElement.prototype.QuantityDown = function()
 		boolSet = true,
 		calcPrice;
 
-	if (0 === this.errorCode && this.config.showQuantity && this.canBuy)
+	if (0 === this.errorCode && this.config.showQuantity && this.canBuy && !this.isGift)
 	{
 		curValue = (this.isDblQuantity ? parseFloat(this.obQuantity.value) : parseInt(this.obQuantity.value, 10));
 		if (!isNaN(curValue))
@@ -2240,9 +2313,13 @@ window.JCCatalogElement.prototype.SetCurrent = function()
 window.JCCatalogElement.prototype.ChangeInfo = function()
 {
 	var index = -1,
-		i = 0,
+		i,
 		j = 0,
-		boolOneSearch = true;
+		boolOneSearch = true,
+		eventData = {
+			currentId: (this.offerNum > -1 ? this.offers[this.offerNum].ID : 0),
+			newId: 0
+		};
 
 	for (i = 0; i < this.offers.length; i++)
 	{
@@ -2263,6 +2340,11 @@ window.JCCatalogElement.prototype.ChangeInfo = function()
 	}
 	if (-1 < index)
 	{
+		if(index != this.offerNum)
+		{
+			this.isGift = false;
+		}
+
 		this.setPrice(this.offers[index].PRICE);
 		for (i = 0; i < this.offers.length; i++)
 		{
@@ -2317,13 +2399,70 @@ window.JCCatalogElement.prototype.ChangeInfo = function()
 		this.QuantitySet(this.offerNum);
 
 		this.incViewedCounter();
-		BX.onCustomEvent('onCatalogStoreProductChange', [this.offers[this.offerNum].ID]);
+		eventData.newId = this.offers[this.offerNum].ID;
+		if (eventData.currentId != eventData.newId)
+		{
+			// only for compatible catalog.store.amout custom templates
+			BX.onCustomEvent('onCatalogStoreProductChange', [this.offers[this.offerNum].ID]);
+			// new event
+			BX.onCustomEvent('onCatalogElementChangeOffer', eventData);
+		}
+		eventData = null;
 	}
+};
+
+window.JCCatalogElement.prototype.restoreSticker = function()
+{
+	if(this.previousStickerText)
+	{
+		this.redrawSticker({text: this.previousStickerText});
+	}
+	else
+	{
+		this.hideSticker();
+	}
+};
+
+window.JCCatalogElement.prototype.hideSticker = function()
+{
+	BX.hide(BX(this.visual.STICKER_ID));
+};
+
+window.JCCatalogElement.prototype.redrawSticker = function(stickerData)
+{
+	stickerData = stickerData || {};
+	var text = stickerData.text || '';
+
+	var sticker = BX(this.visual.STICKER_ID);
+	if(!sticker)
+	{
+		return;
+	}
+	BX.show(BX(this.visual.STICKER_ID), 'block');
+
+	var previousStickerText = sticker.getAttribute('title');
+	if(previousStickerText && previousStickerText != text)
+	{
+		this.previousStickerText = previousStickerText;
+	}
+	BX.adjust(sticker, {
+		text: text,
+		attrs: {
+			title: text
+		}
+	})
 };
 
 window.JCCatalogElement.prototype.setPrice = function(price)
 {
 	var economyInfo = '';
+
+	if(this.isGift)
+	{
+		price.DISCOUNT_VALUE = 0;
+		price.DISCOUNT_DIFF = price.VALUE;
+		price.DISCOUNT_DIFF_PERCENT = -100;
+	}
 
 	if (!!this.obPrice.price)
 	{

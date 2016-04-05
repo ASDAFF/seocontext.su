@@ -6,7 +6,7 @@ class CSocNetFeatures extends CAllSocNetFeatures
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -72,7 +72,7 @@ class CSocNetFeatures extends CAllSocNetFeatures
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetList($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
+	public static function GetList($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
 
@@ -172,4 +172,3 @@ class CSocNetFeatures extends CAllSocNetFeatures
 		return $dbRes;
 	}
 }
-?>

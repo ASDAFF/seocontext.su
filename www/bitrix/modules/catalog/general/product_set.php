@@ -1,4 +1,6 @@
 <?
+use Bitrix\Catalog;
+
 IncludeModuleLangFile(__FILE__);
 
 class CCatalogProductSetAll
@@ -144,17 +146,48 @@ class CCatalogProductSetAll
 		return false;
 	}
 
-	public function deleteAllSetsByProduct($intProductID, $intSetType)
+	public static function deleteAllSetsByProduct($intProductID, $intSetType)
 	{
+		global $DB;
+
+		$intProductID = (int)$intProductID;
+		if (0 >= $intProductID)
+			return false;
+		$intSetType = (int)$intSetType;
+		if (self::TYPE_SET != $intSetType && self::TYPE_GROUP != $intSetType)
+			return false;
+
+		foreach (GetModuleEvents('catalog', 'OnBeforeProductAllSetsDelete', true) as $arEvent)
+		{
+			if (ExecuteModuleEventEx($arEvent, array($intProductID, $intSetType)) === false)
+				return false;
+		}
+
+		$strSql = 'delete from b_catalog_product_sets where OWNER_ID='.$intProductID.' and TYPE='.$intSetType;
+		$DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
+		switch ($intSetType)
+		{
+			case self::TYPE_SET:
+				CCatalogProduct::SetProductType($intProductID, CCatalogProduct::TYPE_PRODUCT);
+				break;
+			case self::TYPE_GROUP:
+				if (!static::isProductHaveSet($intProductID, self::TYPE_GROUP))
+					CCatalogProduct::Update($intProductID, array('BUNDLE' => Catalog\ProductTable::STATUS_NO));
+				break;
+		}
+
+		foreach (GetModuleEvents('catalog', 'OnProductAllSetsDelete', true) as $arEvent)
+			ExecuteModuleEventEx($arEvent, array($intProductID, $intSetType));
+
 		return true;
 	}
 
-	public function recalculateSetsByProduct($product)
+	public static function recalculateSetsByProduct($product)
 	{
 
 	}
 
-	public function recalculateSet($setID, $productID = 0)
+	public static function recalculateSet($setID, $productID = 0)
 	{
 		$setID = (int)$setID;
 		$productID = (int)$productID;
@@ -162,17 +195,17 @@ class CCatalogProductSetAll
 		{
 			if ($productID > 0)
 			{
-				$setParams = self::createSetItemsParamsFromUpdate($setID, false);
+				$setParams = static::createSetItemsParamsFromUpdate($setID, false);
 			}
 			else
 			{
-				$extSetParams = self::createSetItemsParamsFromUpdate($setID, true);
+				$extSetParams = static::createSetItemsParamsFromUpdate($setID, true);
 				$productID = $extSetParams['ITEM_ID'];
 				$setParams = $extSetParams['ITEMS'];
 				unset($extSetParams);
 			}
-			self::fillSetItemsParams($setParams);
-			self::calculateSetParams($productID, $setParams);
+			static::fillSetItemsParams($setParams);
+			static::calculateSetParams($productID, $setParams);
 		}
 	}
 
@@ -734,7 +767,7 @@ class CCatalogProductSetAll
 		return $mxResult;
 	}
 
-	protected function calculateSetParams($productID, $items)
+	protected static function calculateSetParams($productID, $items)
 	{
 		return false;
 	}
@@ -785,4 +818,3 @@ class CCatalogProductSetAll
 		);
 	}
 }
-?>

@@ -57,6 +57,7 @@ class pull extends CModule
 		}
 
 		RegisterModule("pull");
+		RegisterModuleDependences("main", "OnBeforeProlog", "main", "", "", 50, "/modules/pull/ajax_hit_before.php");
 		RegisterModuleDependences("main", "OnProlog", "main", "", "", 3, "/modules/pull/ajax_hit.php");
 		RegisterModuleDependences("main", "OnEpilog", "pull", "CPullWatch", "DeferredSql");
 		RegisterModuleDependences("main", "OnEpilog", "pull", "CPullOptions", "OnEpilog");
@@ -127,6 +128,7 @@ class pull extends CModule
 		UnRegisterModuleDependences("main", "OnEpilog", "pull", "CPullWatch", "DeferredSql");
 		UnRegisterModuleDependences("main", "OnEpilog", "pull", "CPullOptions", "OnEpilog");
 		UnRegisterModuleDependences("main", "OnProlog", "main", "", "", "/modules/pull/ajax_hit.php");
+		UnRegisterModuleDependences("main", "OnBeforeProlog", "main", "", "", "/modules/pull/ajax_hit_before.php");
 		if (IsModuleInstalled('intranet'))
 		{
 			UnRegisterModuleDependences("main", "OnAfterUserAuthorize", "pull", "CPullChannel", "OnAfterUserAuthorize");

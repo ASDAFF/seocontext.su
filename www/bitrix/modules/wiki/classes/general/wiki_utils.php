@@ -269,12 +269,12 @@ class CWikiUtils
 
 	static function CheckServicePage($NAME, &$SERVICE_NAME)
 	{
-		$arStream = array('category', strtolower(GetMessage('CATEGORY_NAME')));
+		$arStream = array('category', ToLower(GetMessage('CATEGORY_NAME')));
 		$arSplit = explode(':', $NAME);
 
 		if (count($arSplit) >= 2)
 		{
-			$SERVICE_PAGE = strtolower($arSplit[0]);
+			$SERVICE_PAGE = ToLower($arSplit[0]);
 			if (in_array($SERVICE_PAGE, $arStream))
 			{
 				unset($arSplit[0]);
@@ -291,7 +291,7 @@ class CWikiUtils
 	static function IsCategoryPage($NAME, &$CATEGORY_NAME)
 	{
 		$sServiceName = self::CheckServicePage($NAME, $CATEGORY_NAME);
-		return $sServiceName == 'category' || $sServiceName == strtolower(GetMessage('CATEGORY_NAME'));
+		return ($sServiceName == 'category' || $sServiceName == ToLower(GetMessage('CATEGORY_NAME')));
 	}
 
 	static function OnBeforeIndex($arFields)
@@ -336,7 +336,7 @@ class CWikiUtils
 
 	static function htmlspecialcharsback($str, $end = true)
 	{
-		$str = urldecode($str);
+		$str = rawurldecode($str);
 		while(strpos($str, '&amp;') !== false)
 			$str = self::htmlspecialchars_decode($str);
 		if($end)

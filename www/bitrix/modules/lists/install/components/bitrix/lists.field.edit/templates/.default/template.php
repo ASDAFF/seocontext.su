@@ -34,6 +34,8 @@ $APPLICATION->IncludeComponent(
 	$component, array("HIDE_ICONS" => "Y")
 );
 
+$customHtml = "";
+
 $arTab1Fields = array(array("id"=>"NAME","name"=>GetMessage("CT_BLFE_FIELD_NAME"),"required"=>true));
 
 if($arResult["FIELD_ID"] == "NAME" && $arParams["IBLOCK_TYPE_ID"] == COption::GetOptionString("lists", "livefeed_iblock_type_id"))
@@ -67,19 +69,35 @@ else
 		"value"=>'<input type="hidden" name="IS_REQUIRED" value="Y">'.GetMessage("MAIN_YES"),
 	);
 
-if($arResult["CAN_BE_MULTIPLE"])
+if($arResult["IS_MULTIPLE_ONLY"])
+{
 	$arTab1Fields[] = array(
 		"id"=>"MULTIPLE",
 		"name"=>GetMessage("CT_BLFE_FIELD_MULTIPLE"),
-		"type"=>"checkbox",
+		"type"=>"custom",
+		"value"=>'<input type="hidden" name="MULTIPLE" value="Y">'.GetMessage("MAIN_YES"),
 	);
+}
 else
-	$arTab1Fields[] = array(
-		"id"=>"MULTIPLE",
-		"name"=>GetMessage("CT_BLFE_FIELD_MULTIPLE"),
-		"type"=>"label",
-		"value"=>GetMessage("MAIN_NO"),
-	);
+{
+	if($arResult["CAN_BE_MULTIPLE"])
+	{
+		$arTab1Fields[] = array(
+			"id"=>"MULTIPLE",
+			"name"=>GetMessage("CT_BLFE_FIELD_MULTIPLE"),
+			"type"=>"checkbox",
+		);
+	}
+	else
+	{
+		$arTab1Fields[] = array(
+			"id"=>"MULTIPLE",
+			"name"=>GetMessage("CT_BLFE_FIELD_MULTIPLE"),
+			"type"=>"label",
+			"value"=>GetMessage("MAIN_NO"),
+		);
+	}
+}
 
 if ($arResult["FIELD_ID"])
 {
@@ -89,6 +107,7 @@ if ($arResult["FIELD_ID"])
 		"type"=>"label",
 		"value"=>$arResult["TYPES"][$arResult["FIELD"]["TYPE"]],
 	);
+	$customHtml .= '<input type="hidden" name="TYPE" value="'.$arResult["FIELD"]["TYPE"].'">';
 }
 else
 {
@@ -121,8 +140,23 @@ if(is_array($arUserType))
 	}
 }
 
+$readOnlyAdd = true;
+$readOnlyEdit = true;
+$showAddForm = true;
 if($arResult["IS_READ_ONLY"])
 {
+	$readOnlyAdd = false;
+	$readOnlyEdit = false;
+	$showAddForm = false;
+}
+elseif($arResult["FORM_DATA"]["TYPE"] == "NAME")
+{
+	$arTab1Fields[] = array(
+		"id" => "DEFAULT_VALUE",
+		"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
+	);
+
+	$readOnlyAdd = false;
 }
 elseif($arResult["FORM_DATA"]["TYPE"] == "SORT")
 {
@@ -130,32 +164,6 @@ elseif($arResult["FORM_DATA"]["TYPE"] == "SORT")
 		"id" => "DEFAULT_VALUE",
 		"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
 	);
-}
-elseif($arResult["FORM_DATA"]["TYPE"] == "S")
-{
-	if ($arResult["FORM_DATA"]["ROW_COUNT"] > 1)
-	{
-		$arTab1Fields[] = array(
-			"id" => "DEFAULT_VALUE",
-			"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
-			"type" => "textarea",
-			"params" => array(
-				"cols" => $arResult["FORM_DATA"]["COL_COUNT"],
-				"rows" => $arResult["FORM_DATA"]["ROW_COUNT"],
-				"style" => "width:".$arResult["FORM_DATA"]["COL_COUNT"]."em;height:".$arResult["FORM_DATA"]["ROW_COUNT"]."em;",
-			),
-		);
-	}
-	else
-	{
-		$arTab1Fields[] = array(
-			"id" => "DEFAULT_VALUE",
-			"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
-			"params" => array(
-				"size" => $arResult["FORM_DATA"]["COL_COUNT"],
-			),
-		);
-	}
 }
 elseif($arResult["FORM_DATA"]["TYPE"] == "ACTIVE_FROM")
 {
@@ -173,6 +181,7 @@ elseif($arResult["FORM_DATA"]["TYPE"] == "ACTIVE_FROM")
 elseif($arResult["FORM_DATA"]["TYPE"] == "ACTIVE_TO")
 {
 	//TODO
+	$readOnlyAdd = false;
 }
 elseif($arResult["FORM_DATA"]["TYPE"] == "PREVIEW_PICTURE")
 {
@@ -218,6 +227,8 @@ elseif($arResult["FORM_DATA"]["TYPE"] == "PREVIEW_PICTURE")
 		"type" => "checkbox",
 		"value" => isset($arResult["FORM_DATA"]["DEFAULT_VALUE"]["IGNORE_ERRORS"]) ? $arResult["FORM_DATA"]["DEFAULT_VALUE"]["IGNORE_ERRORS"] : '',
 	);
+
+	$readOnlyAdd = false;
 }
 elseif($arResult["FORM_DATA"]["TYPE"] == "PREVIEW_TEXT" || $arResult["FORM_DATA"]["TYPE"] == "DETAIL_TEXT")
 {
@@ -272,14 +283,51 @@ elseif($arResult["FORM_DATA"]["TYPE"] == "DETAIL_PICTURE")
 		"type" => "checkbox",
 		"value" => isset($arResult["FORM_DATA"]["DEFAULT_VALUE"]["IGNORE_ERRORS"]) ? $arResult["FORM_DATA"]["DEFAULT_VALUE"]["IGNORE_ERRORS"] : '',
 	);
+
+	$readOnlyAdd = false;
+}
+elseif($arResult["FORM_DATA"]["TYPE"] == "S")
+{
+	if ($arResult["FORM_DATA"]["ROW_COUNT"] > 1)
+	{
+		$arTab1Fields[] = array(
+			"id" => "DEFAULT_VALUE",
+			"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
+			"type" => "textarea",
+			"params" => array(
+				"cols" => $arResult["FORM_DATA"]["COL_COUNT"],
+				"rows" => $arResult["FORM_DATA"]["ROW_COUNT"],
+				"style" => "width:".$arResult["FORM_DATA"]["COL_COUNT"]."em;height:".$arResult["FORM_DATA"]["ROW_COUNT"]."em;",
+			),
+		);
+	}
+	else
+	{
+		$arTab1Fields[] = array(
+			"id" => "DEFAULT_VALUE",
+			"name" => GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
+			"params" => array(
+				"size" => $arResult["FORM_DATA"]["COL_COUNT"],
+			),
+		);
+	}
+}
+elseif($arResult["FORM_DATA"]["TYPE"] == "N")
+{
+	$arTab1Fields[] = array(
+		"id"=>"DEFAULT_VALUE",
+		"name"=>GetMessage("CT_BLFE_FIELD_DEFAULT_VALUE"),
+	);
 }
 elseif(preg_match("/^(L|L:)/", $arResult["FORM_DATA"]["TYPE"]))
 {
-	//No default value input
+
 }
 elseif(preg_match("/^(F|F:)/", $arResult["FORM_DATA"]["TYPE"]))
 {
 	//No default value input
+
+	$readOnlyAdd = false;
 }
 elseif(preg_match("/^(G|G:)/", $arResult["FORM_DATA"]["TYPE"]))
 {
@@ -302,14 +350,27 @@ elseif(preg_match("/^(G|G:)/", $arResult["FORM_DATA"]["TYPE"]))
 		"items"=>$items,
 	);
 }
+elseif($arResult["FORM_DATA"]["TYPE"] == "N:Sequence")
+{
+	$readOnlyAdd = false;
+	$readOnlyEdit = false;
+}
 elseif(preg_match("/^(E|E:)/", $arResult["FORM_DATA"]["TYPE"]))
 {
 	//No default value input
+
+	$readOnlyAdd = false;
 }
 elseif(!is_array($arPropertyFields["HIDE"]) || !in_array("DEFAULT_VALUE", $arPropertyFields["HIDE"]))
 {//Show default property value input if it was not cancelled by property
 	if(is_array($arUserType))
 	{
+		if($arUserType["USER_TYPE"] == "DiskFile")
+			$readOnlyAdd = false;
+
+		if($arUserType["USER_TYPE"] == "map_yandex" && !isset($arResult["FIELD"]["MULTIPLE"]))
+			$arResult["FIELD"]["MULTIPLE"] = "N";
+
 		if(array_key_exists("GetPublicEditHTML", $arUserType))
 		{
 			$html = '';
@@ -346,8 +407,6 @@ elseif(!is_array($arPropertyFields["HIDE"]) || !in_array("DEFAULT_VALUE", $arPro
 	}
 }
 
-$customHtml = "";
-
 if(preg_match("/^(G|G:)/", $arResult["FORM_DATA"]["TYPE"]))
 {
 	$arTab1Fields[] = array(
@@ -383,41 +442,99 @@ elseif($arResult["FORM_DATA"]["TYPE"] === "S")
 	);
 }
 
+if($arResult["IS_PROPERTY"])
+{
+	$arTab1Fields[] = array("id"=>"CODE", "name"=>GetMessage("CT_BLFE_FIELD_CODE"));
+}
+
 $arTab1Fields[] = array("id"=>"SORT", "name"=>GetMessage("CT_BLFE_FIELD_SORT"), "params"=>array("size"=>5));
 
 $checkedAdd = true;
 $checkedEdit = true;
+$checkedReadAdd = false;
+$checkedReadEdit = false;
+$checkedPreview = false;
+if(
+	isset($arResult["FORM_DATA"]["SETTINGS"]["SHOW_ADD_FORM"]) &&
+	$arResult["FORM_DATA"]["SETTINGS"]["SHOW_ADD_FORM"] == "N"
+)
+	$checkedAdd = false;
+if(
+	isset($arResult["FORM_DATA"]["SETTINGS"]["SHOW_EDIT_FORM"]) &&
+	$arResult["FORM_DATA"]["SETTINGS"]["SHOW_EDIT_FORM"] == "N"
+)
+	$checkedEdit = false;
+if(
+	isset($arResult["FORM_DATA"]["SETTINGS"]["ADD_READ_ONLY_FIELD"]) &&
+	$arResult["FORM_DATA"]["SETTINGS"]["ADD_READ_ONLY_FIELD"] == "Y"
+)
+	$checkedReadAdd = true;
+if(
+	isset($arResult["FORM_DATA"]["SETTINGS"]["EDIT_READ_ONLY_FIELD"]) &&
+	$arResult["FORM_DATA"]["SETTINGS"]["EDIT_READ_ONLY_FIELD"] == "Y"
+)
+	$checkedReadEdit = true;
 
-if($arResult["FIELD_ID"])
+if(
+	isset($arResult["FORM_DATA"]["SETTINGS"]["SHOW_FIELD_PREVIEW"]) &&
+	$arResult["FORM_DATA"]["SETTINGS"]["SHOW_FIELD_PREVIEW"] == "Y"
+)
 {
-	if(
-		isset($arResult["FORM_DATA"]["SETTINGS"]["SHOW_ADD_FORM"]) &&
-		$arResult["FORM_DATA"]["SETTINGS"]["SHOW_ADD_FORM"] == "N"
-	)
-		$checkedAdd = false;
-	if(
-		isset($arResult["FORM_DATA"]["SETTINGS"]["SHOW_EDIT_FORM"]) &&
-		$arResult["FORM_DATA"]["SETTINGS"]["SHOW_EDIT_FORM"] == "N"
-	)
-		$checkedEdit = false;
+	$checkedPreview = true;
 }
+
 $params = array();
-
-$params["id"] = "bx-lists-show-add-form";
-$arTab1Fields[] = array(
-	"id"=>"SETTINGS[SHOW_ADD_FORM]",
-	"name"=>GetMessage("CT_BLFE_FIELD_SHOW_ADD_FORM"),
-	"type"=>"checkbox",
-	"value" => $checkedAdd,
-	"params"=>$params
-);
-
+/* Marker display field */
+if($showAddForm)
+{
+	$params["id"] = "bx-lists-show-add-form";
+	$arTab1Fields[] = array(
+		"id"=>"SETTINGS[SHOW_ADD_FORM]",
+		"name"=>GetMessage("CT_BLFE_FIELD_SHOW_ADD_FORM"),
+		"type"=>"checkbox",
+		"value"=>$checkedAdd,
+		"params"=>$params
+	);
+}
 $params["id"] = "bx-lists-show-edit-form";
 $arTab1Fields[] = array(
 	"id"=>"SETTINGS[SHOW_EDIT_FORM]",
 	"name"=>GetMessage("CT_BLFE_FIELD_SHOW_EDIT_FORM"),
 	"type"=>"checkbox",
-	"value" => $checkedEdit,
+	"value"=>$checkedEdit,
+	"params"=>$params
+);
+
+/* Marker "read-only" field */
+if($readOnlyAdd)
+{
+	$params["id"] = "bx-lists-add-read-only-field";
+	$arTab1Fields[] = array(
+		"id"=>"SETTINGS[ADD_READ_ONLY_FIELD]",
+		"name"=>GetMessage("CT_BLFE_FIELD_ADD_READ_ONLY_FIELD"),
+		"type"=>"checkbox",
+		"value" => $checkedReadAdd,
+		"params"=>$params
+	);
+}
+if($readOnlyEdit)
+{
+	$params["id"] = "bx-lists-edit-read-only-field";
+	$arTab1Fields[] = array(
+		"id"=>"SETTINGS[EDIT_READ_ONLY_FIELD]",
+		"name"=>GetMessage("CT_BLFE_FIELD_EDIT_READ_ONLY_FIELD"),
+		"type"=>"checkbox",
+		"value"=>$checkedReadEdit,
+		"params"=>$params
+	);
+}
+
+$params["id"] = "bx-lists-edit-show-field-preview";
+$arTab1Fields[] = array(
+	"id"=>"SETTINGS[SHOW_FIELD_PREVIEW]",
+	"name"=>GetMessage("CT_BLFE_FIELD_SHOW_FIELD_PREVIEW"),
+	"type"=>"checkbox",
+	"value"=>$checkedPreview,
 	"params"=>$params
 );
 

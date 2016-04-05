@@ -12,6 +12,11 @@ class OrderAdditional
 	{
 		$data = self::prepareData($collection);
 
+		if(get_class($collection) == 'Bitrix\Sale\Order')
+			$orderLocked = \Bitrix\Sale\Order::isLocked($collection->getId());
+		else
+			$orderLocked = false;
+
 		$blockEmpResponsible = '';
 		if (isset($data['EMP_RESPONSIBLE']) && !empty($data['EMP_RESPONSIBLE']))
 		{
@@ -23,6 +28,21 @@ class OrderAdditional
 					</td>
 				</tr>
 			';
+		}
+
+		$additionalInfo = '';
+
+		if (isset($data['ADDITIONAL_INFO']) && !empty($data['ADDITIONAL_INFO']))
+		{
+			$additionalInfo = '
+			<table class="adm-detail-content-table edit-table" border="0" width="100%" cellpadding="0" cellspacing="0">
+				<tbody>
+					<tr>
+						<td class="adm-detail-content-cell-l vat" width="40%">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_ADDITIONAL_INFO').':</td>
+						<td class="adm-detail-content-cell-r">'.$data['ADDITIONAL_INFO'].'</td>
+					</tr>
+				</tbody>
+			</table>';
 		}
 
 		return '
@@ -47,7 +67,9 @@ class OrderAdditional
 				</tbody>
 			</table>
 		</div>
-
+		<div class="adm-bus-moreInfo_part1-5">
+		'.$additionalInfo.'
+		</div>
 		<div class="adm-s-gray-title">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_COMMENT').'</div>
 
 		<div class="adm-bus-moreInfo_part2">
@@ -57,7 +79,7 @@ class OrderAdditional
 						<td class="adm-detail-content-cell-l vat" width="40%">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_MANAGER_COMMENT').':</td>
 						<td class="adm-detail-content-cell-r">
 							<div>
-								<textarea style="width:400px;min-height:100px;" name="'.$formPrefix.'[COMMENTS]" id="COMMENTS">'
+								<textarea style="width:400px;min-height:100px;" name="'.$formPrefix.'[COMMENTS]" id="COMMENTS"'.($orderLocked ? ' disabled' : '').'>'
 									.htmlspecialcharsbx($data['COMMENTS']).
 								'</textarea>
 							</div>
@@ -73,6 +95,11 @@ class OrderAdditional
 		$data = self::prepareData($collection);
 		$blockEmpResponsible = '';
 
+		if(get_class($collection) == 'Bitrix\Sale\Order')
+			$orderLocked = \Bitrix\Sale\Order::isLocked($collection->getId());
+		else
+			$orderLocked = false;
+
 		if (isset($data['EMP_RESPONSIBLE']) && !empty($data['EMP_RESPONSIBLE']))
 		{
 			$blockEmpResponsible = '
@@ -83,6 +110,21 @@ class OrderAdditional
 					</td>
 				</tr>
 			';
+		}
+
+		$additionalInfo = '';
+
+		if (isset($data['ADDITIONAL_INFO']) && !empty($data['ADDITIONAL_INFO']))
+		{
+			$additionalInfo = '
+			<table class="adm-detail-content-table edit-table" border="0" width="100%" cellpadding="0" cellspacing="0">
+				<tbody>
+					<tr>
+						<td class="adm-detail-content-cell-l vat" width="40%">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_ADDITIONAL_INFO').':</td>
+						<td class="adm-detail-content-cell-r">'.$data['ADDITIONAL_INFO'].'</td>
+					</tr>
+				</tbody>
+			</table>';
 		}
 
 		return '
@@ -101,14 +143,13 @@ class OrderAdditional
 					'.$blockEmpResponsible.'
 				</tbody>
 			</table>
-
+			'.$additionalInfo.'
 			<table class="adm-detail-content-table edit-table" border="0" width="100%" cellpadding="0" cellspacing="0">
 				<tbody>
 					<tr>
-						<td class="adm-detail-content-cell-l vat" width="40%">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_MANAGER_COMMENT').':</td>
-						<td class="adm-detail-content-cell-r">
-							<a href="javascript:void(0);" style="text-decoration: none; border-bottom: 1px dashed" onClick="BX.Sale.Admin.OrderAdditionalInfo.showCommentsDialog(\''.$collection->getField('ID').'\', BX(\'sale-adm-comments-view\'))">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_COMMENT_TITLE').'</a><br>
-							<pre id="sale-adm-comments-view" style="color:gray; max-width:800px; overflow:auto;">'.(strlen($data['COMMENTS']) ? htmlspecialcharsbx($data['COMMENTS']) : '').'</pre>
+						<td class="adm-detail-content-cell-l'.($orderLocked ? '' : ' vat').'" width="40%">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_MANAGER_COMMENT').':</td>
+						<td class="adm-detail-content-cell-r">'.($orderLocked ? '' : '<a href="javascript:void(0);" style="text-decoration: none; border-bottom: 1px dashed" onClick="BX.Sale.Admin.OrderAdditionalInfo.showCommentsDialog(\''.$collection->getField('ID').'\', BX(\'sale-adm-comments-view\'))">'.Loc::getMessage('SALE_ORDER_ADDITIONAL_INFO_COMMENT_TITLE').'</a>').
+							'<pre id="sale-adm-comments-view" style="color:gray; max-width:800px; overflow:auto;">'.(strlen($data['COMMENTS']) ? htmlspecialcharsbx($data['COMMENTS']) : '').'</pre>
 						</td>
 					</tr>
 				</tbody>
@@ -161,6 +202,10 @@ class OrderAdditional
 			$data['RESPONSIBLE'] = array("NAME" => "", "LAST_NAME" => "");
 			$data['RESPONSIBLE_ID'] = 0;
 		}
+
+		if(in_array("ADDITIONAL_INFO", $collection->getAvailableFields()))
+			if(strlen($collection->getField("ADDITIONAL_INFO")) > 0)
+				$data["ADDITIONAL_INFO"] = $collection->getField("ADDITIONAL_INFO");
 		
 		return $data;
 	}

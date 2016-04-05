@@ -19,4 +19,5 @@ $MESS ['BPAA_ACT_NONAPPROVE_TRACK'] = "Пользователь #PERSON# отк�
 $MESS ['BPAA_ACT_PROP_EMPTY1'] = "Свойство 'Пользователи' не указано.";
 $MESS ['BPAA_ACT_PROP_EMPTY3'] = "Значение свойства 'Тип одобрения' не корректно.";
 $MESS ['BPAA_ACT_APPROVERS_NONE'] = "нет";
+$MESS ['BPAA_ACT_COMMENT_ERROR'] = "Не заполнено поле: #COMMENT_LABEL#";
 ?>

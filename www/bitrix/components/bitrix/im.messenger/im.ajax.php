@@ -15,13 +15,15 @@ if (!defined('IM_AJAX_INIT'))
 }
 header('Content-Type: application/x-javascript; charset='.LANG_CHARSET);
 
+IncludeModuleLangFile(__FILE__);
+
 // NOTICE
 // Before execute next code, execute file /module/im/ajax_hit.php
 // for skip onProlog events
 
 if (!CModule::IncludeModule("im"))
 {
-	echo CUtil::PhpToJsObject(Array('ERROR' => 'IM_MODULE_NOT_INSTALLED'));
+	echo CUtil::PhpToJsObject(Array('ERROR' => GetMessage('IM_MODULE_NOT_INSTALLED')));
 	CMain::FinalActions();
 	die();
 }
@@ -48,18 +50,28 @@ if (intval($USER->GetID()) <= 0)
 
 if (check_bitrix_sessid())
 {
-	if ($_REQUEST["mobile_action"] && CModule::IncludeModule('mobile'))
+	if (isset($_REQUEST["mobile_action"]) && $_POST['FOCUS'] == 'Y' && CModule::IncludeModule('mobile'))
 	{
 		Bitrix\Mobile\User::setOnline();
 	}
 
 	if ($_POST['IM_AVATAR_UPDATE'] == 'Y')
 	{
-		$CFileUploader = new CFileUploader(array(
-			"allowUpload" => "I",
-			"events" => array("onFileIsUploaded" => array("CIMDisk", "UploadAvatar"))
-		));
-		if (!$CFileUploader->checkPost())
+		$userId = $USER->GetId();
+		if (CIMChat::GetGeneralChatId() != intval($_POST['CHAT_ID']))
+		{
+			$CFileUploader = new CFileUploader(array(
+				"allowUpload" => "I",
+				"events" => array("onFileIsUploaded" => array("CIMDisk", "UploadAvatar"))
+			));
+			if (!$CFileUploader->checkPost())
+			{
+				echo CUtil::PhpToJsObject(Array(
+					'ERROR' => 'UPLOAD_ERROR'
+				));
+			}
+		}
+		else
 		{
 			echo CUtil::PhpToJsObject(Array(
 				'ERROR' => 'UPLOAD_ERROR'
@@ -339,7 +351,10 @@ if (check_bitrix_sessid())
 	{
 		$errorMessage = "";
 
-		CIMContactList::SetOnline();
+		if ($_POST['ONLINE'] == 'Y')
+		{
+			CIMContactList::SetOnline();
+		}
 
 		$arResult["REVISION"] = IM_REVISION;
 		$arResult["MOBILE_REVISION"] = IM_MOBILE_REVISION;
@@ -471,16 +486,27 @@ if (check_bitrix_sessid())
 
 		$tmpID = $_POST['ID'];
 
-		if ($_POST['CHAT'] == 'Y')
+		$insertID = 0;
+		$errorMessage = "";
+		if ($_POST['CHAT'] == 'Y' && substr($_POST['RECIPIENT_ID'], 0, 4) == 'chat')
 		{
-			$ar = Array(
-				"FROM_USER_ID" => intval($USER->GetID()),
-				"TO_CHAT_ID" => intval(substr($_POST['RECIPIENT_ID'], 4)),
-				"MESSAGE" 	 => $_POST['MESSAGE'],
-			);
-			$insertID = CIMChat::AddMessage($ar);
+			$userId = $USER->GetId();
+			$chatId = intval(substr($_POST['RECIPIENT_ID'], 4));
+			if (CIMChat::GetGeneralChatId() == $chatId && !CIMChat::CanSendMessageToGeneralChat($userId))
+			{
+				$errorMessage = GetMessage('IM_ERROR_GROUP_CANCELED');
+			}
+			else
+			{
+				$ar = Array(
+					"FROM_USER_ID" => $userId,
+					"TO_CHAT_ID" => $chatId,
+					"MESSAGE" 	 => $_POST['MESSAGE'],
+				);
+				$insertID = CIMChat::AddMessage($ar);
+			}
 		}
-		else
+		else if (substr($_POST['RECIPIENT_ID'], 0, 4) != 'chat')
 		{
 			$ar = Array(
 				"FROM_USER_ID" => intval($USER->GetID()),
@@ -489,15 +515,23 @@ if (check_bitrix_sessid())
 			);
 			$insertID = CIMMessage::Add($ar);
 		}
+		else
+		{
+			$errorMessage = GetMessage('IM_ACCESS_ERROR');
+		}
 
-		$errorMessage = "";
-		if (!$insertID)
+
+		if (!$insertID && !$errorMessage)
 		{
 			if ($e = $GLOBALS["APPLICATION"]->GetException())
 				$errorMessage = $e->GetString();
 			if (StrLen($errorMessage) == 0)
 				$errorMessage = GetMessage('IM_UNKNOWN_ERROR');
 		}
+
+		$params = CIMMessageParam::Get(Array($insertID));
+		$arMessages = CIMMessageLink::prepareShow(Array(), $params);
+
 		$CCTP = new CTextParser();
 		$CCTP->MaxStringLen = 200;
 		$CCTP->allow = array("HTML" => "N", "ANCHOR" => (isset($_POST['MOBILE'])?"N": "Y"), "BIU" => "Y", "IMG" => "N", "QUOTE" => "N", "CODE" => "N", "FONT" => "N", "LIST" => "N", "SMILES" => "Y", "NL2BR" => "Y", "VIDEO" => "N", "TABLE" => "N", "CUT_ANCHOR" => "N", "ALIGN" => "N");
@@ -508,6 +542,7 @@ if (check_bitrix_sessid())
 			'ID' => $insertID,
 			'SEND_DATE' => time()+$userTzOffset,
 			'SEND_MESSAGE' => $CCTP->convertText(htmlspecialcharsbx($ar['MESSAGE'])),
+			'SEND_MESSAGE_PARAMS' => $arMessages[$insertID]['params'],
 			'SENDER_ID' => intval($USER->GetID()),
 			'RECIPIENT_ID' => $_POST['CHAT'] == 'Y'? htmlspecialcharsbx($_POST['RECIPIENT_ID']): intval($_POST['RECIPIENT_ID']),
 			'ERROR' => $errorMessage
@@ -674,6 +709,8 @@ if (check_bitrix_sessid())
 			CIMMessenger::SetCurrentTab($_POST['TAB']);
 
 		echo CUtil::PhpToJsObject(Array(
+			'REVISION' => IM_REVISION,
+			'MOBILE_REVISION' => IM_MOBILE_REVISION,
 			'CHAT_ID' => $chatId,
 			'USER_ID' => $_POST['CHAT'] == 'Y'? htmlspecialcharsbx($_POST['USER_ID']): intval($_POST['USER_ID']),
 			'MESSAGE' => isset($arMessage['message'])? $arMessage['message']: Array(),
@@ -782,11 +819,19 @@ if (check_bitrix_sessid())
 	else if ($_POST['IM_HISTORY_LOAD_MORE'] == 'Y')
 	{
 		$arMessage = Array();
-		if (CIMContactList::AllowToSend(Array('TO_USER_ID' => $_POST['USER_ID'])))
-		{
-			$CIMHistory = new CIMHistory(false, Array(
 
-			));
+		if (substr($_POST['USER_ID'], 0, 4) == 'chat')
+		{
+			$allowToSend = Array('TO_CHAT_ID' => substr($_POST['USER_ID'], 4));
+		}
+		else
+		{
+			$allowToSend = Array('TO_USER_ID' => $_POST['USER_ID']);
+		}
+		
+		if (CIMContactList::AllowToSend($allowToSend))
+		{
+			$CIMHistory = new CIMHistory(false, Array());
 			if (substr($_POST['USER_ID'], 0, 4) == 'chat')
 			{
 				$chatId = substr($_POST['USER_ID'],4);
@@ -805,7 +850,6 @@ if (check_bitrix_sessid())
 				$arMessage = $CIMHistory->GetMoreMessage(intval($_POST['PAGE_ID']), intval($_POST['USER_ID']), false, false);
 			}
 		}
-
 		echo CUtil::PhpToJsObject(Array(
 			'CHAT_ID' => isset($arMessage['chatId'])? $arMessage['chatId']: 0,
 			'MESSAGE' => isset($arMessage['message'])? $arMessage['message']: Array(),
@@ -906,14 +950,23 @@ if (check_bitrix_sessid())
 	else if ($_POST['IM_CONTACT_LIST_SEARCH'] == 'Y')
 	{
 		$enabled = false;
-		if (!Bitrix\Im\User::getInstance()->isExtranet() && CModule::IncludeModule('socialservices'))
+		if (!IsModuleInstalled('intranet') && !IsModuleInstalled('b24network'))
+		{
+			$enabled = true;
+		}
+		else if (!Bitrix\Im\User::getInstance()->isExtranet() && CModule::IncludeModule('socialservices'))
 		{
 			$network = new \Bitrix\Socialservices\Network();
 			$enabled = $network->isEnabled();
-		}
-		else if (!IsModuleInstalled('intranet') && !IsModuleInstalled('b24network'))
-		{
-			$enabled = true;
+
+			if ($enabled)
+			{
+				$query = CBitrix24NetTransport::init();
+				if(!$query)
+				{
+					$enabled = false;
+				}
+			}
 		}
 
 		if ($enabled)
@@ -1025,11 +1078,26 @@ if (check_bitrix_sessid())
 		$errorMessage = "";
 
 		$CIMNotify = new CIMNotify();
-		$CIMNotify->Confirm($_POST['NOTIFY_ID'], $_POST['NOTIFY_VALUE']);
+		$result = $CIMNotify->Confirm($_POST['NOTIFY_ID'], $_POST['NOTIFY_VALUE']);
 
 		echo CUtil::PhpToJsObject(Array(
 			'NOTIFY_ID' => intval($_POST['NOTIFY_ID']),
 			'NOTIFY_VALUE' => $_POST['NOTIFY_VALUE'],
+			'MESSAGES' => $result,
+			'ERROR' => $errorMessage
+		));
+	}
+	else if ($_POST['IM_NOTIFY_ANSWER'] == 'Y')
+	{
+		CUtil::decodeURIComponent($_POST);
+
+		$errorMessage = "";
+
+		$CIMNotify = new CIMNotify();
+		$result = $CIMNotify->Answer($_POST['NOTIFY_ID'], $_POST['NOTIFY_ANSWER']);
+
+		echo CUtil::PhpToJsObject(Array(
+			'MESSAGES' => $result,
 			'ERROR' => $errorMessage
 		));
 	}
@@ -1104,14 +1172,22 @@ if (check_bitrix_sessid())
 
 		$errorMessage = "";
 		$chatId = 0;
-		if (!is_array($_POST['USERS']))
+		if ($_POST['TYPE'] != 'open' && !is_array($_POST['USERS']))
 		{
-			$errorMessage = 'Unknown error';
+			$errorMessage = GetMessage('IM_UNKNOWN_ERROR');
 		}
 		else
 		{
+			CUtil::decodeURIComponent($_POST);
+
 			$CIMChat = new CIMChat();
-			$chatId = $CIMChat->Add(Array('USERS' => $_POST['USERS'], 'SEARCH_MARK' => $_POST['SEARCH_MARK']));
+			$chatId = $CIMChat->Add(Array(
+				'TYPE' => $_POST['TYPE'] == 'open'? IM_MESSAGE_OPEN: IM_MESSAGE_CHAT,
+				'USERS' => $_POST['USERS'],
+				'TITLE' => $_POST['TITLE'],
+				'MESSAGE' => $_POST['MESSAGE'],
+				'SEARCH_MARK' => $_POST['SEARCH_MARK']
+			));
 			if (!$chatId)
 			{
 				if ($e = $GLOBALS["APPLICATION"]->GetException())
@@ -1129,21 +1205,44 @@ if (check_bitrix_sessid())
 		$_POST['USERS'] = CUtil::JsObjectToPhp($_POST['USERS']);
 
 		$errorMessage = "";
-		$CIMChat = new CIMChat();
-		$result = $CIMChat->AddUser($_POST['CHAT_ID'], $_POST['USERS'], Array('SEARCH_MARK' => $_POST['SEARCH_MARK']));
-		if (!$result)
+		$userId = $USER->GetId();
+		if (CIMChat::GetGeneralChatId() == intval($_POST['CHAT_ID']))
 		{
-			if ($e = $GLOBALS["APPLICATION"]->GetException())
-				$errorMessage = $e->GetString();
+			$errorMessage = GetMessage('IM_ACCESS_ERROR');
+		}
+		else
+		{
+			$CIMChat = new CIMChat();
+			$result = $CIMChat->AddUser($_POST['CHAT_ID'], $_POST['USERS'], Array('SEARCH_MARK' => $_POST['SEARCH_MARK']));
+			if (!$result)
+			{
+				if ($e = $GLOBALS["APPLICATION"]->GetException())
+					$errorMessage = $e->GetString();
+			}
 		}
 		echo CUtil::PhpToJsObject(Array(
 			'ERROR' => $errorMessage
 		));
 	}
-	else if ($_POST['IM_CHAT_LEAVE'] == 'Y')
+	else if ($_POST['IM_CHAT_JOIN'] == 'Y')
 	{
 		$CIMChat = new CIMChat();
-		$result = $CIMChat->DeleteUser($_POST['CHAT_ID'], intval($_POST['USER_ID']) > 0? intval($_POST['USER_ID']): $USER->GetID());
+		$result = $CIMChat->Join($_POST['CHAT_ID']);
+
+	}
+	else if ($_POST['IM_CHAT_LEAVE'] == 'Y')
+	{
+		$userId = $USER->GetId();
+		if (CIMChat::GetGeneralChatId() == intval($_POST['CHAT_ID']))
+		{
+			$result = false;
+		}
+		else
+		{
+			$CIMChat = new CIMChat();
+			$result = $CIMChat->DeleteUser($_POST['CHAT_ID'], intval($_POST['USER_ID']) > 0? intval($_POST['USER_ID']): $USER->GetID());
+		}
+
 		echo CUtil::PhpToJsObject(Array(
 			'CHAT_ID' => intval($_POST['CHAT_ID']),
 			'USER_ID' => intval($_POST['USER_ID']),
@@ -1161,10 +1260,14 @@ if (check_bitrix_sessid())
 	}
 	else if ($_POST['IM_CHAT_RENAME'] == 'Y')
 	{
-		CUtil::decodeURIComponent($_POST);
+		$userId = $USER->GetId();
+		if (CIMChat::GetGeneralChatId() != intval($_POST['CHAT_ID']))
+		{
+			CUtil::decodeURIComponent($_POST);
 
-		$CIMChat = new CIMChat();
-		$CIMChat->Rename($_POST['CHAT_ID'], $_POST['CHAT_TITLE']);
+			$CIMChat = new CIMChat();
+			$CIMChat->Rename($_POST['CHAT_ID'], $_POST['CHAT_TITLE']);
+		}
 
 		echo CUtil::PhpToJsObject(Array(
 			'CHAT_ID' => intval($_POST['CHAT_ID']),
@@ -1232,6 +1335,28 @@ if (check_bitrix_sessid())
 				$arResult['USER_IN_GROUP'] = isset($ar['userInGroup'])? $ar['userInGroup']: Array();
 				$arResult['WO_USER_IN_GROUP'] = isset($ar['woUserInGroup'])? $ar['woUserInGroup']: Array();
 				$arResult['PHONES'] = isset($ar['phones'])? $ar['phones']: Array();
+			}
+			else
+			{
+				$arResult['ERROR'] = 'ACCESS_DENIED';
+			}
+		}
+		else if ($_POST['TYPE'] == 'chat')
+		{
+			$chatId = intval($_POST['CHAT_ID']);
+
+			$arChat = CIMChat::GetChatData(array(
+				'ID' => $chatId,
+				'USE_CACHE' => 'Y',
+				'USER_ID' => $USER->GetId()
+			));
+
+			if ($arChat['chat'][$chatId])
+			{
+				$arResult['CHAT_ID'] = $chatId;
+				$arResult['CHAT'] = $arChat['chat'];
+				$arResult['USER_IN_CHAT'] = $arChat['userInChat'];
+				$arResult['USER_BLOCK_CHAT'] = $arChat['userChatBlockStatus'];
 			}
 			else
 			{
@@ -1521,10 +1646,20 @@ if (check_bitrix_sessid())
 	{
 		$errorMessage = "";
 
+		$_POST['CHAT_ID'] = intval($_POST['CHAT_ID']);
+
 		if ($_POST['CHAT_ID'] > 0)
 		{
-			$chat = new CIMChat();
-			$chat->SetColor($_POST['CHAT_ID'], $_POST['COLOR']);
+			$userId = $USER->GetId();
+			if (CIMChat::GetGeneralChatId() == intval($_POST['CHAT_ID']) && !CIMChat::CanSendMessageToGeneralChat($userId))
+			{
+				$errorMessage = GetMessage('IM_ACCESS_ERROR');
+			}
+			else
+			{
+				$chat = new CIMChat();
+				$chat->SetColor($_POST['CHAT_ID'], $_POST['COLOR']);
+			}
 		}
 		else
 		{
@@ -1633,7 +1768,7 @@ if (check_bitrix_sessid())
 	}
 	else
 	{
-		echo CUtil::PhpToJsObject(Array('ERROR' => 'UNKNOWN_ERROR'));
+		echo CUtil::PhpToJsObject(Array('ERROR' => GetMessage('IM_UNKNOWN_ERROR')));
 	}
 }
 else

@@ -24,4 +24,6 @@ $MESS["MPF_SELECT_ATTACHMENTS"] = "Upload files and images";
 $MESS["MPF_DROP_ATTACHMENTS"] = "Drag files here to upload";
 $MESS["MPF_DRAG_ATTACHMENTS"] = "Drag files here";
 $MESS["MPF_DRAG_ATTACHMENTS2"] = "Upload files?";
+$MESS["MPF_PIN_EDITOR_PANNEL"] = "Pin panel";
+$MESS["MPF_PIN_EDITOR_PANNEL_OFF"] = "Unpin panel";
 ?>

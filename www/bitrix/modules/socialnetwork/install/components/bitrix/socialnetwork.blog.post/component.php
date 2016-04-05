@@ -16,10 +16,17 @@ if (!CModule::IncludeModule("blog"))
 	return;
 }
 if (!CModule::IncludeModule("socialnetwork"))
+{
 	return;
+}
 
-if (!isset($arParams["CHECK_PERMISSIONS_DEST"]) || strLen($arParams["CHECK_PERMISSIONS_DEST"]) <= 0)
+if (
+	!isset($arParams["CHECK_PERMISSIONS_DEST"])
+	|| strLen($arParams["CHECK_PERMISSIONS_DEST"]) <= 0
+)
+{
 	$arParams["CHECK_PERMISSIONS_DEST"] = "N";
+}
 
 $arResult["bFromList"] = ($arParams["FROM_LOG"] == "Y" || $arParams["TYPE"] == "DRAFT" || $arParams["TYPE"] == "MODERATION");
 $arResult["bExtranetInstalled"] = CModule::IncludeModule("extranet");
@@ -32,53 +39,68 @@ if ($arResult["bExtranetUser"])
 }
 
 if(!is_array($arParams["GROUP_ID"]))
+{
 	$arParams["GROUP_ID"] = array($arParams["GROUP_ID"]);
+}
+
 foreach($arParams["GROUP_ID"] as $k=>$v)
+{
 	if(IntVal($v) <= 0)
+	{
 		unset($arParams["GROUP_ID"][$k]);
+	}
+}
 
-if(strLen($arParams["BLOG_VAR"])<=0)
-	$arParams["BLOG_VAR"] = "blog";
-if(strLen($arParams["PAGE_VAR"])<=0)
-	$arParams["PAGE_VAR"] = "page";
-if(strLen($arParams["USER_VAR"])<=0)
-	$arParams["USER_VAR"] = "id";
-if(strLen($arParams["POST_VAR"])<=0)
-	$arParams["POST_VAR"] = "id";
+$arResult["bPublicPage"] = (isset($arParams["PUB"]) && $arParams["PUB"] == "Y");
 
-$applicationCurPage = $APPLICATION->GetCurPage();
+if (!$arResult["bPublicPage"])
+{
+	if(strLen($arParams["BLOG_VAR"])<=0)
+		$arParams["BLOG_VAR"] = "blog";
+	if(strLen($arParams["PAGE_VAR"])<=0)
+		$arParams["PAGE_VAR"] = "page";
+	if(strLen($arParams["USER_VAR"])<=0)
+		$arParams["USER_VAR"] = "id";
+	if(strLen($arParams["POST_VAR"])<=0)
+		$arParams["POST_VAR"] = "id";
 
-$arParams["PATH_TO_BLOG"] = trim($arParams["PATH_TO_BLOG"]);
-if(strlen($arParams["PATH_TO_BLOG"])<=0)
-	$arParams["PATH_TO_BLOG"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=blog&".$arParams["BLOG_VAR"]."=#blog#");
+	$applicationCurPage = $APPLICATION->GetCurPage();
+
+	$arParams["PATH_TO_BLOG"] = trim($arParams["PATH_TO_BLOG"]);
+	if(strlen($arParams["PATH_TO_BLOG"])<=0)
+		$arParams["PATH_TO_BLOG"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=blog&".$arParams["BLOG_VAR"]."=#blog#");
+
+	$arParams["PATH_TO_POST_IMPORTANT"] = trim($arParams["PATH_TO_POST_IMPORTANT"]);
+	if(strlen($arParams["PATH_TO_POST_IMPORTANT"])<=0)
+		$arParams["PATH_TO_POST_IMPORTANT"] = "/company/personal/user/#user_id#/blog/important/";
+
+	$arParams["PATH_TO_BLOG_CATEGORY"] = trim($arParams["PATH_TO_BLOG_CATEGORY"]);
+	if(strlen($arParams["PATH_TO_BLOG_CATEGORY"])<=0)
+		$arParams["PATH_TO_BLOG_CATEGORY"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=blog&".$arParams["BLOG_VAR"]."=#blog#"."&category=#category_id#");
+
+	$arParams["PATH_TO_POST_EDIT"] = trim($arParams["PATH_TO_POST_EDIT"]);
+	if(strlen($arParams["PATH_TO_POST_EDIT"])<=0)
+		$arParams["PATH_TO_POST_EDIT"] = "/company/personal/user/#user_id#/blog/edit/#post_id#/";
+
+	$arParams["PATH_TO_USER"] = trim($arParams["PATH_TO_USER"]);
+	if(strlen($arParams["PATH_TO_USER"])<=0)
+		$arParams["PATH_TO_USER"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=user&".$arParams["USER_VAR"]."=#user_id#");
+
+	if(strlen($arParams["PATH_TO_SEARCH_TAG"])<=0)
+		$arParams["PATH_TO_SEARCH_TAG"] = SITE_DIR."search/?tags=#tag#";
+
+	if (!isset($arParams["PATH_TO_CONPANY_DEPARTMENT"]) || strlen($arParams["PATH_TO_CONPANY_DEPARTMENT"]) <= 0)
+		$arParams["PATH_TO_CONPANY_DEPARTMENT"] = "/company/structure.php?set_filter_structure=Y&structure_UF_DEPARTMENT=#ID#";
+}
 
 $arParams["PATH_TO_POST"] = trim($arParams["PATH_TO_POST"]);
-if(strlen($arParams["PATH_TO_POST"])<=0)
+if (strlen($arParams["PATH_TO_POST"]) <= 0)
+{
 	$arParams["PATH_TO_POST"] = "/company/personal/user/#user_id#/blog/#post_id#/";
-
-$arParams["PATH_TO_POST_IMPORTANT"] = trim($arParams["PATH_TO_POST_IMPORTANT"]);
-if(strlen($arParams["PATH_TO_POST_IMPORTANT"])<=0)
-	$arParams["PATH_TO_POST_IMPORTANT"] = "/company/personal/user/#user_id#/blog/important/";
-
-$arParams["PATH_TO_BLOG_CATEGORY"] = trim($arParams["PATH_TO_BLOG_CATEGORY"]);
-if(strlen($arParams["PATH_TO_BLOG_CATEGORY"])<=0)
-	$arParams["PATH_TO_BLOG_CATEGORY"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=blog&".$arParams["BLOG_VAR"]."=#blog#"."&category=#category_id#");
-
-$arParams["PATH_TO_POST_EDIT"] = trim($arParams["PATH_TO_POST_EDIT"]);
-if(strlen($arParams["PATH_TO_POST_EDIT"])<=0)
-	$arParams["PATH_TO_POST_EDIT"] = "/company/personal/user/#user_id#/blog/edit/#post_id#/";
-
-$arParams["PATH_TO_USER"] = trim($arParams["PATH_TO_USER"]);
-if(strlen($arParams["PATH_TO_USER"])<=0)
-	$arParams["PATH_TO_USER"] = htmlspecialcharsbx($applicationCurPage."?".$arParams["PAGE_VAR"]."=user&".$arParams["USER_VAR"]."=#user_id#");
-
-if(strlen($arParams["PATH_TO_SEARCH_TAG"])<=0)
-	$arParams["PATH_TO_SEARCH_TAG"] = SITE_DIR."search/?tags=#tag#";
+}
 
 $arParams["PATH_TO_SMILE"] = strlen(trim($arParams["PATH_TO_SMILE"]))<=0 ? false : trim($arParams["PATH_TO_SMILE"]);
 
-if (!isset($arParams["PATH_TO_CONPANY_DEPARTMENT"]) || strlen($arParams["PATH_TO_CONPANY_DEPARTMENT"]) <= 0)
-	$arParams["PATH_TO_CONPANY_DEPARTMENT"] = "/company/structure.php?set_filter_structure=Y&structure_UF_DEPARTMENT=#ID#";
 if (!isset($arParams["PATH_TO_MESSAGES_CHAT"]) || strlen($arParams["PATH_TO_MESSAGES_CHAT"]) <= 0)
 	$arParams["PATH_TO_MESSAGES_CHAT"] = "/company/personal/messages/chat/#user_id#/";
 if (!isset($arParams["PATH_TO_VIDEO_CALL"]) || strlen($arParams["PATH_TO_VIDEO_CALL"]) <= 0)
@@ -87,7 +109,10 @@ if (!isset($arParams["PATH_TO_VIDEO_CALL"]) || strlen($arParams["PATH_TO_VIDEO_C
 $arParams["CACHE_TIME"] = 3600*24*365;
 
 if (strlen(trim($arParams["NAME_TEMPLATE"])) <= 0)
+{
 	$arParams["NAME_TEMPLATE"] = CSite::GetNameFormat();
+}
+
 $arParams['SHOW_LOGIN'] = $arParams['SHOW_LOGIN'] != "N" ? "Y" : "N";
 $arParams['DATE_TIME_FORMAT_S'] = $arParams['DATE_TIME_FORMAT'];
 
@@ -96,6 +121,7 @@ CSocNetLogComponent::processDateTimeFormatParams($arParams);
 // activation rating
 CRatingsComponentsMain::GetShowRating($arParams);
 $arParams["USE_CUT"] = $arParams["USE_CUT"] == "Y" ? "Y" : "N";
+$arParams["SEF"] = (isset($arParams["SEF"]) && $arParams["SEF"] == "N" ? "N" : "Y");
 
 $arParams["IMAGE_MAX_WIDTH"] = IntVal($arParams["IMAGE_MAX_WIDTH"]);
 $arParams["IMAGE_MAX_HEIGHT"] = IntVal($arParams["IMAGE_MAX_HEIGHT"]);
@@ -114,7 +140,6 @@ $arParams["AVATAR_SIZE"] = (isset($arParams["AVATAR_SIZE"]) && intval($arParams[
 $arParams["AVATAR_SIZE_COMMENT"] = (isset($arParams["AVATAR_SIZE_COMMENT"]) && intval($arParams["AVATAR_SIZE_COMMENT"]) > 0) ? intval($arParams["AVATAR_SIZE_COMMENT"]) : 39;
 
 $arParams["ALLOW_POST_CODE"] = $arParams["ALLOW_POST_CODE"] !== "N";
-$arParams["SMILES_COUNT"] = IntVal($arParams["SMILES_COUNT"]);
 
 if(empty($arParams["POST_PROPERTY"]))
 	$arParams["POST_PROPERTY"] = array();
@@ -123,28 +148,43 @@ $arParams["POST_PROPERTY_SOURCE"] = $arParams["POST_PROPERTY"];
 
 $arParams["POST_PROPERTY"][] = "UF_BLOG_POST_DOC";
 $arParams["POST_PROPERTY"][] = "UF_BLOG_POST_IMPRTNT";
-if(CModule::IncludeModule("webdav") || CModule::IncludeModule("disk"))
+if (
+	CModule::IncludeModule("webdav")
+	|| CModule::IncludeModule("disk")
+)
 {
 	$arParams["POST_PROPERTY"][] = "UF_BLOG_POST_FILE";
 	$arParams["POST_PROPERTY"][] = "UF_BLOG_POST_D_FILE";
-	// $arParams["POST_PROPERTY"][] = "UF_BLOG_POST_F_EDIT";
 }
 if(IsModuleInstalled("vote"))
+{
 	$arParams["POST_PROPERTY"][] = "UF_BLOG_POST_VOTE";
+}
 if(IsModuleInstalled("intranet"))
+{
 	$arParams["POST_PROPERTY"][] = "UF_GRATITUDE";
+}
+$arParams["POST_PROPERTY"][] = "UF_BLOG_POST_URL_PRV";
 
-if (!array_key_exists("GET_FOLLOW", $arParams) || strLen($arParams["GET_FOLLOW"]) <= 0)
+if (
+	!array_key_exists("GET_FOLLOW", $arParams)
+	|| strLen($arParams["GET_FOLLOW"]) <= 0
+	|| (defined("DisableSonetLogFollow") && DisableSonetLogFollow === true)
+)
+{
 	$arParams["GET_FOLLOW"] = "N";
-
-if(defined("DisableSonetLogFollow") && DisableSonetLogFollow === true)
-	$arParams["GET_FOLLOW"] = "N";
+}
 
 $user_id = IntVal($USER->GetID());
 $arResult["USER_ID"] = $user_id;
 $arResult["TZ_OFFSET"] = CTimeZone::GetOffset();
 
-if(!$arResult["bFromList"])
+$arResult["ALLOW_EMAIL_INVITATION"] = IsModuleInstalled('mail');
+
+if (
+	!$arResult["bFromList"]
+	&& !$arResult["bPublicPage"]
+)
 {
 	$arParams["USE_CUT"] = "N";
 
@@ -229,7 +269,10 @@ else
 	$arParams["ID"] = CBlogPost::GetID($arParams["ID"], $arBlog["ID"]);
 }
 
-if($arParams["ID"] == "" && !$arResult["bFromList"])
+if (
+	$arParams["ID"] == ""
+	&& !$arResult["bFromList"]
+)
 {
 	ShowError(GetMessage("B_B_MES_NO_POST"));
 	@define("ERROR_404", "Y");
@@ -239,9 +282,7 @@ if($arParams["ID"] == "" && !$arResult["bFromList"])
 
 $arPost = array();
 $cacheTtl = 2592000;
-$cacheId = 'blog_post_socnet_general_'.$arParams["ID"].'_'.LANGUAGE_ID;
-if($arResult["TZ_OFFSET"] <> 0)
-	$cacheId .= "_".$arResult["TZ_OFFSET"];
+$cacheId = 'blog_post_socnet_general_'.$arParams["ID"].'_'.LANGUAGE_ID.($arResult["TZ_OFFSET"] <> 0 ? "_".$arResult["TZ_OFFSET"] : "");
 $cacheDir = '/blog/socnet_post/gen/'.intval($arParams["ID"] / 100).'/'.$arParams["ID"];
 
 $obCache = new CPHPCache;
@@ -259,8 +300,14 @@ else
 	$obCache->EndDataCache($arPost);
 }
 
-if(!empty($arPost) && ($arPost["PUBLISH_STATUS"] != BLOG_PUBLISH_STATUS_PUBLISH && !in_array($arParams["TYPE"], array("DRAFT", "MODERATION"))))
+if (
+	!empty($arPost)
+	&& $arPost["PUBLISH_STATUS"] != BLOG_PUBLISH_STATUS_PUBLISH
+	&& !in_array($arParams["TYPE"], array("DRAFT", "MODERATION"))
+)
+{
 	unset($arPost);
+}
 
 $a = new CAccess;
 $a->UpdateCodes();
@@ -271,6 +318,7 @@ if(
 		&& $arBlog["ACTIVE"] == "Y"
 	)
 	|| $arResult["bFromList"]
+	|| $arResult["bPublicPage"]
 )
 {
 	if(!empty($arPost))
@@ -285,6 +333,7 @@ if(
 					)
 				)
 				|| intval($arParams["LOG_ID"]) <= 0
+				|| $arResult["bPublicPage"]
 			)
 			&& CModule::IncludeModule("socialnetwork")
 		)
@@ -349,7 +398,14 @@ if(
 			$arPost["perms"] = $arResult["PostPerm"] = (
 				$bNoLogEntry
 					? BLOG_PERMS_DENY
-					: CBlogPost::GetSocNetPostPerms($arPost["ID"], true, false, $arPost["AUTHOR_ID"])
+					: CBlogPost::GetSocNetPostPerms(array(
+						"POST_ID" => $arPost["ID"],
+						"NEED_FULL" => true,
+						"USER_ID" => false,
+						"POST_AUTHOR_ID" => $arPost["AUTHOR_ID"],
+						"PUBLIC" => $arResult["bPublicPage"],
+						"LOG_ID" => (isset($arParams["LOG_ID"]) ? $arParams["LOG_ID"] : false)
+					))
 			);
 		}
 
@@ -362,7 +418,10 @@ if(
 
 		$arResult["urlToPost"] = CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_POST"], array("post_id"=>CBlogPost::GetPostID($arResult["Post"]["ID"], $arResult["Post"]["CODE"], $arParams["ALLOW_POST_CODE"]), "user_id" => $arPost["AUTHOR_ID"]));
 
-		if (is_set($arParams["PATH_TO_GROUP"]))
+		if (
+			!$arResult["bPublicPage"]
+			&& is_set($arParams["PATH_TO_GROUP"])
+		)
 		{
 			$strSiteWorkgroupsPage = COption::GetOptionString("socialnetwork", "workgroups_page", SITE_DIR."workgroups/", SITE_ID);
 			if (strlen($strSiteWorkgroupsPage) > 0)
@@ -377,6 +436,7 @@ if(
 		if (
 			$_GET["delete"] == "Y"
 			&& !$arResult["bFromList"]
+			&& !$arResult["bPublicPage"]
 		)
 		{
 			if (check_bitrix_sessid())
@@ -411,6 +471,7 @@ if(
 		if (
 			$_GET["hide"] == "Y"
 			&& !$arResult["bFromList"]
+			&& !$arResult["bPublicPage"]
 		)
 		{
 			if (check_bitrix_sessid())
@@ -458,38 +519,147 @@ if(
 				&& $USER->IsAuthorized()
 			)
 			{
+				CUtil::JSPostUnescape();
 				$APPLICATION->RestartBuffer();
 
 				$spermNew = $_POST["SPERM"];
 				$spermOld = CBlogPost::GetSocNetPerms($arParams["ID"]);
 				$perms2update = array();
 				$arNewRights = array();
+				$comId = false;
 
 				foreach($spermOld as $type => $val)
 				{
 					foreach($val as $id => $values)
 					{
 						if($type != "U")
+						{
 							$perms2update[] = $type.$id;
+						}
 						else
 						{
-							if(in_array("US".$id, $values))
-								$perms2update[] = "UA";
-							else
-								$perms2update[] = $type.$id;
+							$perms2update[] = (
+								in_array("US".$id, $values)
+									? "UA"
+									: $type.$id
+							);
 						}
 					}
 				}
+
+				if (
+					is_array($spermNew["UE"])
+					&& !empty($spermNew["UE"])
+					&& CModule::IncludeModule('mail')
+				)
+				{
+					$arUserEmail = array();
+					foreach ($spermNew["UE"] as $key => $userEmail)
+					{
+						if (!check_email($userEmail))
+						{
+							continue;
+						}
+
+						$bFound = false;
+
+						$rsUser = CUser::GetList(
+							$o = "ID",
+							$b = "ASC",
+							array("=EMAIL" => $userEmail),
+							array("FIELDS" => array("ID"))
+						);
+
+						while ($arEmailUser = $rsUser->Fetch())
+						{
+							if (intval($arEmailUser["ID"]) > 0)
+							{
+								$spermNew["U"][] = "U".$arEmailUser["ID"];
+								$bFound = true;
+							}
+						}
+
+						if ($bFound)
+						{
+							continue;
+						}
+
+						// invite extranet user by email
+						$invitedUserId = \Bitrix\Mail\User::create(array(
+							'EMAIL' => $userEmail,
+							'NAME' => (
+								isset($_POST["INVITED_USER_NAME"])
+								&& isset($_POST["INVITED_USER_NAME"][$userEmail])
+									? $_POST["INVITED_USER_NAME"][$userEmail]
+									: ''
+							),
+							'LAST_NAME' => (
+								isset($_POST["INVITED_USER_LAST_NAME"])
+								&& isset($_POST["INVITED_USER_LAST_NAME"][$userEmail])
+									? $_POST["INVITED_USER_LAST_NAME"][$userEmail]
+									: ''
+							)
+						));
+
+						if (
+							intval($invitedUserId) <= 0
+							&& $invitedUserId->LAST_ERROR <> ''
+						)
+						{
+							$strError = $invitedUserId->LAST_ERROR;
+						}
+
+						if (
+							!$strError
+							&& intval($invitedUserId) > 0
+						)
+						{
+							if (!isset($spermNew["U"]))
+							{
+								$spermNew["U"] = array();
+							}
+							$spermNew["U"][] = "U".$invitedUserId;
+						}
+						else
+						{
+							$arResult["ERROR_MESSAGE"] .= $strError;
+						}
+					}
+
+					unset($spermNew["UE"]);
+				}
+
+
+				$bCurrentUserAdmin = CSocNetUser::IsCurrentUserModuleAdmin();
+				$canPublish = true;
+
 				foreach($spermNew as $type => $val)
 				{
-					foreach($val as $id => $values)
+					foreach($val as $id => $code)
 					{
 						if(in_array($type, array("U", "SG", "DR")))
 						{
-							if(!in_array($values, $perms2update))
+							if(!in_array($code, $perms2update))
 							{
-								$perms2update[] = $values;
-								$arNewRights[] = $values;
+								if ($type == 'SG')
+								{
+									$oGrId = IntVal(str_replace("SG", "", $code));
+
+									$canPublish = (
+										$bCurrentUserAdmin
+										|| CSocNetFeaturesPerms::CanPerformOperation($user_id, SONET_ENTITY_GROUP, $oGrId, "blog", "write_post")
+										|| CSocNetFeaturesPerms::CanPerformOperation($user_id, SONET_ENTITY_GROUP, $oGrId, "blog", "moderate_post")
+										|| CSocNetFeaturesPerms::CanPerformOperation($user_id, SONET_ENTITY_GROUP, $oGrId, "blog", "full_post")
+									);
+
+									if (!$canPublish)
+									{
+										break;
+									}
+								}
+
+								$perms2update[] = $code;
+								$arNewRights[] = $code;
 							}
 						}
 						elseif($type == "UA")
@@ -501,9 +671,17 @@ if(
 							}
 						}
 					}
+
+					if (!$canPublish)
+					{
+						break;
+					}
 				}
 
-				if(!empty($arNewRights))
+				if (
+					!empty($arNewRights)
+					&& $canPublish
+				)
 				{
 					if(CBlogPost::Update($arParams["ID"], array("SOCNET_RIGHTS" => $perms2update, "HAS_SOCNET_ALL" => "N")))
 					{
@@ -565,7 +743,10 @@ if(
 								}
 								elseif ($type == "U")
 								{
-									if(in_array("US".$vv["ENTITY_ID"], $vv["ENTITY"]) && in_array("UA", $arNewRights))
+									if (
+										in_array("US".$vv["ENTITY_ID"], $vv["ENTITY"])
+										&& in_array("UA", $arNewRights)
+									)
 									{
 										$name = (IsModuleInstalled("intranet") ? GetMessage("B_B_SHARE_ALL") : GetMessage("B_B_SHARE_ALL_BUS"));
 
@@ -588,7 +769,12 @@ if(
 										);
 										$name = CUser::FormatName($arParams["NAME_TEMPLATE"], $arTmpUser, ($arParams["SHOW_LOGIN"] != "N" ? true : false));
 										$id = $vv["ENTITY_ID"];
-										$link = CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_USER"], array("user_id" => $vv["ENTITY_ID"]));
+										$link = CComponentEngine::MakePathFromTemplate(
+											$arParams["PATH_TO_USER"],
+											array(
+												"user_id" => $vv["ENTITY_ID"]
+											)
+										);
 										$arUsers2Notify[] = $vv["ENTITY_ID"];
 
 										if (
@@ -612,13 +798,16 @@ if(
 								{
 									if(strlen($link) > 0)
 									{
-										if($type == "U" && IntVal($id) > 0)
-											$arNewRightsName[] = "[user=".$id."]".htmlspecialcharsback($name)."[/user]";
-										else
-											$arNewRightsName[] = "[url=".$link."]".htmlspecialcharsback($name)."[/url]";
+										$arNewRightsName[] = (
+											$type == "U" && IntVal($id) > 0
+												? "[user=".$id."]".htmlspecialcharsback($name)."[/user]"
+												: "[url=".$link."]".htmlspecialcharsback($name)."[/url]"
+										);
 									}
 									else
+									{
 										$arNewRightsName[] = htmlspecialcharsback($name);
+									}
 								}
 							}
 						}
@@ -635,13 +824,10 @@ if(
 							"AUTHOR_ID" => $user_id,
 							"SHARE_DEST" => implode(",", $arNewRights),
 						);
+
 						if($comId = CBlogComment::Add($arComFields))
 						{
 							BXClearCache(true, "/blog/comment/".intval($arParams["ID"] / 100)."/".$arParams["ID"]."/");
-							if (is_callable("CBlogComment::AddLiveComment"))
-								CBlogComment::addLiveComment($comId, "", array(
-
-								));
 
 							if($arPost["AUTHOR_ID"] != $user_id)
 							{
@@ -667,6 +853,20 @@ if(
 									"TO_USER_ID" => $arUsers2Notify,
 								);
 								CBlogPost::NotifyIm($arFieldsIM);
+
+								CBlogPost::NotifyMail(array(
+									"type" => "POST_SHARE",
+									"siteId" => SITE_ID,
+									"userId" => $arUsers2Notify,
+									"authorId" => $user_id,
+									"postId" => $arPost["ID"],
+									"postUrl" => CComponentEngine::MakePathFromTemplate(
+										'/pub/post.php?post_id=#post_id#',
+										array(
+											"post_id"=> $arPost["ID"]
+										)
+									)
+								));
 							}
 						}
 
@@ -712,11 +912,15 @@ if(
 											&& !in_array("SG".$matches[1]."_".SONET_ROLES_MODERATOR, $socnetPerms)
 											&& !in_array("SG".$matches[1]."_".SONET_ROLES_OWNER, $socnetPerms)
 										)
+										{
 											$socnetPermsAdd[] = "SG".$matches[1]."_".SONET_ROLES_USER;
+										}
 									}
 								}
 								if (count($socnetPermsAdd) > 0)
+								{
 									$socnetPerms = array_merge($socnetPerms, $socnetPermsAdd);
+								}
 							}
 
 							CSocNetLogRights::DeleteByLogID($arRes["ID"]);
@@ -766,6 +970,17 @@ if(
 					}
 				}
 
+				if (
+					intval($comId) > 0
+					&& is_callable("CBlogComment::AddLiveComment")
+				)
+				{
+					CBlogComment::addLiveComment($comId, array(
+						"PATH_TO_USER" => $arParams["PATH_TO_USER"],
+						"LOG_ID" => (isset($arParams["LOG_ID"]) ? intval($arParams["LOG_ID"]) : 0)
+					));
+				}
+
 				die();
 			}
 			/* end share */
@@ -811,7 +1026,9 @@ if(
 				"ALLOW_POST_CODE",
 				"AVATAR_SIZE_COMMENT",
 				"NAME_TEMPLATE",
-				"SHOW_LOGIN"
+				"SHOW_LOGIN",
+				"LAZYLOAD",
+				"PUB"
 			);
 			foreach($arKeys as $param_key)
 			{
@@ -839,7 +1056,10 @@ if(
 
 			$cache_path = "/blog/socnet_post/".intval($arPost["ID"] / 100)."/".$arPost["ID"]."/";
 
-			if ($arParams["CACHE_TIME"] > 0 && $cache->InitCache($arParams["CACHE_TIME"], $cache_id, $cache_path))
+			if (
+				$arParams["CACHE_TIME"] > 0
+				&& $cache->InitCache($arParams["CACHE_TIME"], $cache_id, $cache_path)
+			)
 			{
 				$Vars = $cache->GetVars();
 				$arResult["POST_PROPERTY"] = $Vars["POST_PROPERTY"];
@@ -847,14 +1067,40 @@ if(
 				$arResult["images"] = $Vars["images"];
 				$arResult["Category"] = $Vars["Category"];
 				$arResult["GRATITUDE"] = $Vars["GRATITUDE"];
+				$arResult["URL_PREVIEW"] = (isset($Vars["URL_PREVIEW"]) ? $Vars["URL_PREVIEW"] : '');
 				$arResult["POST_PROPERTIES"] = $Vars["POST_PROPERTIES"];
 				$arResult["arUser"] = $Vars["arUser"];
+				$arResult["Assets"] = (isset($Vars["Assets"]) ? $Vars["Assets"] : array());
+
+				if (!empty($arResult["Assets"]))
+				{
+					if (!empty($arResult["Assets"]["CSS"]))
+					{
+						foreach($arResult["Assets"]["CSS"] as $cssFile)
+						{
+							\Bitrix\Main\Page\Asset::getInstance()->addCss($cssFile, true);
+						}
+					}
+
+					if (!empty($arResult["Assets"]["JS"]))
+					{
+						foreach($arResult["Assets"]["JS"] as $jsFile)
+						{
+							\Bitrix\Main\Page\Asset::getInstance()->addJs($jsFile, true);
+						}
+					}
+				}
 
 				CBitrixComponentTemplate::ApplyCachedData($Vars["templateCachedData"]);
 				$cache->Output();
 			}
 			else
 			{
+				$arResult["Assets"] = array(
+					"CSS" => array(),
+					"JS" => array()
+				);
+
 				if ($arParams["CACHE_TIME"] > 0)
 				{
 					$cache->StartDataCache($arParams["CACHE_TIME"], $cache_id, $cache_path);
@@ -865,7 +1111,7 @@ if(
 					}
 				}
 
-				$p = new blogTextParser(false, $arParams["PATH_TO_SMILE"]);
+				$p = new blogTextParser(false, $arParams["PATH_TO_SMILE"], array("bPublic" => $arResult["bPublicPage"]));
 				$p->bMobile = (isset($arParams["MOBILE"]) && $arParams["MOBILE"] == "Y");
 
 				$arResult["POST_PROPERTIES"] = array("SHOW" => "N");
@@ -886,7 +1132,9 @@ if(
 							foreach ($arPostFields as $FIELD_NAME => $arPostField)
 							{
 								if (!in_array($FIELD_NAME, $arParams["POST_PROPERTY"]))
+								{
 									continue;
+								}
 								elseif(
 									$FIELD_NAME == "UF_GRATITUDE"
 									&& array_key_exists("VALUE", $arPostField)
@@ -982,6 +1230,27 @@ if(
 											}
 										}
 									}
+								}
+								elseif(
+									$FIELD_NAME == "UF_BLOG_POST_URL_PRV"
+									&& array_key_exists("VALUE", $arPostField)
+									&& intval($arPostField["VALUE"]) > 0
+								)
+								{
+									$bHasProps = true;
+
+									$arCss = $APPLICATION->sPath2css;
+									$arJs = $APPLICATION->arHeadScripts;
+
+									$arResult['URL_PREVIEW'] = \Bitrix\Socialnetwork\ComponentHelper::getUrlPreviewContent($arPostField, array(
+										"LAZYLOAD" => $arParams["LAZYLOAD"],
+										"MOBILE" => (isset($arParams["MOBILE"]) && $arParams["MOBILE"] == "Y" ? "Y" : "N"),
+										"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"],
+										"PATH_TO_USER" => $arParams["~PATH_TO_USER"]
+									));
+
+									$arResult["Assets"]["CSS"] = array_merge($arResult["Assets"]["CSS"], array_diff($APPLICATION->sPath2css, $arCss));
+									$arResult["Assets"]["JS"] = array_merge($arResult["Assets"]["JS"], array_diff($APPLICATION->arHeadScripts, $arJs));
 								}
 								else
 								{
@@ -1084,6 +1353,11 @@ if(
 				$arResult["arUser"] = CBlogUser::GetUserInfo($arPost["AUTHOR_ID"], $arParams["PATH_TO_USER"], array("AVATAR_SIZE" => (isset($arParams["AVATAR_SIZE_COMMON"]) ? $arParams["AVATAR_SIZE_COMMON"] : $arParams["AVATAR_SIZE"]), "AVATAR_SIZE_COMMENT" => $arParams["AVATAR_SIZE_COMMENT"]));
 				$arResult["arUser"]["isExtranet"] = (intval($arPost["AUTHOR_ID"]) > 0 && is_array($GLOBALS["arExtranetUserID"]) && in_array($arPost["AUTHOR_ID"], $GLOBALS["arExtranetUserID"]));
 
+				if (!$arResult["bPublicPage"])
+				{
+					$arResult["arUser"]["url"] .= (strpos($arResult["arUser"]["url"], '?') === false ? '?' : '&')."entityType=LOG_ENTRY&entityId=".$arParams["LOG_ID"];
+				}
+
 				$arResult["Post"]["urlToPost"] = CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_POST"], array("post_id"=> CBlogPost::GetPostID($arPost["ID"], $arPost["CODE"], $arParams["ALLOW_POST_CODE"]), "user_id" => $arPost["AUTHOR_ID"]));
 
 				if(strlen($arPost["CATEGORY_ID"])>0)
@@ -1151,8 +1425,13 @@ if(
 								{
 									$name = "All";
 
-									if (!$arResult["bExtranetSite"] && defined("BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL"))
+									if (
+										!$arResult["bExtranetSite"]
+										&& defined("BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL")
+									)
+									{
 										$link = BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL;
+									}
 
 									$bAll = true;
 								}
@@ -1169,6 +1448,11 @@ if(
 									$id = $vv["ENTITY_ID"];
 									$link = CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_USER"], array("user_id" => $vv["ENTITY_ID"]));
 									$isExtranet = (is_array($GLOBALS["arExtranetUserID"]) && in_array($vv["ENTITY_ID"], $GLOBALS["arExtranetUserID"]));
+									$isEmail = (isset($vv["U_EXTERNAL_AUTH_ID"]) && $vv["U_EXTERNAL_AUTH_ID"] == 'email');
+									if ($isEmail)
+									{
+										$link .= (strpos($link, '?') === false ? '?' : '&')."entityType=LOG_ENTRY&entityId=".$arParams["LOG_ID"];
+									}
 								}
 							}
 							elseif($type == "DR")
@@ -1184,20 +1468,32 @@ if(
 									"NAME" => $name,
 									"URL" => $link,
 									"ID" => $id,
-									"IS_EXTRANET" => ($isExtranet ? "Y" : "N")
+									"IS_EXTRANET" => ($isExtranet ? "Y" : "N"),
+									"IS_EMAIL" => ($isEmail ? "Y" : "N")
 								);
 							}
 						}
 					}
 
-					if(count($arResult["Post"]["SPERM"]) == 1 && count($arResult["Post"]["SPERM"]["U"]) == 1 && $bAll)
+					if (
+						count($arResult["Post"]["SPERM"]) == 1
+						&& count($arResult["Post"]["SPERM"]["U"]) == 1
+						&& $bAll
+					)
+					{
 						$bHasOnlyAll = true;
+					}
 				}
 				else
 				{
 					$arResult["Post"]["SPERM"]["U"][1] = Array(
 						"NAME" => "All", 
-						"URL" => ((!$arResult["bExtranetSite"] && defined("BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL")) ? BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL : ""), 
+						"URL" => (
+							!$arResult["bExtranetSite"]
+							&& defined("BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL")
+								? BITRIX24_PATH_COMPANY_STRUCTURE_VISUAL
+								: ""
+						),
 						"ID" => ""
 					);
 				}
@@ -1212,25 +1508,36 @@ if(
 				if($arPost["HAS_SOCNET_ALL"] == "")
 					$arFieldsHave["HAS_SOCNET_ALL"] = ($bHasOnlyAll ? "Y" : "N");
 
-				if(!empty($arFieldsHave))
+				if (!empty($arFieldsHave))
+				{
 					CBlogPost::Update($arPost["ID"], $arFieldsHave);
+				}
 
-				if($bAll || $arPost["HAS_SOCNET_ALL"] == "Y")
+				if (
+					$bAll
+					|| $arPost["HAS_SOCNET_ALL"] == "Y"
+				)
+				{
 					$arResult["Post"]["HAVE_ALL_IN_ADR"] = "Y";
+				}
 
 				if ($arParams["CACHE_TIME"] > 0)
 				{
 					$arCacheData = Array(
-							"templateCachedData" => $this->GetTemplateCachedData(),
-							"Post" => $arResult["Post"],
-							"images" => $arResult["images"],
-							"Category" => $arResult["Category"],
-							"GRATITUDE" => $arResult["GRATITUDE"],
-							"POST_PROPERTIES" => $arResult["POST_PROPERTIES"],
-							"arUser" => $arResult["arUser"],
-						);
+						"templateCachedData" => $this->GetTemplateCachedData(),
+						"Post" => $arResult["Post"],
+						"images" => $arResult["images"],
+						"Category" => $arResult["Category"],
+						"GRATITUDE" => $arResult["GRATITUDE"],
+						"URL_PREVIEW" => (isset($arResult["URL_PREVIEW"]) ? $arResult["URL_PREVIEW"] : ''),
+						"POST_PROPERTIES" => $arResult["POST_PROPERTIES"],
+						"arUser" => $arResult["arUser"],
+						"Assets" => (isset($arResult["Assets"]) ? $arResult["Assets"] : array()),
+					);
 					if(defined("BX_COMP_MANAGED_CACHE"))
+					{
 						$GLOBALS["CACHE_MANAGER"]->EndTagCache();
+					}
 					$cache->EndDataCache($arCacheData);
 				}
 			}
@@ -1245,7 +1552,9 @@ if(
 				{
 					$arResult["PostSrc"]["SPERM"][$key][] = $kk;
 					if($key == "U")
+					{
 						$arResult["dest_users"][] = $kk;
+					}
 				}
 			}
 			$arResult["PostSrc"]["HAVE_ALL_IN_ADR"] = $arResult["Post"]["HAVE_ALL_IN_ADR"];
@@ -1461,22 +1770,14 @@ if(
 				&& is_array($arUserIdVisible)
 			)
 			{
-				foreach($arResult["GRATITUDE"]["USERS"] as $key => $userIdTmp)
-				{
-					if (!in_array($userIdTmp, $arUserIdVisible))
-					{
-						unset($arResult["GRATITUDE"]["USERS"][$key]);
-					}
-				}
-
 				foreach($arResult["GRATITUDE"]["USERS_FULL"] as $key => $arUserTmp)
 				{
 					if (!in_array($arUserTmp["ID"], $arUserIdVisible))
 					{
-						unset($arResult["GRATITUDE"]["USERS_FULL"][$key]);
+						$arResult["GRATITUDE"]["USERS_FULL"][$key]["URL"] = false;
 					}
 				}
-				
+
 				if (empty($arResult["GRATITUDE"]["USERS_FULL"]))
 				{
 					unset($arResult["GRATITUDE"]);
@@ -1486,29 +1787,49 @@ if(
 		else
 		{
 			$arResult["FATAL_MESSAGE"] .= GetMessage("B_B_MES_NO_RIGHTS")."<br />";
+			$arResult["FATAL_CODE"] = "NO_RIGHTS";
 		}
 	}
 	elseif(!$arResult["bFromList"])
 	{
 		$arResult["FATAL_MESSAGE"] = GetMessage("B_B_MES_NO_POST");
+		$arResult["FATAL_CODE"] = "NO_POST";
 		CHTTP::SetStatus("404 Not Found");
 	}
 }
 else
 {
 	$arResult["FATAL_MESSAGE"] = GetMessage("B_B_MES_NO_BLOG");
+	$arResult["FATAL_CODE"] = "NO_BLOG";
 	CHTTP::SetStatus("404 Not Found");
 }
 
 include_once('destination.php');
 
-$this->IncludeComponentTemplate();
+if (
+	!isset($arParams["RETURN_ERROR"])
+	|| $arParams["RETURN_ERROR"] != "Y"
+	|| empty($arResult["FATAL_MESSAGE"])
+)
+{
+	$this->IncludeComponentTemplate();
+}
 
 if ($arParams["RETURN_DATA"] == "Y")
 {
 	return array(
 		"BLOG_DATA" => $arResult["Blog"],
-		"POST_DATA" => $arResult["PostSrc"]
+		"POST_DATA" => $arResult["PostSrc"],
+		"ERROR" => (
+			!empty($arResult["FATAL_MESSAGE"])
+				? $arResult["FATAL_MESSAGE"]
+				: false
+		),
+		"ERROR_CODE" => (
+			!empty($arResult["FATAL_CODE"])
+				? $arResult["FATAL_CODE"]
+				: false
+		)
 	);
 }
 ?>

@@ -75,7 +75,10 @@ if ($request->isPost() && ($save || $refresh) && check_bitrix_sessid())
 	$result = \Bitrix\Sale\Helpers\Admin\Blocks\OrderShipment::updateData($saleOrder, $request->get('SHIPMENT'));
 
 	$data = $result->getData();
-	$shipment = array_shift($data['SHIPMENT']);
+
+	$shipment = null;
+	if ($data['SHIPMENT'])
+		$shipment = array_shift($data['SHIPMENT']);
 
 	if ($result->isSuccess() && $save)
 	{
@@ -110,7 +113,10 @@ if ($request->isPost() && ($save || $refresh) && check_bitrix_sessid())
 	{
 		if (!$refresh)
 		{
-			$errors = $result->getErrorMessages();
+			/** @var \Bitrix\Main\Entity\EntityError $error */
+			foreach ($result->getErrors() as $error)
+				$errors[$error->getCode()] = $error->getMessage();
+
 			if (empty($errors))
 				$errors[] = Loc::getMessage('SOPE_SHIPMENT_ERROR_MESSAGE');
 		}
@@ -125,6 +131,8 @@ else
 		$shipment = $saleOrder->getShipmentCollection()->getItemById($shipmentId);
 		if ($shipment)
 			$new = false;
+		else
+			LocalRedirect("/bitrix/admin/sale_order_shipment.php?lang=".$lang.GetFilterParams("filter_", false));
 	}
 	if ($new)
 	{
@@ -132,6 +140,10 @@ else
 		\Bitrix\Sale\Helpers\Admin\Blocks\OrderShipment::setShipmentByDefaultValues($shipment);
 	}
 }
+
+if (!$shipment)
+	LocalRedirect("/bitrix/admin/sale_order_shipment.php?lang=".$lang.GetFilterParams("filter_", false));
+
 if ($shipmentId)
 	$title = str_replace("#ID#", $shipmentId, GetMessage("EDIT_ORDER_SHIPMENT"));
 else

@@ -7,6 +7,7 @@ class CCatalogDiscount extends CAllCatalogDiscount
 	public function _Add(&$arFields)
 	{
 		global $DB;
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		if (!CCatalogDiscount::CheckFields("ADD", $arFields, 0))
@@ -30,6 +31,7 @@ class CCatalogDiscount extends CAllCatalogDiscount
 	public function _Update($ID, &$arFields)
 	{
 		global $DB;
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 		global $APPLICATION;
 
@@ -80,6 +82,7 @@ class CCatalogDiscount extends CAllCatalogDiscount
 	public function Delete($ID)
 	{
 		global $DB;
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		$ID = intval($ID);
@@ -111,7 +114,11 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return true;
 	}
 
-	public function GetByID($ID)
+	/**
+	 * @param int $ID
+	 * @return array|bool
+	 */
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -137,7 +144,17 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return false;
 	}
 
-	public function PrepareSection4Where($val, $key, $operation, $negative, $field, &$arField, &$arFilter)
+	/**
+	 * @param mixed $val
+	 * @param mixed $key
+	 * @param string $operation
+	 * @param string $negative
+	 * @param string $field
+	 * @param array $arField
+	 * @param array $arFilter
+	 * @return bool|string
+	 */
+	public static function PrepareSection4Where($val, $key, $operation, $negative, $field, &$arField, &$arFilter)
 	{
 		$val = intval($val);
 		if ($val <= 0)
@@ -318,19 +335,42 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return $dbRes;
 	}
 
+	/**
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array $arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	public function GetDiscountGroupsList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		return self::__GetDiscountEntityList($arOrder, $arFilter, $arGroupBy, $arNavStartParams, $arSelectFields);
 	}
 
+	/**
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array $arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	public function GetDiscountCatsList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		return self::__GetDiscountEntityList($arOrder, $arFilter, $arGroupBy, $arNavStartParams, $arSelectFields);
 	}
 
-/*
-* @deprecated deprecated since catalog 12.0.0
-*/
+	/**
+	 * @deprecated deprecated since catalog 12.0.0
+	 *
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array $arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	public function GetDiscountProductsList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
@@ -410,9 +450,16 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return $dbRes;
 	}
 
-/*
-* @deprecated deprecated since catalog 12.0.0
-*/
+	/**
+	 * @deprecated deprecated since catalog 12.0.0
+	 *
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array $arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	public function GetDiscountSectionsList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
@@ -492,9 +539,16 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return $dbRes;
 	}
 
-/*
-* @deprecated deprecated since catalog 12.0.0
-*/
+	/**
+	 * @deprecated deprecated since catalog 12.0.0
+	 *
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array$arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	public function GetDiscountIBlocksList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
@@ -574,6 +628,14 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return $dbRes;
 	}
 
+	/**
+	 * @param array $arOrder
+	 * @param array $arFilter
+	 * @param bool|array $arGroupBy
+	 * @param bool|array $arNavStartParams
+	 * @param array $arSelectFields
+	 * @return bool|CDBResult
+	 */
 	protected function __GetDiscountEntityList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
@@ -656,9 +718,11 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		return $dbRes;
 	}
 
-/*
-* @deprecated deprecated since catalog 12.0.0
-*/
+	/**
+	 * @deprecated deprecated since catalog 12.0.0
+	 *
+	 * @return void
+	 */
 	public function SaveFilterOptions()
 	{
 		COption::SetOptionString("catalog", "do_use_discount_product", 'Y');
@@ -671,9 +735,12 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		self::__SaveFilterForEntity(array('ENTITY_ID' => 'USER_GROUP_ID', 'OPTION_ID' => 'do_use_discount_group'));
 	}
 
-/*
-* @deprecated deprecated since catalog 14.5.6
-*/
+	/**
+	 * @deprecated deprecated since catalog 14.5.6
+	 *
+	 * @param array $arParams
+	 * @return void
+	 */
 	protected function __SaveFilterForEntity($arParams)
 	{
 		global $DB;
@@ -786,18 +853,28 @@ class CCatalogDiscount extends CAllCatalogDiscount
 		elseif (!is_array($arFilter['USER_GROUP_ID']))
 			$arFilter['USER_GROUP_ID'] = array($arFilter['USER_GROUP_ID']);
 		if (!empty($arFilter['USER_GROUP_ID']))
-			$arFilter['USER_GROUP_ID'][] = -1;
+		{
+			if (!in_array(-1, $arFilter['USER_GROUP_ID']))
+				$arFilter['USER_GROUP_ID'][] = -1;
+		}
 		else
+		{
 			unset($arFilter['USER_GROUP_ID']);
+		}
 
 		if (!isset($arFilter['PRICE_TYPE_ID']))
 			$arFilter['PRICE_TYPE_ID'] = array();
 		elseif (!is_array($arFilter['PRICE_TYPE_ID']))
 			$arFilter['PRICE_TYPE_ID'] = array($arFilter['PRICE_TYPE_ID']);
 		if (!empty($arFilter['PRICE_TYPE_ID']))
-			$arFilter['PRICE_TYPE_ID'][] = -1;
+		{
+			if (!in_array(-1, $arFilter['PRICE_TYPE_ID']))
+				$arFilter['PRICE_TYPE_ID'][] = -1;
+		}
 		else
+		{
 			unset($arFilter['PRICE_TYPE_ID']);
+		}
 
 		$active = 'Y';
 		if (array_key_exists('ACTIVE', $arFilter))

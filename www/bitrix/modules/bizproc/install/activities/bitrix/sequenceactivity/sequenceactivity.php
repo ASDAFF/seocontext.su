@@ -73,7 +73,7 @@ class CBPSequenceActivity
 			$activity = $this->arActivities[$i];
 			if ($activity->executionStatus == CBPActivityExecutionStatus::Executing)
 			{
-				$this->workflow->CloseActivity($activity);
+				$this->workflow->CancelActivity($activity);
 				return CBPActivityExecutionStatus::Canceling;
 			}
 

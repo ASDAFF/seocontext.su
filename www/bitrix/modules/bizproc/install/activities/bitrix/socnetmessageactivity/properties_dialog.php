@@ -9,10 +9,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 		global $USER;
 		if ($USER->IsAdmin() || (CModule::IncludeModule("bitrix24") && CBitrix24::IsPortalAdmin($USER->GetID())))
 		{
-			?>
-			<input type="text" name="message_user_from" id="id_message_user_from" value="<?= htmlspecialcharsbx($arCurrentValues["message_user_from"]) ?>" size="50">
-			<input type="button" value="..." onclick="BPAShowSelector('id_message_user_from', 'user');">
-			<?
+			echo CBPDocument::ShowParameterField("user", 'message_user_from', $arCurrentValues['message_user_from'], Array('rows'=> 1));
 		}
 		else
 		{
@@ -24,14 +21,12 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 <tr>
 	<td align="right" width="40%"><span class="adm-required-field"><?= GetMessage("BPSNMA_PD_TO") ?>:</span></td>
 	<td width="60%">
-		<input type="text" name="message_user_to" id="id_message_user_to" value="<?= htmlspecialcharsbx($arCurrentValues["message_user_to"]) ?>" size="50">
-		<input type="button" value="..." onclick="BPAShowSelector('id_message_user_to', 'user');">
+		<?=CBPDocument::ShowParameterField("user", 'message_user_to', $arCurrentValues['message_user_to'], Array('rows'=> 2));?>
 	</td>
 </tr>
 <tr>
 	<td align="right" width="40%" valign="top"><span class="adm-required-field"><?= GetMessage("BPSNMA_PD_MESSAGE") ?>:</span></td>
 	<td width="60%">
-		<textarea name="message_text" id="id_message_text" rows="7" cols="40"><?= htmlspecialcharsbx($arCurrentValues["message_text"]) ?></textarea>
-		<input style="vertical-align: top" type="button" value="..." onclick="BPAShowSelector('id_message_text', 'string');">
+		<?=CBPDocument::ShowParameterField("text", 'message_text', $arCurrentValues['message_text'], Array('rows'=> 7))?>
 	</td>
 </tr>

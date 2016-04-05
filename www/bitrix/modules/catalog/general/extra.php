@@ -11,12 +11,12 @@ class CAllExtra
 		self::$arExtraCache = array();
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
-		$ID = intval($ID);
-		if (0 >= $ID)
+		$ID = (int)$ID;
+		if ($ID <= 0)
 			return false;
 
 		if (isset(self::$arExtraCache[$ID]))
@@ -27,15 +27,14 @@ class CAllExtra
 		{
 			$strSql = "SELECT ID, NAME, PERCENTAGE FROM b_catalog_extra WHERE ID = ".$ID;
 			$db_res = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
-			if ($res = $db_res->Fetch())
-			{
+			$res = $db_res->Fetch();
+			if (!empty($res))
 				return $res;
-			}
 		}
 		return false;
 	}
 
-	function SelectBox($sFieldName, $sValue, $sDefaultValue = "", $JavaChangeFunc = "", $sAdditionalParams = "")
+	public static function SelectBox($sFieldName, $sValue, $sDefaultValue = "", $JavaChangeFunc = "", $sAdditionalParams = "")
 	{
 		if (empty(self::$arExtraCache))
 		{

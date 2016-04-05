@@ -36,4 +36,6 @@ $MESS["PULL_OPTIONS_HEAD_SUB"] = "Command reading URL for outdated browsers";
 $MESS["PULL_OPTIONS_HEAD_SUB_MOB"] = "Command reading URL for mobile browsers";
 $MESS["PULL_OPTIONS_HEAD_SUB_WS"] = "Command reading URL for Web Socket enabled browsers";
 $MESS["PULL_OPTIONS_HEAD_BLOCK"] = "Exclude sites";
+$MESS["PULL_OPTIONS_GUEST"] = "Enable module for anonymous users";
+$MESS["PULL_OPTIONS_GUEST_DESC"] = "User information provided by Web Analytics module";
 ?>

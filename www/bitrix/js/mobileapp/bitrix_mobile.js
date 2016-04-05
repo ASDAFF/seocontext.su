@@ -1,3 +1,6 @@
+/**
+ * @module mobileapp
+ */
 ;
 (function ()
 {
@@ -503,7 +506,7 @@
 	 * @param name
 	 * @constructor
 	 */
-	var BXCordovaPlugin = function (name, sync)
+	window.BXCordovaPlugin = function (name, sync, convertBoolean)
 	{
 		this.pluginName = name;
 		this.useSyncPlugin = (sync == true);
@@ -512,6 +515,7 @@
 		this.callbackIndex = 0;
 		this.dataBrigePath = (typeof mobileSiteDir == "undefined"?"/": mobileSiteDir) + "mobile/";
 		this.available = false;
+		this.convertBoolean = (typeof convertBoolean == "undefined" ? true: convertBoolean);
 		this.platform = null;
 		this.db = null;
 		this.isDatabaseSupported = true;
@@ -555,7 +559,6 @@
 		var convertBooleanFlag = true;
 		if((typeof convertBoolean) == "boolean")
 		{
-			console.log("NotConvert");
 			convertBooleanFlag = convertBoolean;
 		}
 
@@ -642,6 +645,11 @@
 	{
 
 		var pluginParams = {};
+
+		if(typeof convertBoolean == "undefined")
+		{
+			convertBoolean = this.convertBoolean;
+		}
 
 		if (!this.available)
 		{
@@ -1346,6 +1354,12 @@
 				}
 			}
 		}
+
+		if(typeof params.TABLE_SETTINGS.modal != "undefined")
+		{
+			params.modal = params.TABLE_SETTINGS.modal;
+		}
+
 		return this.exec("openBXTable", params);
 	};
 
@@ -1472,19 +1486,26 @@
 	 */
 	app.enableInVersion = function (ver, strict)
 	{
-		//check api version
-		strict = strict == true ? true : false;
-
 		var api_version = 1;
 		try
 		{
-			api_version = appVersion;
+			if(typeof (BXMobileAppContext) != "undefined")
+			{
+				api_version = BXMobileAppContext.getApiVersion();
+			}
+			else if(typeof(appVersion) != "undefined")
+			{
+				api_version = appVersion;
+			}
+
 		} catch (e)
 		{
 			//do nothing
 		}
 
-		return strict ? (parseInt(api_version) == parseInt(ver) ? true : false) : (parseInt(api_version) >= parseInt(ver) ? true : false);
+		return (typeof(strict)!="undefined" && strict == true)
+					? (parseInt(api_version) == parseInt(ver))
+					: (parseInt(api_version) >= parseInt(ver));
 	};
 
 
@@ -1793,7 +1814,7 @@
 			};
 			return this.exec("loadPage", params);
 		}
-		this.openContent();
+
 		return this.exec("loadPage", url);
 	};
 

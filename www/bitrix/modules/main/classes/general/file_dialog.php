@@ -12,7 +12,7 @@
 IncludeModuleLangFile(__FILE__);
 class CAdminFileDialog
 {
-	function ShowScript($arConfig)
+	public static function ShowScript($arConfig)
 	{
 		global $USER, $APPLICATION;
 		$bCloudsBrowse = is_object($USER) && $USER->CanDoOperation("clouds_browse") && $arConfig["operation"] === "O";
@@ -257,7 +257,8 @@ if($bCloudsBrowse && CModule::IncludeModule('clouds'))
 			echo "<font color=\"#FF0000\">".htmlspecialcharsbx($functionError)."</font>";
 		}
 	}
-	function AttachJSScripts()
+
+	public static function AttachJSScripts()
 	{
 		if(!defined("BX_B_FILE_DIALOG_SCRIPT_LOADED"))
 		{
@@ -271,7 +272,7 @@ if (window.jsUtils)
 		}
 	}
 
-	function Start($Params)
+	public static function Start($Params)
 	{
 		global $USER;
 		$bCloudsBrowse = is_object($USER) && $USER->CanDoOperation('clouds_browse') && $Params["operation"] === "O";
@@ -333,7 +334,7 @@ if (window.jsUtils)
 		self::ShowJS($Params);
 	}
 
-	function LoadItems($Params)
+	public static function LoadItems($Params)
 	{
 		global $APPLICATION;
 
@@ -368,7 +369,7 @@ if (window.jsUtils)
 		echo '</script>';
 	}
 
-	function BuildDialog($Params)
+	public static function BuildDialog($Params)
 	{
 		$arSites = $Params['arSites'];
 		if (count($arSites) > 1) // Site selector
@@ -580,7 +581,7 @@ if (window.jsUtils)
 		<?
 	}
 
-	function ShowJS($Params)
+	public static function ShowJS($Params)
 	{
 		global $APPLICATION;
 		$fd_engine_js_src = '/bitrix/js/main/file_dialog_engine.js';
@@ -674,7 +675,7 @@ else
 <?
 	}
 
-	function AppendLangMess()
+	public static function AppendLangMess()
 	{
 		//*  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *
 		// FD_MESS - Array of messages for JS files
@@ -721,7 +722,7 @@ var FD_MESS =
 <?
 	}
 
-	function GetMenuTypes($site, $path, $bEchoResult = false)
+	public static function GetMenuTypes($site, $path, $bEchoResult = false)
 	{
 		global $USER, $APPLICATION;
 
@@ -793,7 +794,7 @@ var FD_MESS =
 		return array($arMenuTypes, $scriptRes, $arAllItems[$strSelected]);
 	}
 
-	function GetItems($Params)
+	public static function GetItems($Params)
 	{
 		global $APPLICATION, $USER;
 		static $checkChildren, $genTmb;
@@ -1029,7 +1030,7 @@ arFDPermission['<?=$path_js?>'] = {
 <?
 	}
 
-	function GetItemsRecursively($Params)
+	public static function GetItemsRecursively($Params)
 	{
 		global $APPLICATION;
 
@@ -1070,7 +1071,7 @@ arFDPermission['<?=$path_js?>'] = {
 		}
 	}
 
-	function MakeNewDir($Params)
+	public static function MakeNewDir($Params)
 	{
 		global $USER, $APPLICATION;
 
@@ -1126,7 +1127,7 @@ arFDPermission['<?=$path_js?>'] = {
 			self::LoadItems(array('path' => $path, 'site' => $site, 'bAddToMenu' => $Params['bAddToMenu'], 'loadRecursively' => false, 'getFiles' => $Params['getFiles']));
 	}
 
-	function Remove($Params)
+	public static function Remove($Params)
 	{
 		global $USER, $APPLICATION;
 
@@ -1173,7 +1174,7 @@ arFDPermission['<?=$path_js?>'] = {
 		}
 	}
 
-	function Rename($Params)
+	public static function Rename($Params)
 	{
 		global $USER, $APPLICATION;
 
@@ -1257,7 +1258,7 @@ arFDPermission['<?=$path_js?>'] = {
 			self::LoadItems(array('path' => $path, 'site' => $site, 'bAddToMenu' => $Params['bAddToMenu'], 'loadRecursively' => false, 'getFiles' => $Params['getFiles']));
 	}
 
-	function CheckFileName($str)
+	public static function CheckFileName($str)
 	{
 		$io = CBXVirtualIo::GetInstance();
 		if (!$io->ValidateFilenameString($str))
@@ -1265,7 +1266,7 @@ arFDPermission['<?=$path_js?>'] = {
 		return true;
 	}
 
-	function EchoActionStatus($strWarning = '')
+	public static function EchoActionStatus($strWarning = '')
 	{
 ?>
 		<script>
@@ -1279,7 +1280,7 @@ arFDPermission['<?=$path_js?>'] = {
 <?
 	}
 
-	function SetUserConfig($Params)
+	public static function SetUserConfig($Params)
 	{
 		global $APPLICATION;
 		$Params['path'] = $APPLICATION->UnJSEscape($Params['path']);
@@ -1291,7 +1292,7 @@ arFDPermission['<?=$path_js?>'] = {
 		CUserOptions::SetOption("fileman", "file_dialog_config", addslashes($Params['site'].';'.$Params['path'].';'.$Params['view'].';'.$Params['sort'].';'.$Params['sort_order']));
 	}
 
-	function PreviewFlash($Params)
+	public static function PreviewFlash($Params)
 	{
 		if(CModule::IncludeModule("fileman"))
 		{
@@ -1324,7 +1325,7 @@ arFDPermission['<?=$path_js?>'] = {
 		}
 	}
 
-	function ShowUploadForm($Params)
+	public static function ShowUploadForm($Params)
 	{
 		$lang = htmlspecialcharsex($Params['lang']);
 		$site = htmlspecialcharsex($Params['site']);
@@ -1379,7 +1380,7 @@ arFDPermission['<?=$path_js?>'] = {
 <?
 	}
 
-	function UploadFile($Params)
+	public static function UploadFile($Params)
 	{
 		$buffer = 'parent.oWaitWindow.Hide();';
 		$F = $Params['file'];

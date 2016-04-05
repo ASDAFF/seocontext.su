@@ -63,7 +63,11 @@ class ContactTable extends Entity\DataManager
 			),
 			'MAILING_SUBSCRIPTION' => array(
 				'data_type' => 'Bitrix\Sender\MailingSubscriptionTable',
-				'reference' => array('=this.ID' => 'ref.CONTACT_ID'),
+				'reference' => array('=this.ID' => 'ref.CONTACT_ID', 'ref.IS_UNSUB' => 'N'),
+			),
+			'MAILING_UNSUBSCRIPTION' => array(
+				'data_type' => 'Bitrix\Sender\MailingSubscriptionTable',
+				'reference' => array('=this.ID' => 'ref.CONTACT_ID', 'ref.IS_UNSUB' => 'Y'),
 			),
 		);
 	}
@@ -127,13 +131,14 @@ class ContactTable extends Entity\DataManager
 			unset($ar['LIST_CODE'], $ar['LIST_NAME']);
 		}
 
+		$ar['EMAIL'] = strtolower($ar['EMAIL']);
 		$contactDb = ContactTable::getList(array(
 			'select' => array('ID'),
 			'filter' => array('EMAIL' => $ar['EMAIL'])
 		));
-		if($arContact = $contactDb->fetch())
+		if($contact = $contactDb->fetch())
 		{
-			$id = $arContact['ID'];
+			$id = $contact['ID'];
 		}
 		else
 		{
@@ -185,7 +190,21 @@ class ContactTable extends Entity\DataManager
 		$countAdded = 0;
 		$countError = 0;
 
-		$dataDb = $connector->getData();
+		$dataDb = $connector->getResult();
+		if($dataDb->resourceCDBResult)
+		{
+			$dataDb = $dataDb->resourceCDBResult;
+		}
+		elseif($dataDb->resource)
+		{
+			$dataDb = new \CDBResult($dataDb->resource);
+		}
+		else
+		{
+			$dataDb = new \CDBResult();
+			$dataDb->InitFromArray(array());
+		}
+
 		if(!is_subclass_of($dataDb, 'CDBResultMysql'))
 		{
 			$rowsInPage = 50;

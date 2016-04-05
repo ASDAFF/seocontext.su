@@ -4,12 +4,17 @@ if (BX.tooltip) return;
 var arTooltipIndex = {},
 	bDisable = false;
 
-BX.tooltip = function(user_id, anchor_name, loader, rootClassName, bForceUseLoader)
+BX.tooltip = function(user_id, anchor_name, loader, rootClassName, bForceUseLoader, params)
 {
 	if (BX.message('TOOLTIP_ENABLED') != "Y")
+	{
 		return;
+	}
 
-	if(BX.browser.IsAndroid() || BX.browser.IsIOS())
+	if (
+		BX.browser.IsAndroid()
+		|| BX.browser.IsIOS()
+	)
 	{
 		return;
 	}
@@ -17,7 +22,9 @@ BX.tooltip = function(user_id, anchor_name, loader, rootClassName, bForceUseLoad
 	BX.ready(function() {
 		var anchor = BX(anchor_name);
 		if (null == anchor)
+		{
 			return;
+		}
 
 		var tooltipId = user_id;
 		if(bForceUseLoader && BX.type.isNotEmptyString(loader))
@@ -33,12 +40,20 @@ BX.tooltip = function(user_id, anchor_name, loader, rootClassName, bForceUseLoad
 		}
 
 		if (null == arTooltipIndex[tooltipId])
-			arTooltipIndex[tooltipId] = new BX.CTooltip(user_id, anchor, loader, rootClassName, bForceUseLoader);
+		{
+			arTooltipIndex[tooltipId] = new BX.CTooltip(user_id, anchor, loader, rootClassName, bForceUseLoader, params);
+		}
 		else
 		{
 			arTooltipIndex[tooltipId].ANCHOR = anchor;
 			arTooltipIndex[tooltipId].rootClassName = rootClassName;
-			arTooltipIndex[tooltipId].LOADER = (bForceUseLoader && BX.type.isNotEmptyString(loader)) ? loader : '/bitrix/tools/tooltip.php';
+			arTooltipIndex[tooltipId].LOADER = (
+				bForceUseLoader
+				&& BX.type.isNotEmptyString(loader)
+					? loader
+					: '/bitrix/tools/tooltip.php'
+			);
+			arTooltipIndex[tooltipId].params = params;
 			arTooltipIndex[tooltipId].Create();
 		}
 	});
@@ -47,19 +62,27 @@ BX.tooltip = function(user_id, anchor_name, loader, rootClassName, bForceUseLoad
 BX.tooltip.disable = function(){ bDisable = true; };
 BX.tooltip.enable = function(){ bDisable = false; };
 
-BX.CTooltip = function(user_id, anchor, loader, rootClassName, bForceUseLoader)
+BX.CTooltip = function(user_id, anchor, loader, rootClassName, bForceUseLoader, params)
 {
-	this.LOADER = (bForceUseLoader && BX.type.isNotEmptyString(loader)) ? loader : '/bitrix/tools/tooltip.php';
+	this.LOADER = (
+		bForceUseLoader
+		&& BX.type.isNotEmptyString(loader)
+			? loader
+			: '/bitrix/tools/tooltip.php'
+	);
 	this.USER_ID = user_id;
 	this.ANCHOR = anchor;
 	this.rootClassName = '';
+	this.params = (typeof params != 'undefined' ? params : {});
 
 	if (
 		rootClassName != 'undefined'
 		&& rootClassName != null
 		&& rootClassName.length > 0
 	)
+	{
 		this.rootClassName = rootClassName;
+	}
 
 	var old = document.getElementById('user_info_' + this.USER_ID);
 	if (null != old)
@@ -86,7 +109,9 @@ BX.CTooltip = function(user_id, anchor, loader, rootClassName, bForceUseLoader)
 	this.ROOT_DIV = null;
 
 	if (BX.browser.IsIE())
+	{
 		this.IFRAME = null;
+	}
 
 	this.v_delta = 0;
 	this.classNameAnim = false;
@@ -211,15 +236,24 @@ BX.CTooltip = function(user_id, anchor, loader, rootClassName, bForceUseLoader)
 
 		if ('' == _this.DIV.innerHTML)
 		{
-			var url;
-			if (_this.LOADER.indexOf('?') >= 0)
-			{
-				url = _this.LOADER + '&MUL_MODE=INFO&USER_ID=' + _this.USER_ID + '&site=' + (BX.message('SITE_ID') || '');
-			}
-			else
-			{
-				url = _this.LOADER + '?MUL_MODE=INFO&USER_ID=' + _this.USER_ID + '&site=' + (BX.message('SITE_ID') || '');
-			}
+			var url = _this.LOADER +
+				(_this.LOADER.indexOf('?') >= 0 ? '&' : '?') +
+				'MUL_MODE=INFO&USER_ID=' + _this.USER_ID +
+				'&site=' + (BX.message('SITE_ID') || '') +
+				(
+					typeof _this.params != 'undefined'
+					&& typeof _this.params.entityType != 'undefined'
+					&& _this.params.entityType.length > 0
+						? '&entityType=' + _this.params.entityType
+						: ''
+				) +
+				(
+					typeof _this.params != 'undefined'
+					&& typeof _this.params.entityId != 'undefined'
+					&& parseInt(_this.params.entityId) > 0
+						? '&entityId=' + parseInt(_this.params.entityId)
+						: ''
+				);
 
 			BX.ajax.get(url, _this.InsertData);
 			_this.DIV.id = 'user_info_' + _this.USER_ID;
@@ -370,6 +404,14 @@ BX.CTooltip = function(user_id, anchor, loader, rootClassName, bForceUseLoader)
 
 			var toolbar2El = document.getElementById('user-info-toolbar2-' + _this.USER_ID);
 			toolbar2El.innerHTML = _this.INFO.RESULT.Toolbar2;
+
+			if(BX.type.isArray(_this.INFO.RESULT.Scripts))
+			{
+				for(var i = 0; i < _this.INFO.RESULT.Scripts.length; i++)
+				{
+					eval(_this.INFO.RESULT.Scripts[i]);
+				}
+			}
 		}
 	}
 

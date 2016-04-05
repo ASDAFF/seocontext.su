@@ -1,4 +1,9 @@
 <?
+/** @global CDatabase $DB */
+/** @global CUser $USER */
+/** @global CMain $APPLICATION */
+use Bitrix\Currency\CurrencyTable;
+
 define("STOP_STATISTICS", true);
 define("BX_SECURITY_SHOW_MESSAGE", true);
 define('NO_AGENT_CHECK', true);
@@ -6,16 +11,12 @@ define('NO_AGENT_CHECK', true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 IncludeModuleLangFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/catalog/export_yandex.php');
 
-if ('GET' == $_SERVER['REQUEST_METHOD'])
+if ($_SERVER['REQUEST_METHOD'] == 'GET')
 {
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 	die();
 }
-
-global $DB;
-global $APPLICATION;
-global $USER;
 
 if (!check_bitrix_sessid())
 {
@@ -32,7 +33,7 @@ CModule::IncludeModule('catalog');
 if (!$USER->CanDoOperation('catalog_export_edit'))
 {
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-	echo ShowError('!!'.GetMessage('YANDEX_ERR_NO_ACCESS_EXPORT'));
+	ShowError(GetMessage('YANDEX_ERR_NO_ACCESS_EXPORT'));
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 	die();
 }
@@ -40,7 +41,7 @@ if (!$USER->CanDoOperation('catalog_export_edit'))
 if ((!isset($_REQUEST['IBLOCK_ID'])) || (0 == strlen($_REQUEST['IBLOCK_ID'])))
 {
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-	echo ShowError(GetMessage("YANDEX_ERR_NO_IBLOCK_CHOSEN"));
+	ShowError(GetMessage("YANDEX_ERR_NO_IBLOCK_CHOSEN"));
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 	die();
 }
@@ -49,7 +50,7 @@ $intIBlockIDCheck = intval($intIBlockID);
 if ($intIBlockIDCheck.'|' != $intIBlockID.'|' || $intIBlockIDCheck <= 0)
 {
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-	echo ShowError(GetMessage("YANDEX_ERR_NO_IBLOCK_CHOSEN"));
+	ShowError(GetMessage("YANDEX_ERR_NO_IBLOCK_CHOSEN"));
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 	die();
 }
@@ -67,7 +68,7 @@ if (($arIBlock = $rsIBlocks->Fetch()))
 	if ($bBadBlock)
 	{
 		require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-		echo ShowError(GetMessage('YANDEX_ERR_NO_ACCESS_IBLOCK'));
+		ShowError(GetMessage('YANDEX_ERR_NO_ACCESS_IBLOCK'));
 		require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 		die();
 	}
@@ -75,7 +76,7 @@ if (($arIBlock = $rsIBlocks->Fetch()))
 else
 {
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-	echo ShowError(str_replace('#ID#',$intIBlockID,GetMessage("YANDEX_ERR_NO_IBLOCK_FOUND_EXT")));
+	ShowError(str_replace('#ID#',$intIBlockID,GetMessage("YANDEX_ERR_NO_IBLOCK_FOUND_EXT")));
 	require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 	die();
 }
@@ -104,7 +105,7 @@ if (!empty($arOffers['IBLOCK_ID']))
 		if ($bBadBlock)
 		{
 			require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-			echo ShowError(GetMessage('YANDEX_ERR_NO_ACCESS_IBLOCK_SKU'));
+			ShowError(GetMessage('YANDEX_ERR_NO_ACCESS_IBLOCK_SKU'));
 			require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 			die();
 		}
@@ -112,7 +113,7 @@ if (!empty($arOffers['IBLOCK_ID']))
 	else
 	{
 		require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-		echo ShowError(str_replace('#ID#',$intIBlockID,GetMessage("YANDEX_ERR_NO_IBLOCK_SKU_FOUND")));
+		ShowError(str_replace('#ID#',$intIBlockID,GetMessage("YANDEX_ERR_NO_IBLOCK_SKU_FOUND")));
 		require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 		die();
 	}
@@ -336,6 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
 				}
 			}
 		}
+
 		if (empty($arErrors))
 		{
 			$arXMLData = array(
@@ -343,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
 				'XML_DATA' => $XML_DATA,
 				'CURRENCY' => $arCurrency,
 				'PRICE' => intval($_POST['PRICE']),
-				'SKU_EXPORT' => $arSKUExport,
+				'SKU_EXPORT' => $arSKUExport
 			);
 ?><script type="text/javascript">
 top.BX.closeWait();
@@ -846,12 +848,16 @@ function __addYP()
 		<td><br /><select name="PRICE">
 			<option value=""<? echo ($PRICE == "" || $PRICE == 0 ? ' selected' : '');?>><?=GetMessage('YANDEX_PRICE_TYPE_NONE');?></option>
 <?
-	$dbRes = CCatalogGroup::GetList(array('SORT' => 'ASC'), array('ACTIVE' => 'Y', 'ID' => $arGroups), 0, 0, array('ID', 'NAME', 'BASE'));
-	while ($arRes = $dbRes->GetNext())
+	$dbRes = CCatalogGroup::GetListEx(
+		array('SORT' => 'ASC'),
+		array('ID' => $arGroups),
+		false,
+		false,
+		array('ID', 'NAME', 'BASE')
+	);
+	while ($arRes = $dbRes->Fetch())
 	{
-?>
-			<option value="<?=$arRes['ID']?>"<? echo ($PRICE == $arRes['ID'] ? ' selected' : '');?>><?='['.$arRes['ID'].'] '.$arRes['NAME'];?></option>
-<?
+		?><option value="<?=$arRes['ID']?>"<? echo ($PRICE == $arRes['ID'] ? ' selected' : '');?>><?='['.$arRes['ID'].'] '.htmlspecialcharsex($arRes['NAME']);?></option><?
 	}
 ?>
 		</select><br /><br /></td>
@@ -906,7 +912,7 @@ function __addYP()
 		foreach ($arValues as $key => $title)
 		{
 ?>
-			<option value="<?=htmlspecialcharsbx($key)?>"<? echo ($strRate == $key ? ' selected' : ''); ?>>(<?=htmlspecialcharsbx($key)?>) <?=htmlspecialcharsbx($title)?></option>
+			<option value="<?=htmlspecialcharsbx($key)?>"<? echo ($strRate == $key ? ' selected' : ''); ?>>(<?=htmlspecialcharsex($key)?>) <?=htmlspecialcharsex($title)?></option>
 <?
 		}
 ?>

@@ -974,6 +974,18 @@ else
 	if ('' != $strProductName)
 		$str_NAME = htmlspecialcharsbx($strProductName);
 
+	$currentTime = time() + CTimeZone::GetOffset();
+	if ($arIBlock["FIELDS"]["ACTIVE_FROM"]["DEFAULT_VALUE"] === "=now")
+		$str_ACTIVE_FROM = ConvertTimeStamp($currentTime, "FULL");
+	elseif ($arIBlock["FIELDS"]["ACTIVE_FROM"]["DEFAULT_VALUE"] === "=today")
+		$str_ACTIVE_FROM = ConvertTimeStamp($currentTime, "SHORT");
+
+	$dayOffset = (int)$arIBlock["FIELDS"]["ACTIVE_TO"]["DEFAULT_VALUE"];
+	if ($dayOffset > 0)
+		$str_ACTIVE_TO = ConvertTimeStamp($currentTime + $dayOffset*86400, "FULL");
+	unset($dayOffset);
+	unset($currentTime);
+
 	$str_PREVIEW_TEXT_TYPE = $arIBlock["FIELDS"]["PREVIEW_TEXT_TYPE"]["DEFAULT_VALUE"] !== "html"? "text": "html";
 	$str_PREVIEW_TEXT = htmlspecialcharsbx($arIBlock["FIELDS"]["PREVIEW_TEXT"]["DEFAULT_VALUE"]);
 	$str_DETAIL_TEXT_TYPE = $arIBlock["FIELDS"]["DETAIL_TEXT_TYPE"]["DEFAULT_VALUE"] !== "html"? "text": "html";

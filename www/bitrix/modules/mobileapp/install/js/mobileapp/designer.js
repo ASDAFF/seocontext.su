@@ -10,6 +10,20 @@
 	}
 
 	BX.Mobile = {
+		Events: {
+			CONFIG_CHANGED: "onEditorConfigChanged",
+			CONFIG_READY: "onEditorConfigReady",
+			CONFIG_LOADED: "onEditorConfigLoad",
+			CONFIG_SAVED: "onEditorConfigSaved",
+			APP_FILE_LIST_GOT: "onAppFileListGot",
+			VIEWER_ELEMENT_SET_SIZE: "onViewerElementSetSize",
+			VIEWER_ELEMENT_APPLY: "onApply",
+			VIEWER_ELEMENT_REDRAW: "onRedraw",
+			VIEWER_NEW_CONFIG_SET: "onViewerNewConfigSet",
+			PROJECT_REMOVED: "onProjectRemoved",
+			APP_SWITCHER_REMOVE: "delete",
+			APP_SWITCHER_CHANGE: "change"
+		},
 		Tools: {
 			extendProto: function (child, proto)
 			{
@@ -20,7 +34,7 @@
 			},
 			highlight: function (node, rbgColor, restore, duration)
 			{
-				var d = (duration)? duration:0.2;
+				var d = (duration) ? duration : 0.2;
 
 				(new BX.fx({
 					start: 0.0,
@@ -38,7 +52,7 @@
 					},
 					callback_complete: function ()
 					{
-						if(typeof restore != "undefined" && restore === false)
+						if (typeof restore != "undefined" && restore === false)
 							return;
 						(new BX.fx({
 							start: 30.0,
@@ -117,9 +131,9 @@
 			this.controlList = {};
 			this.imager = imager;
 			this.map = map || {
-				groupedParams: {},
-				lang: {}
-			};
+					groupedParams: {},
+					lang: {}
+				};
 			this.container = BX.create("DIV", {
 				props: {
 					className: "designer-editor-wrap"
@@ -140,8 +154,8 @@
 		},
 		ViewerElement: function (viewer, options)
 		{
-			BX.addCustomEvent("onEditorConfigChanged", BX.proxy(this.onParameterValueChanged, this));
-			BX.addCustomEvent(viewer.editor, "onEditorConfigReady", BX.proxy(this.redrawElement, this));
+			BX.addCustomEvent(BX.Mobile.Events.CONFIG_CHANGED, BX.proxy(this.onParameterValueChanged, this));
+			BX.addCustomEvent(viewer.editor, BX.Mobile.Events.CONFIG_READY, BX.proxy(this.redrawElement, this));
 			this.isEmpty = true;
 			this.params = options || {};
 			this.watched = [];
@@ -199,25 +213,123 @@
 
 				this._setValue = function (value)
 				{
-					this.input.value = value;
+					var foundValue = false;
+
+					for (var key in this.input.options)
+					{
+						if (value == this.input.options[key].value)
+						{
+							foundValue = true;
+							break;
+						}
+
+					}
+
+					if (foundValue)
+					{
+						this.input.value = value;
+					}
+					else
+					{
+						this.input.options.selectedIndex = 0;
+					}
 				};
 
-				this._getDisplayElement = function ()
+				this.setList = function (list)
 				{
-					var options = [];
-					for (var i = 0; i < this.params.list.length; i++)
+					this.input.innerHTML = "";
+					var currentValueExists = (this.value == "");
+					this.input.appendChild(
+						BX.create("OPTION", {
+							html: BX.message("MOBILEAPP_EMPTY_VALUE"),
+							attrs: {
+								value: ""
+							}
+						})
+					);
+
+					for (var key in list)
 					{
-						options.push(
+						if (key == this.value)
+						{
+							currentValueExists = true;
+						}
+
+						this.input.appendChild(
 							BX.create("OPTION", {
-								html: this.getMessage(this.params.list[i]),
+								html: key,
 								attrs: {
-									value: this.params.list[i],
-									id: this.params.list[i]
+									value: key,
+									id: key
 								}
 							})
 						);
 					}
 
+					if (!currentValueExists)
+					{
+						BX.Mobile.Tools.highlight(this.displayElement.parentNode, [255, 0, 0], true);
+					}
+
+					this.setValue(currentValueExists ? this.value : "", !currentValueExists, true);
+
+				};
+
+				this._getDisplayElement = function ()
+				{
+					if (typeof this.params.list == "object")
+					{
+						var options = [
+							BX.create("OPTION", {
+								html: BX.message("MOBILEAPP_EMPTY_VALUE"),
+								attrs: {
+									value: ""
+								}
+							})
+						];
+						for (var i = 0; i < this.params.list.length; i++)
+						{
+							options.push(
+								BX.create("OPTION", {
+									html: this.getMessage(this.params.list[i]),
+									attrs: {
+										value: this.params.list[i],
+										id: this.params.list[i]
+									}
+								})
+							);
+						}
+					}
+					else
+					{
+
+						BX.addCustomEvent(BX.Mobile.Events.CONFIG_READY, BX.proxy(function (editor)
+						{
+
+							if (editor.config[this.params.list])
+							{
+								this.setList(editor.config[this.params.list]);
+							}
+							else
+							{
+								this.setList({});
+							}
+
+
+						}, this));
+
+
+						BX.addCustomEvent(BX.Mobile.Events.CONFIG_CHANGED, BX.proxy(function (param)
+						{
+
+							if (param.id == this.params.list)
+							{
+								this.setList(param.value);
+							}
+
+
+						}, this))
+					}
 
 					this.displayElement = BX.create("SPAN", {
 						props: {
@@ -225,13 +337,14 @@
 						},
 						children: [
 							this.input = BX.create("SELECT", {
-								props: {className: "adm-workarea adm-select"},
+								props: {className: "adm-workarea adm-select designer-select"},
 								attrs: {id: this.id},
 								children: options,
 								events: {
 									"change": BX.proxy(function ()
 									{
-										this.setValue(this.input.value, true, false);
+										this.setValue((this.input.options.selectedIndex != 0) ? this.input.value : "", true, false);
+
 									}, this)
 								}
 							})
@@ -438,6 +551,10 @@
 			{
 				BX.Mobile.Controls.MultiImage.superclass.constructor.apply(this, [options]);
 			},
+			MultiValue: function (options)
+			{
+				BX.Mobile.Controls.MultiValue.superclass.constructor.apply(this, [options]);
+			},
 			Boolean: function (options)
 			{
 				BX.Mobile.Controls.Boolean.superclass.constructor.apply(this, [options]);
@@ -514,6 +631,9 @@
 					case "image":
 						control = new BX.Mobile.Controls.Image(options);
 						break;
+					case "value_set":
+						control = new BX.Mobile.Controls.MultiValue(options);
+						break;
 					case "image_set":
 						control = new BX.Mobile.Controls.MultiImage(options);
 						break;
@@ -574,10 +694,11 @@
 			this.imager.init();
 
 			this.editor = new BX.Mobile.Editor(this.map, this.editorContainer, this.previewContainer, this.imager);
+
 			if (this.apps.length !== 0)
 			{
 				this.editorContainer.style.display = "inline-block";
-				if(this.initedApp != null && this.appSwitcher[this.initedApp])
+				if (this.initedApp != null && this.appSwitcher[this.initedApp])
 				{
 					this.setCurrentProject(this.projects[this.initedApp]);
 				}
@@ -593,9 +714,9 @@
 		},
 		init: function ()
 		{
-			BX.addCustomEvent("onEditorConfigLoad", BX.proxy(this.onEditorConfigLoad, this));
-			BX.addCustomEvent("onEditorConfigChanged", BX.proxy(this.onEditorConfigChanged, this));
-			BX.addCustomEvent("onEditorConfigSaved", BX.proxy(this.onEditorConfigSave, this));
+			BX.addCustomEvent(BX.Mobile.Events.CONFIG_LOADED, BX.proxy(this.onEditorConfigLoad, this));
+			BX.addCustomEvent(BX.Mobile.Events.CONFIG_CHANGED, BX.proxy(this.onEditorConfigChanged, this));
+			BX.addCustomEvent(BX.Mobile.Events.CONFIG_SAVED, BX.proxy(this.onEditorConfigSave, this));
 
 			if (!this.isDataSet)
 			{
@@ -631,6 +752,7 @@
 
 			this.appSwitcher.setActiveApp(project.code);
 			this.editor.setReady(false);
+			this.editor.currentProject = project;
 			this.currentProject = project;
 			this.getFiles();
 
@@ -736,6 +858,9 @@
 		},
 		drawPanel: function ()
 		{
+			/**
+			 * @var BX.Mobile.Designer _that
+			 */
 			var _that = this;
 
 
@@ -768,18 +893,17 @@
 				}
 			});
 			this.appSwitcher.create();
-			BX.addCustomEvent(this.appSwitcher, "change", function (code)
+			BX.addCustomEvent(this.appSwitcher, BX.Mobile.Events.APP_SWITCHER_CHANGE, function (code)
 			{
-				//TODO ask user if he really wants to leave the  application and lose all unsaved changes
-				/**
-				 * @var BX.Mobile.Designer _that
-				 */
+				//TODO ask user if he really wants to leave the application and lose all unsaved changes
+
 				if (_that.editor.getSaved() === false)
 					_that.save();
 
+
 				_that.setCurrentProject(_that.projects[code]);
 			});
-			BX.addCustomEvent(this.appSwitcher, "delete", BX.proxy(function (code)
+			BX.addCustomEvent(this.appSwitcher, BX.Mobile.Events.APP_SWITCHER_REMOVE, BX.proxy(function (code)
 			{
 				this.removeApp(code)
 			}, this));
@@ -819,7 +943,93 @@
 					this.createButton,
 					this.appSwitcher.getDisplayElement(),
 					this.configList,
-					this.addButtonArea
+					this.addButtonArea,
+					this.connectButton = BX.create("INPUT",
+						{
+							attrs: {
+								type: "button",
+								value: BX.message("MOBILEAPP_CONNECT_TO_APP"),
+								style: "float:right"
+							},
+
+							events: {
+								"click": function (e)
+								{
+									var urlToConnect = document.location.protocol + "//" + document.location.host + "/" + _that.currentProject.folder;
+									var qrcode = BX.create("DIV", {
+										props: {
+											className: "designer-connect-window-inner"
+										}
+									});
+
+									var connectInstructionBlock = BX.create("DIV", {
+										html: BX.message("MOBILEAPP_CONNECT_INSTRUCTION"),
+										props: {
+											className: "designer-connect-window-inner-instruction"
+										}
+									});
+
+									var urlBlock = BX.create("DIV", {
+										html: urlToConnect,
+										props: {
+											className: "designer-connect-window-inner-url"
+										}
+									});
+
+									var connectInstructionBlockQr = BX.create("DIV", {
+										html: BX.message("MOBILEAPP_CONNECT_INSTRUCTION_QR"),
+										props: {
+											className: "designer-connect-window-inner-instruction"
+										}
+									});
+
+									var qrcodeContainer = BX.create("DIV", {
+										props: {
+											className: "designer-connect-window-inner-qr-container"
+										}
+									});
+
+									qrcode.appendChild(connectInstructionBlock);
+									qrcode.appendChild(urlBlock);
+									qrcode.appendChild(connectInstructionBlockQr);
+									qrcode.appendChild(qrcodeContainer);
+
+									new QRCode(qrcodeContainer, {text: urlToConnect, width: 150, height: 150});
+
+									var qrwindow = new BX.PopupWindow('qrcode' + Math.random(), null, {
+										content: qrcode,
+										draggable: true,
+										titleBar: {
+											content: BX.create("SPAN", {
+												html: BX.message("MOBILEAPP_CONNECT_TO_APP_TITLE"),
+												attrs: {
+													style: "font-size:15px"
+												}
+											})
+										},
+										closeByEsc: true,
+										height: 500,
+										overlay: {opacity: 500},
+										zIndex: 10000,
+										buttons: [
+											new BX.PopupWindowButton({
+												text: BX.message("MOBILEAPP_CONNECT_BUTTON_CLOSE"),
+												className: "popup-window-button",
+												events: {
+													click: BX.proxy(function ()
+													{
+														qrwindow.close();
+													}, this)
+												}
+											})
+										]
+									});
+
+
+									qrwindow.show();
+								}
+							}
+						})
 				]
 			});
 			this.designerContainer.appendChild(this.panel);
@@ -850,7 +1060,7 @@
 			if (this.currentProject.hasFiles)
 			{
 				this.imager.setFileList(this.currentProject.files);
-				BX.onCustomEvent("onAppFileListGot", [this.currentProject.files]);
+				BX.onCustomEvent(BX.Mobile.Events.APP_FILE_LIST_GOT, [this.currentProject.files]);
 			}
 			else
 			{
@@ -866,11 +1076,11 @@
 							this.projects[this.currentProject.code].files = data.files;
 							this.projects[this.currentProject.code].hasFiles = true;
 							this.imager.setFileList(this.currentProject.files);
-							BX.onCustomEvent("onAppFileListGot", [data.files]);
+							BX.onCustomEvent(BX.Mobile.Events.APP_FILE_LIST_GOT, [data.files]);
 						}, this),
 						onfailure: function (data)
 						{
-	//							console.log(data);
+							//TODO
 						}
 					}
 				)
@@ -910,12 +1120,12 @@
 				this.designerContainer.removeChild(this.emptyScreen);
 			BX.removeClass(this.designerContainer, "designer-prop-wrapper-empty");
 		},
-		_createForm:{
-			inited:false,
-			hasErrors:false,
-			fields:{},
+		_createForm: {
+			inited: false,
+			hasErrors: false,
+			fields: {},
 			popupError: false,
-			validatedFields:[],
+			validatedFields: [],
 			onChangeValidate: function (e)
 			{
 				var element = e.target;
@@ -941,33 +1151,33 @@
 
 				BX.PreventDefault(e);
 			},
-			validate:function(value)
+			validate: function (value)
 			{
 				return (/^[a-zA-Z0-9_]+$/.test(value) == false && value.length > 0)
 			},
-			reset:function()
+			reset: function ()
 			{
 				for (var key in this.fields)
 				{
 					this.fields[key].value = "";
 					this.fields[key].setAttribute("data-error", "N");
-					BX.Mobile.Tools.highlight(this.fields[key],[255,255,255]);
-					if(key == "template")
+					BX.Mobile.Tools.highlight(this.fields[key], [255, 255, 255]);
+					if (key == "template")
 						this.fields[key].value = "NewMobileTemplate"
 
 				}
 
 				this.saveButton.disabled = true;
 			},
-			isValid:function()
+			isValid: function ()
 			{
-				if(this.popupError)
+				if (this.popupError)
 					this.popupError.close();
-				for(var key in this.fields)
+				for (var key in this.fields)
 				{
-					if(this.templateList.value != "new" && key == "template" )
+					if (this.templateList.value != "new" && key == "template")
 						continue;
-					if(this.fields[key].getAttribute("data-error") == "Y" || this.fields[key].value.length == 0)
+					if (this.fields[key].getAttribute("data-error") == "Y" || this.fields[key].value.length == 0)
 					{
 						return false;
 					}
@@ -976,21 +1186,21 @@
 
 				return true;
 			},
-			highlightAllErrors:function()
+			highlightAllErrors: function ()
 			{
 				for (var key in this.fields)
 				{
 
 					if (this.fields[key].getAttribute("data-error") == "Y")
 					{
-						BX.Mobile.Tools.highlight(this.fields[key], [255, 0, 0],false, 0.8);
+						BX.Mobile.Tools.highlight(this.fields[key], [255, 0, 0], false, 0.8);
 					}
 				}
 
 			},
-			showError:function(fieldName, errorMessage)
+			showError: function (fieldName, errorMessage)
 			{
-				if(this.popupError == false)
+				if (this.popupError == false)
 				{
 					this.popupError = new BX.PopupWindow('DesignerCreateFormError', null, {
 						content: BX.create("DIV", {
@@ -1006,9 +1216,9 @@
 						lightShadow: true,
 						angle: {position: "left", offset: 15},
 						offsetTop: -37,
-						closeByEsc:true,
+						closeByEsc: true,
 						offsetLeft: 210,
-						zIndex:100500,
+						zIndex: 100500,
 						closeIcon: {right: "12px", top: "10px"},
 						bindOptions: {
 							forceTop: true,
@@ -1016,7 +1226,7 @@
 						}
 					});
 				}
-				if(this.fields[fieldName])
+				if (this.fields[fieldName])
 				{
 					BX.Mobile.Tools.highlight(this.fields[fieldName], [255, 0, 0], false);
 					this.popupError.setBindElement(this.fields[fieldName]);
@@ -1026,264 +1236,369 @@
 			initCreateForm: function (designer)
 			{
 
-				if (this.inited == false)
-				{
-					this.designer = designer;
-					this.inited = true;
-					var fields = [];
-					fields.push(BX.create("DIV", {
-						props: {
-							className: "designer-form-title"
-						},
-						html: BX.message("MOBILEAPP_CREATE_APP")
-					}));
-					fields.push(BX.create("HR"));
-					fields.push(BX.create("DIV",
-						{
-							children: [
-								BX.create("DIV", {
-									props: {
-										className: "designer-create-form-field-wrap"
-									},
-									children: [
-
-										BX.create("DIV", {
-											props: {
-												className: "designer-create-form-input-wrap"
-											},
-											children: [
-												this.fields.name = BX.create("INPUT", {
-													attrs: {
-														placeholder: BX.message("MOBILEAPP_APP_NAME")
-													}
-												})
-											]
-										})
-									]
-								}),
-								BX.create("DIV", {
-									props: {
-										className: "designer-create-form-field-wrap"
-									},
-									children: [
-										BX.create("DIV", {
-											props: {
-												className: "designer-create-form-input-wrap"
-											},
-											children: [
-												this.fields.code = BX.create("INPUT", {
-													events: {
-														"keyup": BX.proxy(this.onChangeValidate, this)
-													},
-													attrs: {
-														placeholder: BX.message("MOBILEAPP_LABEL_CODE")
-													}
-												})
-											]
-										})
-									]
-								}),
-								BX.create("DIV", {
-									props: {
-										className: "designer-create-form-field-wrap"
-									},
-									children: [
-										BX.create("DIV", {
-											props: {
-												className: "designer-create-form-input-wrap"
-											},
-											children: [
-												this.fields.folder = BX.create("INPUT", {
-													attrs: {
-														placeholder: BX.message("MOBILEAPP_LABEL_APP_FOLDER")
-													},
-													events: {
-														"keyup": BX.proxy(this.onChangeValidate, this)
-													}
-												})
-											]
-										})
-									]
-								})
-							]
-						}));
-
-
-					this.templateList = BX.create("SELECT", {
-						props: {className: "adm-workarea adm-select"},
-						style: {width: "212px"},
-						events: {
-							"change": BX.proxy(function (e)
-							{
-								var selector = e.target;
-								if (selector.options[selector.selectedIndex].value != "new")
-								{
-									BX.hide(this.templateFolderName);
-								}
-								else
-									BX.show(this.templateFolderName);
-
-								this.saveButton.disabled = !this.isValid();
-							}, this)
-						}
-					});
-
-
-					this.templateList.appendChild(BX.create("OPTION", {
-						html: BX.message("MOBILEAPP_CREATE_NEW_TEMPLATE"),
-						attrs: {
-							value: "new"
-						}
-					}));
-
-					this.templateList.appendChild(BX.create("OPTION", {
-						html: BX.message("MOBILEAPP_WITHOUT_TEMPLATE"),
-						attrs: {
-							value: "without"
-						}
-					}));
-
-					if (this.designer.templates.length > 0)
+				this.designer = designer;
+				var fields = [];
+				fields.push(BX.create("DIV", {
+					props: {
+						className: "designer-form-title"
+					},
+					html: BX.message("MOBILEAPP_CREATE_APP")
+				}));
+				fields.push(BX.create("HR"));
+				fields.push(BX.create("DIV",
 					{
-						var group = BX.create("OPTGROUP", {
-							attrs: {
-								label: BX.message("MOBILEAPP_SELECT_TEMPLATE")
-							}
-						});
-						this.templateList.appendChild(group);
-						for (var i = 0; i < this.designer.templates.length; i++)
-						{
-							group.appendChild(BX.create("OPTION", {
-								html: this.designer.templates[i]["NAME"],
-								attrs: {
-									value: this.designer.templates[i]["ID"]
-								}
-							}));
-						}
-					}
+						children: [
+							BX.create("DIV", {
+								props: {
+									className: "designer-create-form-field-wrap"
+								},
+								children: [
 
-
-					fields.push(BX.create("DIV", {
-						props: {
-							className: "designer-form-create-label"
-						},
-						html: BX.message("MOBILEAPP_APP_TEMPLATE")
+									BX.create("DIV", {
+										props: {
+											className: "designer-create-form-input-wrap"
+										},
+										children: [
+											this.fields.name = BX.create("INPUT", {
+												attrs: {
+													placeholder: BX.message("MOBILEAPP_APP_NAME")
+												},
+												events:{
+													"keyup": BX.proxy(function(){
+														this.saveButton.disabled = !this.isValid();
+													}, this)
+												}
+											})
+										]
+									})
+								]
+							}),
+							BX.create("DIV", {
+								props: {
+									className: "designer-create-form-field-wrap"
+								},
+								children: [
+									BX.create("DIV", {
+										props: {
+											className: "designer-create-form-input-wrap"
+										},
+										children: [
+											this.fields.code = BX.create("INPUT", {
+												events: {
+													"keyup": BX.proxy(this.onChangeValidate, this)
+												},
+												attrs: {
+													placeholder: BX.message("MOBILEAPP_LABEL_CODE")
+												}
+											})
+										]
+									})
+								]
+							}),
+							BX.create("DIV", {
+								props: {
+									className: "designer-create-form-field-wrap"
+								},
+								children: [
+									BX.create("DIV", {
+										props: {
+											className: "designer-create-form-input-wrap"
+										},
+										children: [
+											this.fields.folder = BX.create("INPUT", {
+												attrs: {
+													placeholder: BX.message("MOBILEAPP_LABEL_APP_FOLDER")
+												},
+												events: {
+													"keyup": BX.proxy(this.onChangeValidate, this)
+												}
+											})
+										]
+									})
+								]
+							}),
+						]
 					}));
-					fields.push(
-						BX.create("SPAN", {
-							props: {
-								className: "adm-select-wrap"
-							},
-							children: [
-								this.templateList
-							]
-						})
-					);
 
-					fields.push(
-						this.templateFolderName = BX.create("DIV", {
-							props: {
-								className: "designer-create-form-field-wrap"
-							},
-							style: {display: "block"},
-							children: [
-								BX.create("DIV", {
-									props: {
-										className: "designer-create-form-input-wrap"
-									},
-									children: [
-										this.fields.template = BX.create("INPUT", {
-											attrs: {
-												placeholder: BX.message("MOBILEAPP_NEW_TEMPLATE_NAME"),
-												value: "NewMobileTemplate"
-											},
-											events: {
-												"keyup": BX.proxy(this.onChangeValidate, this)
-											}
-										})
-									]
-								})
-							]
-						})
-					);
 
-					fields.push(BX.create("DIV", {
+				/**
+				 * Preset of public options
+				 */
+				fields.push(BX.create("DIV", {
+					props: {
+						className: "designer-form-subtitle"
+					},
+					html: BX.message("MOBILEAPP_CREATE_APP_PUBLIC_OPTIONS_TITLE")
+				}));
+				fields.push(BX.create("HR"));
+
+
+				fields.push(
+					BX.create("SPAN", {
 						props: {
-							className: "popup-window-buttons"
+							className: "adm-select-wrap"
 						},
 						children: [
-							this.saveButton = BX.create("input", {
-									props: {
-										className: "adm-btn-save"
-									},
-									attrs: {
-										type: "button",
-										disabled:true,
-										value: BX.message("MOBILEAPP_CREATE")
-									},
-									events: {
-										click: BX.proxy(function ()
-										{
-											if(!this.isValid())
-											{
-												alert("Error!");
-												return;
+							this.fields.appTemplateList = BX.create("SELECT", {
+									props: {className: "adm-workarea adm-select"},
+									children: [
+										BX.create("OPTION", {
+											html: BX.message("MOBILEAPP_CREATE_APP_PUBLIC_TEMPLATE_SIMPLE"),
+											attrs: {
+												value: "simple"
 											}
-											var data = {
-												"code": this.fields.code.value,
-												"platform": "global",
-												"name": this.fields.name.value,
-												"folder": this.fields.folder.value,
-												"createNew": "N",
-												"bindTemplate": "N"
-											};
-
-											if (this.templateList.value != "without")
-											{
-												if (this.templateList.value == "new")
-												{
-													if (this.fields.template.value.length > 0)
-													{
-														data["createNew"] = "Y";
-														data["bindTemplate"] = "Y";
-														data["template_id"] = this.fields.template.value;
-													}
-
-												}
-												else
-												{
-													data["bindTemplate"] = "Y";
-													data["template_id"] = this.templateList.value;
-												}
+										}),
+										BX.create("OPTION", {
+											html: BX.message("MOBILEAPP_CREATE_APP_PUBLIC_TEMPLATE_API"),
+											attrs: {
+												value: "api"
 											}
-											this.designer.createProject(data);
-										}, this)
-									}
-								}
-							),
-							BX.create("input", {
-									attrs: {
-										type: "button",
-										value: BX.message("MOBILEAPP_CLOSE")
-									},
+										})
+									],
 									events: {
-										click: BX.proxy(function ()
+										"change": BX.proxy(function (e)
 										{
-											this.popup.close()
+
 										}, this)
 									}
 								}
 							)
 						]
-					}));
+					})
+				);
 
-					this.popup = new BX.PopupWindow('DesignerCreateForm', null, {
-						content: BX.create("DIV", {
-							props: {
-								className: "designer-create-form adm-workarea"
-							},
-							children: fields
-						}),
+				fields.push(
+					BX.create("DIV", {
+						props: {
+							className: "designer-create-form-field-wrap"
+						},
+						children: [
+							BX.create("DIV", {
+								props: {},
+								children: [
+									this.fields.useOffline = BX.create("INPUT", {
+										props: {
+											className: "adm-designed-checkbox"
+										},
+										attrs: {
+											type: "checkbox",
+											id: "useOffline"
+										}
+									}),
+									BX.create("LABEL", {
+										props: {
+											className: "adm-designed-checkbox-label"
+										},
+										attrs: {
+											for: "useOffline"
+										}
+									}),
+									BX.create("LABEL", {
+										html: BX.message("MOBILEAPP_CREATE_OFFLINE"),
+										attrs: {
+											for: "useOffline",
+											style: "margin-left: 5px;"
+										},
+										events: {}
+									})
+
+								]
+							})
+						]
+					})
+				);
+
+
+				this.templateList = BX.create("SELECT", {
+					props: {className: "adm-workarea adm-select"},
+					style: {width: "212px"},
+					events: {
+						"change": BX.proxy(function (e)
+						{
+							var selector = e.target;
+							if (selector.options[selector.selectedIndex].value != "new")
+							{
+								BX.hide(this.templateFolderName);
+							}
+							else
+							{
+								BX.show(this.templateFolderName);
+							}
+
+							this.saveButton.disabled = !this.isValid();
+						}, this)
+					}
+				});
+
+
+				this.templateList.appendChild(BX.create("OPTION", {
+					html: BX.message("MOBILEAPP_CREATE_NEW_TEMPLATE"),
+					attrs: {
+						value: "new"
+					}
+				}));
+
+				this.templateList.appendChild(BX.create("OPTION", {
+					html: BX.message("MOBILEAPP_WITHOUT_TEMPLATE"),
+					attrs: {
+						value: "without"
+					}
+				}));
+
+				if (this.designer.templates.length > 0)
+				{
+					var group = BX.create("OPTGROUP", {
+						attrs: {
+							label: BX.message("MOBILEAPP_SELECT_TEMPLATE")
+						}
+					});
+					this.templateList.appendChild(group);
+					for (var i = 0; i < this.designer.templates.length; i++)
+					{
+						group.appendChild(BX.create("OPTION", {
+							html: this.designer.templates[i]["NAME"],
+							attrs: {
+								value: this.designer.templates[i]["ID"]
+							}
+						}));
+					}
+				}
+
+
+				fields.push(BX.create("DIV", {
+					props: {
+						className: "designer-form-subtitle"
+					},
+					html: BX.message("MOBILEAPP_APP_TEMPLATE")
+				}));
+				fields.push(BX.create("HR"));
+
+				fields.push(
+					BX.create("DIV", {
+						props: {
+							className: "designer-create-form-site-template-wrap"
+						},
+						children: [
+							BX.create("SPAN", {
+								props: {
+									className: "adm-select-wrap"
+								},
+								children: [
+									this.templateList
+								]
+							}),
+							this.templateFolderName = BX.create("DIV", {
+								props: {
+									className: "designer-create-form-field-wrap"
+								},
+								style: {display: "block"},
+								children: [
+									BX.create("DIV", {
+										props: {
+											className: "designer-create-form-input-wrap"
+										},
+										children: [
+											this.fields.template = BX.create("INPUT", {
+												attrs: {
+													placeholder: BX.message("MOBILEAPP_NEW_TEMPLATE_NAME"),
+													value: "NewMobileTemplate"
+												},
+												events: {
+													"keyup": BX.proxy(this.onChangeValidate, this)
+												}
+											})
+										]
+									})
+								]
+							})
+						]
+					})
+				);
+
+				fields.push(BX.create("DIV", {
+					props: {
+						className: "popup-window-buttons"
+					},
+					children: [
+						this.saveButton = BX.create("input", {
+								props: {
+									className: "adm-btn-save"
+								},
+								attrs: {
+									type: "button",
+									disabled: true,
+									value: BX.message("MOBILEAPP_CREATE")
+								},
+								events: {
+									click: BX.proxy(function ()
+									{
+										if (!this.isValid())
+										{
+											alert("Error!");
+											return;
+										}
+										var data = {
+											"code": this.fields.code.value,
+											"platform": "global",
+											"name": this.fields.name.value,
+											"folder": this.fields.folder.value,
+											"appTemplateName": this.fields.appTemplateList.value,
+											"useOffline": this.fields.useOffline.checked ? "Y" : "N",
+											"createNew": "N",
+											"bindTemplate": "N"
+										};
+
+										if (this.templateList.value != "without")
+										{
+											if (this.templateList.value == "new")
+											{
+												if (this.fields.template.value.length > 0)
+												{
+													data["createNew"] = "Y";
+													data["bindTemplate"] = "Y";
+													data["template_id"] = this.fields.template.value;
+												}
+
+											}
+											else
+											{
+												data["bindTemplate"] = "Y";
+												data["template_id"] = this.templateList.value;
+											}
+										}
+										this.designer.createProject(data);
+									}, this)
+								}
+							}
+						),
+						BX.create("input", {
+								attrs: {
+									type: "button",
+									value: BX.message("MOBILEAPP_CLOSE")
+								},
+								events: {
+									click: BX.proxy(function ()
+									{
+										this.popup.close()
+									}, this)
+								}
+							}
+						)
+					]
+				}));
+
+				var formContent = BX.create("DIV", {
+					props: {
+						className: "designer-create-form adm-workarea"
+					},
+					children: fields
+				});
+
+				if(!this.inited)
+				{
+					this.inited = true;
+					this.popup = new BX.PopupWindow('DesignerCreateForm' + Math.random(), null, {
+						content: formContent,
 						closeByEsc: true,
 						height: 1000,
 						overlay: true,
@@ -1291,21 +1606,22 @@
 						zIndex: 10000
 					});
 
-					BX.addCustomEvent(this.popup, "onPopupClose", BX.proxy(function(){
-						if(this.popupError)
+					BX.addCustomEvent(this.popup, "onPopupClose", BX.proxy(function ()
+					{
+						if (this.popupError)
 							this.popupError.close();
 					}))
 				}
-			}
+				else
+				{
+					this.popup.setContent(formContent);
+				}
 
+			}
 		},
-		showCreateForm: function (bindNode)
+		showCreateForm: function ()
 		{
 			this._createForm.initCreateForm(this);
-			if (bindNode)
-				this._createForm.popup.setBindElement(bindNode);
-			else
-				this._createForm.popup.bindElement = null;
 			this._createForm.popup.show();
 		},
 		getPlatformsToCreate: function ()
@@ -1326,8 +1642,12 @@
 		},
 		showCreateConfigForm: function (bindNode)
 		{
+
 			var platforms = [];
 			var platformsToCreate = this.getPlatformsToCreate();
+			/**
+			 * @var BX.Mobile.Designer _that
+			 */
 			var _that = this;
 
 			for (var i = 0; i < platformsToCreate.length; i++)
@@ -1381,36 +1701,6 @@
 			this.createConfigForm.setBindElement(bindNode);
 			this.createConfigForm.show();
 		},
-		removePlatformConfig: function (platform, node)
-		{
-			var appCode = this.currentProject.code;
-			this.executeRequest(
-				{
-					command: "removePlatform",
-					waitMessage: BX.message("MOBILEAPP_APP_REMOVE_CONFIG_WAIT"),
-					data: {
-						code: appCode,
-						platform: platform
-					},
-					onsuccess: BX.proxy(function (data)
-					{
-						if (data.status == "ok")
-						{
-							node.parentNode.removeChild(node);
-							delete this.currentProject.config[platform];
-							this.setCurrentProject(this.currentProject);
-						}
-						else
-						{
-							alert("Error");
-						}
-					}, this),
-					onfailure: function (data)
-					{
-						//handling error
-					}
-				});
-		},
 		createPlatformConfig: function (platform)
 		{
 			var appCode = this.currentProject.code;
@@ -1454,16 +1744,47 @@
 						if (data.status == "ok")
 						{
 							this.currentProject = new BX.Mobile.Project(params);
-							this.currentProject.setConfig("global", {});
+
+							this.currentProject.setConfig("global", data.config ? data.config : {});
 							this.editorContainer.style.display = "inline-block";
 							this.setCurrentProject(this.currentProject);
 							this.closeEmptyScreen();
 							this._createForm.popup.close();
 							this._createForm.reset();
 						}
-						else if(data.status == "is_already_exists")
+						else if (data.status == "is_already_exists")
 						{
-							this._createForm.showError("code",BX.message("MOBILEAPP_APP_IS_ALREADY_EXISTS"));
+							this._createForm.showError("code", BX.message("MOBILEAPP_APP_IS_ALREADY_EXISTS"));
+						}
+					}, this),
+					onfailure: function (data)
+					{
+						//handling error
+					}
+				});
+		},
+		removePlatformConfig: function (platform, node)
+		{
+			var appCode = this.currentProject.code;
+			this.executeRequest(
+				{
+					command: "removePlatform",
+					waitMessage: BX.message("MOBILEAPP_APP_REMOVE_CONFIG_WAIT"),
+					data: {
+						code: appCode,
+						platform: platform
+					},
+					onsuccess: BX.proxy(function (data)
+					{
+						if (data.status == "ok")
+						{
+							node.parentNode.removeChild(node);
+							delete this.currentProject.config[platform];
+							this.setCurrentProject(this.currentProject);
+						}
+						else
+						{
+							alert("Error");
 						}
 					}, this),
 					onfailure: function (data)
@@ -1496,7 +1817,7 @@
 		removeProject: function (code)
 		{
 			delete this.projects[code];
-			BX.onCustomEvent(this, 'onProjectRemoved', [code]);
+			BX.onCustomEvent(this, BX.Mobile.Events.PROJECT_REMOVED, [code]);
 			this.appSwitcher.remove(code);
 			var arrayProjects = Object.keys(this.projects);
 			if (arrayProjects.length == 0)
@@ -1906,12 +2227,12 @@
 				if (code == this.activeApp)
 					return;
 				this.setActiveApp(code);
-				BX.onCustomEvent(this, "change", [this.activeApp]);
+				BX.onCustomEvent(this, BX.Mobile.Events.APP_SWITCHER_CHANGE, [this.activeApp]);
 			},
 
 			onDelete: function (code)
 			{
-				BX.onCustomEvent(this, "delete", [code]);
+				BX.onCustomEvent(this, BX.Mobile.Events.APP_SWITCHER_REMOVE, [code]);
 			}
 
 		}
@@ -1934,7 +2255,7 @@
 			{
 				this.controlList[key].setValue((this.config[key]) ? this.config[key] : "");
 			}
-			BX.onCustomEvent("onEditorConfigLoad", [
+			BX.onCustomEvent(BX.Mobile.Events.CONFIG_LOADED, [
 				{'platform': platform, 'config': config}
 			]);
 
@@ -1977,7 +2298,7 @@
 			else
 			{
 				this.ready = true;
-				BX.onCustomEvent(this, "onEditorConfigReady", [this]);
+				BX.onCustomEvent(this, BX.Mobile.Events.CONFIG_READY, [this]);
 			}
 		},
 		sortByParent: function (groupedParams)
@@ -2014,7 +2335,8 @@
 				'id': "picker", 'name': 'picker'
 			});
 			this.picker.Create();
-			BX.addCustomEvent("onAppFileListGot", BX.proxy(function (data)
+			window.designerEditorFileChosen = BX.proxy(this.onFileChosen, this);
+			BX.addCustomEvent(BX.Mobile.Events.APP_FILE_LIST_GOT, BX.proxy(function (data)
 			{
 				this.setImageReady(true);
 				var imageControls = this.controlListImage;
@@ -2066,7 +2388,7 @@
 					subgroupLine.appendChild(BX.create("TD", {
 						attrs: {colspan: 1},
 						props: {
-							className: "label-td heading"
+							className: "label-td subgroup-head"
 						},
 						html: this.getMessage(parent)
 					}));
@@ -2087,6 +2409,7 @@
 						var varParam = paramList[variant];
 						table.appendChild(this.getParamNameLine(variant));
 						this.controlList[variant] = this.createControl(varParam, variant);
+
 						if (varParam.type == "image")
 						{
 							this.controlListImage[variant] = this.controlList[variant];
@@ -2208,7 +2531,7 @@
 		setSaved: function (status)
 		{
 			this.saved = status;
-			BX.onCustomEvent("onEditorConfigSaved", [
+			BX.onCustomEvent(BX.Mobile.Events.CONFIG_SAVED, [
 				{'status': status}
 			]);
 		},
@@ -2240,12 +2563,12 @@
 					this.config[name] = value;
 				}
 
-				BX.onCustomEvent("onEditorConfigChanged", [
+				BX.onCustomEvent(BX.Mobile.Events.CONFIG_CHANGED, [
 					{id: name, value: value}
 				]);
 
 			}, this));
-
+			control.editor = this;
 			return control;
 		},
 		jumpToControl: function (controlId, additionalControlIds)
@@ -2289,6 +2612,17 @@
 			});
 			animation.start();
 		},
+		openFileDialog: function (nodeInput)
+		{
+			this.waitingFileInput = nodeInput;
+			window.openFileDialog(false, {path: "/" + this.currentProject.folder})
+		},
+		onFileChosen: function (filename, path)
+		{
+			this.waitingFileInput.value = path + "/" + filename;
+			this.waitingFileInput = false;
+		},
+
 		getMessage: function (key)
 		{
 			var messKey = key.toLowerCase().replace(new RegExp("/", 'g'), "_");
@@ -2413,7 +2747,7 @@
 					]
 				});
 
-				BX.addCustomEvent(cellBack, "onViewerElementSetSize", BX.proxy(function (size)
+				BX.addCustomEvent(cellBack, BX.Mobile.Events.VIEWER_ELEMENT_SET_SIZE, BX.proxy(function (size)
 				{
 
 					if (size.height >= 50)
@@ -2664,14 +2998,14 @@
 
 			panelElements.push(slidingPanel.canvasElement);
 
-			var buttonWidth = Math.round(slidingPanel.canvasElement.width / 3)-5;
-			for(var i=0;i<2;i++)
+			var buttonWidth = Math.round(slidingPanel.canvasElement.width / 3) - 5;
+			for (var i = 0; i < 2; i++)
 			{
 				panelElements.push(
 					(new BX.Mobile.ViewerElement(this, {
 						element: {
 							className: "preview_button",
-							position: {top: 45, left: buttonWidth*i},
+							position: {top: 45, left: buttonWidth * i},
 							size: {width: buttonWidth, height: 30}
 						},
 						text: "Button",
@@ -2683,8 +3017,6 @@
 					})).canvasElement
 				);
 			}
-
-
 
 
 			return {
@@ -2732,7 +3064,7 @@
 		setConfig: function (config)
 		{
 			this.config = config;
-			BX.onCustomEvent(this, "onViewerNewConfigSet", [config]);
+			BX.onCustomEvent(this, BX.Mobile.Events.VIEWER_NEW_CONFIG_SET, [config]);
 		},
 		addScreen: function (code, name, screen)
 		{
@@ -2968,8 +3300,7 @@
 		},
 		apply: function ()
 		{
-			BX.onCustomEvent(this, "onApply", [this.valuesSet]);
-
+			BX.onCustomEvent(this, BX.Mobile.Events.VIEWER_ELEMENT_APPLY, [this.valuesSet]);
 
 			var canvas = this.canvasElement;
 			var context = canvas.getContext('2d');
@@ -3003,7 +3334,7 @@
 				this.canvasElement.height = parseInt(height);
 			}
 
-			BX.onCustomEvent(this, "onViewerElementSetSize", [
+			BX.onCustomEvent(this, BX.Mobile.Events.VIEWER_ELEMENT_SET_SIZE, [
 				{
 					width: width,
 					height: height
@@ -3183,7 +3514,7 @@
 		{
 			this.valuesSet = {};
 			this.canvasElement.getContext('2d').clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
-			BX.onCustomEvent(this, "onRedraw", [this.defaultValues]);
+			BX.onCustomEvent(this, BX.Mobile.Events.VIEWER_ELEMENT_REDRAW, [this.defaultValues]);
 			for (var param in this.bindedParameters)
 			{
 				var value = this.viewer.config[param];
@@ -3300,7 +3631,7 @@
 		{
 			this.values = {};
 			this.items = {};
-			BX.addCustomEvent("onAppFileListGot", BX.proxy(function ()
+			BX.addCustomEvent(BX.Mobile.Events.APP_FILE_LIST_GOT, BX.proxy(function ()
 			{
 				this.setValue(this.values, false);
 			}, this));
@@ -3342,8 +3673,6 @@
 				this.values = value;
 			else
 				this.values = {};
-//			this.items = {};
-//			this.itemsNode.innerHTML = "";
 
 			for (var code in this.items)
 			{
@@ -3539,6 +3868,233 @@
 			item.input.select();
 		}
 	});
+	BX.Mobile.Tools.extendProto(BX.Mobile.Controls.MultiValue, {
+		onCreate: function ()
+		{
+			this.values = {};
+			this.fieldIndex = 0;
+			this.items = {};
+		},
+		_getDisplayElement: function ()
+		{
+			this.displayElement = BX.create("DIV", {
+				children: [
+					this.itemsNode = BX.create("DIV", {
+						props: {
+							className: "designer-multi-image-container"
+						},
+						attrs: {
+							id: this.id
+						}
+					}),
+					this.button = BX.create("INPUT", {
+						events: {
+							"click": BX.proxy(function ()
+							{
+								this.addItem(false, "");
+							}, this)
+						},
+						attrs: {
+							type: "button",
+							value: BX.message("MOBILEAPP_ADD_FILE")
+						}
+					})
+				]
+			});
+
+			return this.displayElement;
+		},
+		_setValue: function (values)
+		{
+			if (typeof values != "object")
+			{
+				values = {};
+			}
+
+			for (var code in this.items)
+			{
+				if (!this.values[code])
+				{
+					this.items[code]["element"].parentNode.removeChild(this.items[code]["element"]);
+					delete this.items[code];
+				}
+			}
+
+			for (var valueKey in values)
+			{
+				this.addItem(valueKey, values[valueKey])
+			}
+		},
+		getDefaultCode: function ()
+		{
+			var code = "file_" + this.fieldIndex;
+			this.fieldIndex++;
+
+			return code;
+		},
+		addItem: function (valueKey, value)
+		{
+			var code = this.getDefaultCode();
+
+			if (!this.items[code])
+			{
+				var _that = this;
+				this.items[code] = {
+					"input": BX.create("INPUT", {
+						props: {
+							className: "type-text file-name"
+						},
+						attrs: {
+							"data-code": code,
+							value: valueKey ? valueKey : "",
+							placeholder: BX.message("MOBILEAPP_SELECT_FILE_NAME")
+						},
+						events: {
+							"keyup": BX.proxy(function (e)
+							{
+								//if (e.keyCode == 13)
+								//{
+								//	if (this.save(e.target))
+								//		e.target.blur();
+								//}
+							}, this),
+							"blur": function (e)
+							{
+								//var element = e.target;
+								//var code = element.getAttribute("data-code");
+								//var newCode = element.value;
+								//if (code != newCode)
+								//{
+								//	element.value = code;
+								//}
+							},
+							"change": BX.proxy(function (e)
+							{
+								this.save();
+
+							}, this)
+						}
+					}),
+					"inputValue": BX.create("INPUT", {
+						props: {
+							className: "type-text file-path"
+						},
+						attrs: {
+							"data-code": code,
+							value: value ? value : "",
+							placeholder: BX.message("MOBILEAPP_SELECT_FILE")
+						},
+						events: {
+
+
+							"change": BX.proxy(function ()
+							{
+								this.save();
+
+							}, this)
+						}
+
+					})
+				};
+
+
+				this.items[code]["element"] = BX.create("DIV", {
+					props: {
+						className: "designer-multi-value-item"
+					},
+					events: {
+						"mouseover": function ()
+						{
+							BX.addClass(this, "designer-multi-image-item-hover");
+						},
+						"mouseout": function ()
+						{
+							BX.removeClass(this, "designer-multi-image-item-hover");
+						}
+					},
+					children: [
+						BX.create("DIV", {
+							props: {
+								className: "designer-multi-value-input-wrap"
+							},
+							children: [
+								this.items[code]["input"]
+							]
+						}),
+						BX.create("DIV", {
+							props: {
+								className: "designer-chain-icon"
+							}
+						}),
+						BX.create("DIV", {
+							props: {
+								className: "designer-multi-value-input-wrap"
+							},
+							children: [
+								this.items[code]["inputValue"],
+								BX.create("DIV",
+									{
+										props: {
+											className: "designer-open-file-dialog-button"
+										},
+										events: {
+											"click": BX.proxy(function ()
+											{
+												_that.editor.openFileDialog(this.items[code]["inputValue"])
+											}, this)
+										}
+									}),
+								BX.create("DIV",
+									{
+										props: {
+											className: "designer-multi-image-remove-button"
+										},
+										events: {
+											"click": BX.proxy(function ()
+											{
+												this.element.parentNode.removeChild(this.element);
+												_that.save();
+
+											}, this.items[code])
+										}
+
+									})
+							]
+						})
+
+					]
+				});
+
+				this.itemsNode.appendChild(this.items[code]["element"]);
+			}
+			else
+			{
+				this.items[code]["input"].value = code;
+			}
+
+			this.items[code]["input"].focus();
+
+			return this.items[code];
+
+		},
+		save: function ()
+		{
+
+			var keys = BX.findChildren(this.itemsNode, {tagName: "INPUT", className: "file-name"}, true);
+			var values = BX.findChildren(this.itemsNode, {tagName: "INPUT", className: "file-path"}, true);
+			var valuesObject = {};
+			for (var key in keys)
+			{
+				if (keys[key].value != "" && values[key].value != "")
+					valuesObject[keys[key].value] = values[key].value;
+			}
+
+			this.setValue(valuesObject, true, false);
+
+			return true;
+		}
+
+	});
 	BX.Mobile.Tools.extendProto(BX.Mobile.Controls.Image, {
 		onImageChosen: function (data)
 		{
@@ -3641,8 +4197,17 @@
 				}
 				else
 				{
+					if(this.input.value[0] != "#")
+					{
+						this.input.value = "#"+this.input.value;
+						return;
+					}
+
 					this.deleteButton.style.display = "inline-block";
 				}
+
+
+
 				this.colorBox.style.background = element.value;
 				this.changeListener(this.id, element.value);
 			}, this);

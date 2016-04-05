@@ -14,7 +14,7 @@ if (!empty($arParams["RATING_TYPE_ID"]))
 	\Bitrix\Main\Page\Asset::getInstance()->addJs("/bitrix/components/bitrix/rating.vote/templates/mobile_comment_like/script_attached.js");
 }
 
-CUtil::InitJSCore(array("uploader", "date", "fx")); // does not work
+CUtil::InitJSCore(array("uploader", "date", "fx", "ls")); // does not work
 ob_start();
 ?>
 <!--RCRD_#FULL_ID#-->
@@ -40,7 +40,7 @@ BX.ready(function()
 	<div class="post-user-wrap">
 		<div class="avatar post-comment-block-avatar post-comment-block-avatar-#AUTHOR_AVATAR_IS#" style="background-image:url('#AUTHOR_AVATAR#')"></div>
 		<div class="post-comment-cont">
-			<a href="#AUTHOR_URL#" class="post-comment-author" id="record-#FULL_ID#-author" bx-mpl-author-id="#AUTHOR_ID#">#AUTHOR_NAME#</a>
+			<a href="#AUTHOR_URL#" class="post-comment-author #AUTHOR_EXTRANET_STYLE#" id="record-#FULL_ID#-author" bx-mpl-author-id="#AUTHOR_ID#">#AUTHOR_NAME#</a>
 			<div class="post-comment-time">#DATE#</div>
 		</div>
 	</div>
@@ -251,6 +251,7 @@ if ($arParams["SHOW_POST_FORM"] == "Y")
 				MODERATE_URL : '<?=CUtil::JSEscape($arParams["~MODERATE_URL"])?>',
 				DELETE_URL : '<?=CUtil::JSEscape($arParams["~DELETE_URL"])?>',
 				AUTHOR_URL : '<?=CUtil::JSEscape($arParams["~AUTHOR_URL"])?>',
+				AUTHOR_URL_PARAMS: <?=(isset($arParams["AUTHOR_URL_PARAMS"]) ? CUtil::PhpToJSObject($arParams["AUTHOR_URL_PARAMS"]) : '{}')?>,
 
 				AVATAR_SIZE : '<?=CUtil::JSEscape($arParams["AVATAR_SIZE"])?>',
 				NAME_TEMPLATE : '<?=CUtil::JSEscape($arParams["~NAME_TEMPLATE"])?>',

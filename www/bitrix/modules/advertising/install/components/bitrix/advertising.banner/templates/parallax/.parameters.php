@@ -13,3 +13,4 @@ $arTemplateParameters = array(
 	)
 );
 $arTemplateParameters["CACHE_TIME"] = Array("DEFAULT"=>"0");
+$arTemplateParameters["NEED_TEMPLATE"] = "Y";

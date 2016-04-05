@@ -1,5 +1,6 @@
 
-.feed-wrap, .feed-item-wrap, {
+.feed-wrap,
+.feed-item-wrap {
 	color: #2e2e2e;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 	font-size: 14px;
@@ -1168,7 +1169,7 @@
 	text-decoration: none;
 }
 
-.feed-post-user-name:hover {
+a.feed-post-user-name:hover {
 	border-bottom: 1px solid;
 }
 
@@ -1232,11 +1233,7 @@
 	vertical-align: top;
 }
 
-.feed-post-title:hover {
-	border-bottom: 1px solid;
-}
-
-.feed-post-title:hover {
+a.feed-post-title:hover {
 	border-bottom: 1px solid;
 }
 
@@ -1560,6 +1557,7 @@ span.feed-add-post-destination-new:hover {
 	overflow: hidden;
 	padding: 23px 18px 1px 70px;
 	margin: 0 -18px 0 -70px;
+	min-height: 14px;
 }
 
 .start-page .feed-post-informers {
@@ -1614,7 +1612,7 @@ span.feed-add-post-destination-new:hover {
 	cursor: auto;
 }
 
-.feed-post-time-wrap:hover {
+.feed-post-time-wrap:hover>a {
 	text-decoration: underline;
 }
 
@@ -3025,7 +3023,7 @@ a.popup-window-content-row-text {
 }
 
 .feed-post-block table.forum-quote td, .feed-post-block table.forum-code td, .feed-post-text table.quote td, .feed-post-text table.code td, .feed-com-text table.forum-quote td, .feed-com-text table.forum-code td {
-	padding: 0.95em 1.5em;
+	padding: 6px 40px 8px 32px;
 }
 
 .feed-post-block table.forum-code td, .feed-post-text table.code td, .feed-com-text table.forum-code td {

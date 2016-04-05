@@ -17,7 +17,7 @@
 }
 
 .feed-com-block .feed-post-more-arrow {
-	background: url("images/sprite.png") no-repeat -108px 0px;
+	background: url("images/sprite.png") no-repeat -108px 0;
 	height: 3px;
 	opacity: 0.5;
 	position: absolute;
@@ -216,6 +216,7 @@
 	max-height: 200px;
 	max-width: 820px;
 	overflow: hidden;
+	padding-right: 3%;
 }
 
 

@@ -40,6 +40,7 @@ $lAdmin = new CAdminList($sTableID, $oSort);
 $arFilterFields = array(
 	"filter_universal",
 	"filter_user_id",
+	"filter_fuser_id",
 	"filter_login",
 	"filter_price_all_from",
 	"filter_price_all_to",
@@ -93,6 +94,8 @@ $arFilter = array("ORDER_ID" => false);
 
 if (IntVal($filter_user_id) > 0)
 	$arFilter["USER_ID"] = IntVal($filter_user_id);
+if (IntVal($filter_fuser_id) > 0)
+	$arFilter["FUSER_ID"] = IntVal($filter_fuser_id);
 if (strlen($filter_login) > 0)
 	$arFilter["USER_LOGIN"] = $filter_login;
 if (strlen($filter_currency) > 0)
@@ -417,7 +420,8 @@ $oFilter = new CAdminFilter(
 	$sTableID."_filter",
 	array(
 		"find_universal" => GetMessage("SB_UNIVERSAL"),
-		"find_user" => GetMessage("SB_FUSER_ID"),
+		"find_user" => GetMessage("SB_USER_ID"),
+		"find_fuser" => GetMessage("SB_FUSER_ID"),
 		"find_user_login" => GetMessage("SB_USER_LOGIN"),
 		"find_price" => GetMessage("SB_PRICE_ALL"),
 		"find_quantity" => GetMessage("SB_QUANTITY_ALL"),
@@ -465,9 +469,15 @@ $oFilter->Begin();
 		</td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("SB_FUSER_ID")?>:</td>
+		<td><?echo GetMessage("SB_USER_ID")?>:</td>
 		<td>
 			<?echo FindUserID("filter_user_id", $filter_user_id, "", "find_form");?>
+		</td>
+	</tr>
+	<tr>
+		<td><?echo GetMessage("SB_FUSER_ID")?>:</td>
+		<td>
+			<input type="text" name="filter_fuser_id" size="50" value="<?=((intval($filter_fuser_id) > 0) ? intval($filter_fuser_id):"")?>">
 		</td>
 	</tr>
 	<tr>

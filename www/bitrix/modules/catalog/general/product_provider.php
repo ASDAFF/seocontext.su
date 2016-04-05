@@ -1,10 +1,10 @@
 <?
-use Bitrix\Main;
-use Bitrix\Main\Loader;
-use Bitrix\Main\Localization\Loc;
-use Bitrix\Sale\DiscountCouponsManager;
-use Bitrix\Currency;
-use Bitrix\Catalog;
+use Bitrix\Main,
+	Bitrix\Main\Loader,
+	Bitrix\Main\Localization\Loc,
+	Bitrix\Sale\DiscountCouponsManager,
+	Bitrix\Currency,
+	Bitrix\Catalog;
 
 if (!Loader::includeModule('sale'))
 	return false;
@@ -29,6 +29,18 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 	const CATALOG_PROVIDER_EMPTY_STORE_ID = 0;
 
+	const CACHE_USER_GROUPS = 'USER_GROUPS';
+	const CACHE_ITEM_WITHOUT_RIGHTS = 'IBLOCK_ELEMENT_PERM_N';
+	const CACHE_ITEM_WITH_RIGHTS = 'IBLOCK_ELEMENT_PERM_Y';
+	const CACHE_IBLOCK_RIGHTS_MODE = 'IBLOCK_RIGHTS_MODE';
+	const CACHE_USER_RIGHTS = 'USER_RIGHT';
+	const CACHE_PRODUCT = 'CATALOG_PRODUCT';
+	const CACHE_VAT = 'VAT_INFO';
+	const CACHE_IBLOCK_RIGHTS = 'IBLOCK_RIGHTS';
+	const CACHE_STORE = 'CATALOG_STORE';
+	const CACHE_STORE_PRODUCT = 'CATALOG_STORE_PRODUCT';
+	const CACHE_PARENT_PRODUCT_ACTIVE = 'PARENT_PRODUCT_ACTIVE';
+
 	/**
 	 * @param array $arParams
 	 * @return array|false
@@ -45,6 +57,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		$arParams['CHECK_PRICE'] = (isset($arParams['CHECK_PRICE']) && $arParams['CHECK_PRICE'] == 'N' ? 'N' : 'Y');
 		$arParams['CHECK_COUPONS'] = (isset($arParams['CHECK_COUPONS']) && $arParams['CHECK_COUPONS'] == 'N' ? 'N' : 'Y');
 		$arParams['CHECK_DISCOUNT'] = (isset($arParams['CHECK_DISCOUNT']) && $arParams['CHECK_DISCOUNT'] == 'N' ? 'N' : 'Y');
+		$arParams['AVAILABLE_QUANTITY'] = (isset($arParams['AVAILABLE_QUANTITY']) && $arParams['AVAILABLE_QUANTITY'] == 'Y' ? 'Y' : 'N');
 		$arParams['SELECT_QUANTITY_TRACE'] = (isset($arParams['SELECT_QUANTITY_TRACE']) && $arParams['SELECT_QUANTITY_TRACE'] == 'Y' ? 'Y' : 'N');
 		$arParams['BASKET_ID'] = (string)(isset($arParams['BASKET_ID']) ? $arParams['BASKET_ID'] : '0');
 		$arParams['USER_ID'] = (isset($arParams['USER_ID']) ? (int)$arParams['USER_ID'] : 0);
@@ -67,18 +80,16 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 		if ($adminSection)
 		{
-			if (!$userGroups = static::getHitCache('USER_GROUPS', $intUserID))
+			if (!$userGroups = static::getHitCache(self::CACHE_USER_GROUPS, $intUserID))
 			{
 				$userGroups = self::getUserGroups($intUserID);
-				static::setHitCache('USER_GROUPS', $intUserID, $userGroups);
+				static::setHitCache(self::CACHE_USER_GROUPS, $intUserID, $userGroups);
 			}
 
 			if (empty($userGroups))
 				return $arResult;
 
-			$arProduct = array();
-
-			if (!$arProduct = static::getHitCache('IBLOCK_ELEMENT_PERM_N', $productID))
+			if (!$arProduct = static::getHitCache(self::CACHE_ITEM_WITHOUT_RIGHTS, $productID))
 			{
 				$dbIBlockElement = CIBlockElement::GetList(
 					array(),
@@ -93,17 +104,17 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					array('ID', 'IBLOCK_ID', 'NAME', 'DETAIL_PAGE_URL')
 				);
 				if ($arProduct = $dbIBlockElement->GetNext())
-					static::setHitCache('IBLOCK_ELEMENT_PERM_N', $productID, $arProduct);
+					static::setHitCache(self::CACHE_ITEM_WITHOUT_RIGHTS, $productID, $arProduct);
 				unset($dbIBlockElement);
 			}
 
 			if(empty($arProduct) || !is_array($arProduct))
 				return $arResult;
 
-			if (!$iblockRights = static::getHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID']))
+			if (!$iblockRights = static::getHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID']))
 			{
 				if ($iblockRights = CIBlock::GetArrayByID($arProduct['IBLOCK_ID'], 'RIGHTS_MODE'))
-					static::setHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID'], $iblockRights);
+					static::setHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID'], $iblockRights);
 			}
 
 			$extRights = ($iblockRights == 'E');
@@ -133,9 +144,17 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				}
 				else
 				{
-					$groupRights = CIBlock::GetGroupPermissions($arProduct['IBLOCK_ID']);
+
+					static $groupRightsList = array();
+
+					if(!isset($groupRightsList[$arProduct['IBLOCK_ID']]))
+						$groupRightsList[$arProduct['IBLOCK_ID']] = CIBlock::GetGroupPermissions($arProduct['IBLOCK_ID']);
+
+					$groupRights = $groupRightsList[$arProduct['IBLOCK_ID']];
+
 					if (empty($groupRights) || !isset($groupRights[2]) || $groupRights[2] < 'R')
 						return $arResult;
+
 					unset($groupRights);
 				}
 			}
@@ -144,10 +163,10 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				if ($extRights)
 				{
 					$proxyUserPermissionKey = $productID."|".$intUserID;
-					if (!$arUserRights = static::getHitCache('USER_RIGHT', $proxyUserPermissionKey))
+					if (!$arUserRights = static::getHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey))
 					{
 						if ($arUserRights = CIBlockElementRights::GetUserOperations($productID, $intUserID))
-							static::setHitCache('USER_RIGHT', $proxyUserPermissionKey, $arUserRights);
+							static::setHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey, $arUserRights);
 					}
 					if (empty($arUserRights) || !isset($arUserRights['element_read']))
 						return $arResult;
@@ -170,7 +189,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		{
 			$userGroups = $USER->GetUserGroupArray();
 
-			if (!$arProduct = static::getHitCache('IBLOCK_ELEMENT_PERM_Y', $productID))
+			if (!$arProduct = static::getHitCache(self::CACHE_ITEM_WITH_RIGHTS, $productID))
 			{
 				$dbIBlockElement = CIBlockElement::GetList(
 					array(),
@@ -186,7 +205,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					array('ID', 'IBLOCK_ID', 'NAME', 'DETAIL_PAGE_URL')
 				);
 				if ($arProduct = $dbIBlockElement->GetNext())
-					static::setHitCache('IBLOCK_ELEMENT_PERM_Y', $productID, $arProduct);
+					static::setHitCache(self::CACHE_ITEM_WITH_RIGHTS, $productID, $arProduct);
 				unset($dbIBlockElement);
 			}
 
@@ -196,22 +215,23 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 		if (!isset(self::$catalogList[$arProduct['IBLOCK_ID']]))
 		{
-			$catalogIterator = Catalog\CatalogIblockTable::getList(array(
-				'select' => array('IBLOCK_ID', 'SUBSCRIPTION'),
-				'filter' => array('IBLOCK_ID' => $arProduct['IBLOCK_ID'])
-			));
-			self::$catalogList[$arProduct['IBLOCK_ID']] = $catalogIterator->fetch();
-			unset($catalogIterator);
+			self::$catalogList[$arProduct['IBLOCK_ID']] = Catalog\CatalogIblockTable::getList(array(
+				'select' => array('IBLOCK_ID', 'SUBSCRIPTION', 'PRODUCT_IBLOCK_ID'),
+				'filter' => array('=IBLOCK_ID' => $arProduct['IBLOCK_ID'])
+			))->fetch();
 		}
 		if (empty(self::$catalogList[$arProduct['IBLOCK_ID']]) || !is_array(self::$catalogList[$arProduct['IBLOCK_ID']]))
 			return $arResult;
 		if (self::$catalogList[$arProduct['IBLOCK_ID']]['SUBSCRIPTION'] == 'Y')
 			$quantity = 1;
 
-		$dblQuantity = 0;
-		$boolQuantity = false;
+		if (self::$catalogList[$arProduct['IBLOCK_ID']]['PRODUCT_IBLOCK_ID'] > 0)
+		{
+			if (!static::checkParentActivity($arProduct['ID'], $arProduct['IBLOCK_ID']))
+				return $arResult;
+		}
 
-		if (!$arCatalogProduct = static::getHitCache('CATALOG_PRODUCT', $productID))
+		if (!$arCatalogProduct = static::getHitCache(self::CACHE_PRODUCT, $productID))
 		{
 			$rsProducts = CCatalogProduct::GetList(
 				array(),
@@ -228,21 +248,29 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					'HEIGHT',
 					'LENGTH',
 					'BARCODE_MULTI',
-					'TYPE',
+					'TYPE'
 				)
 			);
 
 			if ($arCatalogProduct = $rsProducts->Fetch())
-				static::setHitCache('CATALOG_PRODUCT', $productID, $arCatalogProduct);
+				static::setHitCache(self::CACHE_PRODUCT, $productID, $arCatalogProduct);
 			unset($rsProducts);
 		}
 
-		if(!empty($arCatalogProduct) && is_array($arCatalogProduct))
+		if (!empty($arCatalogProduct) && is_array($arCatalogProduct))
 		{
+			if ($arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+			{
+				$APPLICATION->ThrowException(Loc::getMessage("CATALOG_ERR_SKU_PRODUCT"), 'CATALOG_SKU_PRODUCT');
+				return $arResult;
+			}
 			$dblQuantity = doubleval($arCatalogProduct["QUANTITY"]);
 			$boolQuantity = ('Y' != $arCatalogProduct["CAN_BUY_ZERO"] && 'Y' == $arCatalogProduct["QUANTITY_TRACE"]);
 
-			if ($arParams["CHECK_QUANTITY"] == "Y" && $boolQuantity && 0 >= $dblQuantity)
+			if (
+				$arParams["CHECK_QUANTITY"] == "Y"
+				&& Catalog\ProductTable::calculateAvailable($arCatalogProduct) != Catalog\ProductTable::STATUS_YES
+			)
 			{
 				$APPLICATION->ThrowException(Loc::getMessage("CATALOG_NO_QUANTITY_PRODUCT", array("#NAME#" => htmlspecialcharsbx($arProduct["~NAME"]))), "CATALOG_NO_QUANTITY_PRODUCT");
 				return $arResult;
@@ -315,35 +343,12 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				$appliedCoupons = array();
 				foreach ($arPrice['DISCOUNT_LIST'] as &$arOneDiscount)
 				{
-					$arOneList = array(
-						'ID' => $arOneDiscount['ID'],
-						'NAME' => $arOneDiscount['NAME'],
-						'COUPON' => '',
-						'COUPON_TYPE' => '',
-						'USE_COUPONS' => (isset($arOneDiscount['USE_COUPONS']) ? $arOneDiscount['USE_COUPONS'] : 'N'),
-						'MODULE_ID' => (isset($oneDiscount['MODULE_ID']) ? $oneDiscount['MODULE_ID'] : 'catalog'),
-						'TYPE' => $arOneDiscount['TYPE'],
-						'VALUE' => $arOneDiscount['VALUE'],
-						'VALUE_TYPE' => $arOneDiscount['VALUE_TYPE'],
-						'MAX_VALUE' => (
-							$arOneDiscount['VALUE_TYPE'] == Catalog\DiscountTable::VALUE_TYPE_PERCENT
-							? $arOneDiscount['MAX_DISCOUNT']
-							: 0
-						),
-						'CURRENCY' => $arOneDiscount['CURRENCY'],
-						'HANDLERS' => (isset($arOneDiscount['HANDLERS']) ? $arOneDiscount['HANDLERS'] : array())
-					);
+					$arDiscountList[] = CCatalogDiscount::getDiscountDescription($arOneDiscount);
 
 					if (!empty($arOneDiscount['COUPON']))
-					{
-						$arOneList['USE_COUPONS'] = 'Y';
-						$arOneList['COUPON'] = $arOneDiscount['COUPON'];
-						$arOneList['COUPON_TYPE'] = $arOneDiscount['COUPON_ONE_TIME'];
 						$appliedCoupons[] = $arOneDiscount['COUPON'];
-					}
-					$arDiscountList[] = $arOneList;
 				}
-				unset($arOneList, $arOneDiscount);
+				unset($arOneDiscount);
 				if (!empty($appliedCoupons))
 					$resultApply = DiscountCouponsManager::setApplyByProduct($productHash, $appliedCoupons);
 				unset($resultApply, $appliedCoupons);
@@ -364,11 +369,11 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		{
 			$vatRate = 0.0;
 
-			if (!$arVAT = static::getHitCache('VAT_INFO', $productID))
+			if (!$arVAT = static::getHitCache(self::CACHE_VAT, $productID))
 			{
 				$rsVAT = CCatalogProduct::GetVATInfo($productID);
 				if ($arVAT = $rsVAT->Fetch())
-					static::setHitCache('VAT_INFO', $productID, $arVAT);
+					static::setHitCache(self::CACHE_VAT, $productID, $arVAT);
 				unset($rsVAT);
 			}
 
@@ -379,7 +384,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		$arResult = array(
 			"NAME" => $arProduct["~NAME"],
 			"CAN_BUY" => "Y",
-//			"AVAILABLE_QUANTITY" => $arCatalogProduct["QUANTITY"],
 			"DETAIL_PAGE_URL" => $arProduct['~DETAIL_PAGE_URL'],
 			"BARCODE_MULTI" => $arCatalogProduct["BARCODE_MULTI"],
 			"WEIGHT" => (float)$arCatalogProduct['WEIGHT'],
@@ -388,21 +392,22 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				"HEIGHT" => $arCatalogProduct["HEIGHT"],
 				"LENGTH" => $arCatalogProduct["LENGTH"]
 			)),
-			"TYPE" => ($arCatalogProduct["TYPE"] == CCatalogProduct::TYPE_SET) ? CCatalogProductSet::TYPE_SET : NULL
+			"TYPE" => ($arCatalogProduct["TYPE"] == CCatalogProduct::TYPE_SET) ? CCatalogProductSet::TYPE_SET : null
 		);
 
 
 		if ($arParams['SELECT_QUANTITY_TRACE'] == "Y")
-		{
 			$arResult["QUANTITY_TRACE"] = $arCatalogProduct["QUANTITY_TRACE"];
-		}
 
 		if ($arParams["CHECK_QUANTITY"] == "Y")
-		{
 			$arResult["QUANTITY"] = ($boolQuantity && $dblQuantity < $quantity) ? $dblQuantity : $quantity;
-		}
 		else
 			$arResult["QUANTITY"] = $arParams["QUANTITY"];
+
+		if ($arParams["AVAILABLE_QUANTITY"] == "Y")
+		{
+			$arResult["AVAILABLE_QUANTITY"] = ($boolQuantity && $arCatalogProduct["QUANTITY"] < $quantity) ? $arCatalogProduct["QUANTITY"] : $quantity;
+		}
 
 		if ($arParams["CHECK_QUANTITY"] == "Y" && $boolQuantity && $dblQuantity < $quantity)
 			$APPLICATION->ThrowException(Loc::getMessage("CATALOG_QUANTITY_NOT_ENOGH", array("#NAME#" => htmlspecialcharsbx($arProduct["~NAME"]), "#CATALOG_QUANTITY#" => $arCatalogProduct["QUANTITY"], "#QUANTITY#" => $quantity)), "CATALOG_QUANTITY_NOT_ENOGH");
@@ -434,9 +439,8 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			{
 				$arResult['DISCOUNT_NAME'] = '['.$arPrice['DISCOUNT']['ID'].'] '.$arPrice['DISCOUNT']['NAME'];
 				if (!empty($arPrice['DISCOUNT']['COUPON']))
-				{
 					$arResult['DISCOUNT_COUPON'] = $arPrice['DISCOUNT']['COUPON'];
-				}
+
 				if (empty($arResult['DISCOUNT_LIST']))
 					$arResult['DISCOUNT_LIST'] = array($arPrice['DISCOUNT']);
 			}
@@ -486,18 +490,16 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			if ($intUserID == 0)
 				return $arResult;
 
-			if (!$userGroups = static::getHitCache('USER_GROUPS', $intUserID))
+			if (!$userGroups = static::getHitCache(self::CACHE_USER_GROUPS, $intUserID))
 			{
 				$userGroups = self::getUserGroups($intUserID);
-				static::setHitCache('USER_GROUPS', $intUserID, $userGroups);
+				static::setHitCache(self::CACHE_USER_GROUPS, $intUserID, $userGroups);
 			}
 
 			if (empty($userGroups))
 				return $arResult;
 
-			$arProduct = array();
-
-			if (!$arProduct = static::getHitCache('IBLOCK_ELEMENT_PERM_N', $productID))
+			if (!$arProduct = static::getHitCache(self::CACHE_ITEM_WITHOUT_RIGHTS, $productID))
 			{
 				$dbIBlockElement = CIBlockElement::GetList(
 					array(),
@@ -512,7 +514,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					array('ID', 'IBLOCK_ID', 'NAME', 'DETAIL_PAGE_URL')
 				);
 				if ($arProduct = $dbIBlockElement->GetNext())
-					static::setHitCache('IBLOCK_ELEMENT_PERM_N', $productID, $arProduct);
+					static::setHitCache(self::CACHE_ITEM_WITHOUT_RIGHTS, $productID, $arProduct);
 				unset($dbIBlockElement);
 			}
 
@@ -521,20 +523,20 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 			$iblockRightByID = null;
 
-			if (!$iblockRightByID = static::getHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID']))
+			if (!$iblockRightByID = static::getHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID']))
 			{
 				if ($iblockRightByID = CIBlock::GetArrayByID($arProduct['IBLOCK_ID'], 'RIGHTS_MODE'))
-					static::setHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID'], $iblockRightByID);
+					static::setHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID'], $iblockRightByID);
 			}
 
 			if ($iblockRightByID == 'E')
 			{
 				$proxyUserPermissionKey = $productID."|".$intUserID;
 
-				if (!$arUserRights = static::getHitCache('USER_RIGHT', $proxyUserPermissionKey))
+				if (!$arUserRights = static::getHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey))
 				{
 					if ($arUserRights = CIBlockElementRights::GetUserOperations($productID, $intUserID))
-						static::setHitCache('USER_RIGHT', $proxyUserPermissionKey, $arUserRights);
+						static::setHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey, $arUserRights);
 				}
 
 				if (empty($arUserRights) || !isset($arUserRights['element_read']))
@@ -547,10 +549,10 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 				$proxyIblockPermissionKey = $arProduct['IBLOCK_ID']."|".$intUserID;
 
-				if (!$iblockPermissions = static::getHitCache('IBLOCK_PERM', $proxyIblockPermissionKey))
+				if (!$iblockPermissions = static::getHitCache(self::CACHE_IBLOCK_RIGHTS, $proxyIblockPermissionKey))
 				{
 					if ($iblockPermissions = CIBlock::GetPermission($arProduct['IBLOCK_ID'], $intUserID))
-						static::setHitCache('IBLOCK_PERM', $proxyIblockPermissionKey, $iblockPermissions);
+						static::setHitCache(self::CACHE_IBLOCK_RIGHTS, $proxyIblockPermissionKey, $iblockPermissions);
 				}
 
 				if ($iblockPermissions < 'R')
@@ -561,9 +563,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		{
 			$userGroups = $USER->GetUserGroupArray();
 
-			$arProduct = array();
-
-			if (!$arProduct = static::getHitCache('IBLOCK_ELEMENT_PERM_Y', $productID))
+			if (!$arProduct = static::getHitCache(self::CACHE_ITEM_WITH_RIGHTS, $productID))
 			{
 				$dbIBlockElement = CIBlockElement::GetList(
 					array(),
@@ -579,7 +579,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					array('ID', 'IBLOCK_ID', 'NAME', 'DETAIL_PAGE_URL')
 				);
 				if ($arProduct = $dbIBlockElement->GetNext())
-					static::setHitCache('IBLOCK_ELEMENT_PERM_Y', $productID, $arProduct);
+					static::setHitCache(self::CACHE_ITEM_WITH_RIGHTS, $productID, $arProduct);
 				unset($dbIBlockElement);
 			}
 
@@ -587,9 +587,10 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				return $arResult;
 		}
 
-		$arCatalogProduct = array();
+		if (!static::checkParentActivity($arProduct['ID'], $arProduct['IBLOCK_ID']))
+			return $arResult;
 
-		if (!$arCatalogProduct = static::getHitCache('CATALOG_PRODUCT', $productID))
+		if (!$arCatalogProduct = static::getHitCache(self::CACHE_PRODUCT, $productID))
 		{
 			$rsProducts = CCatalogProduct::GetList(
 				array(),
@@ -606,32 +607,27 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					'HEIGHT',
 					'LENGTH',
 					'BARCODE_MULTI',
-					'TYPE',
-
-//					'NEGATIVE_AMOUNT_TRACE',
-//					'QUANTITY_RESERVED'
-
+					'TYPE'
 				)
 			);
 
 			if ($arCatalogProduct = $rsProducts->Fetch())
-				static::setHitCache('CATALOG_PRODUCT', $productID, $arCatalogProduct);
+				static::setHitCache(self::CACHE_PRODUCT, $productID, $arCatalogProduct);
 			unset($rsProducts);
 		}
 
 		if (!empty($arCatalogProduct) && is_array($arCatalogProduct))
 		{
+			if ($arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+				return $arResult;
+
 			$arCatalogProduct["QUANTITY"] = (double)$arCatalogProduct["QUANTITY"];
-			if ($arParams["CHECK_QUANTITY"] == "Y")
+			if (
+				$arParams["CHECK_QUANTITY"] == "Y"
+				&& Catalog\ProductTable::calculateAvailable($arCatalogProduct) != Catalog\ProductTable::STATUS_YES
+			)
 			{
-				if (
-					'Y' != $arCatalogProduct["CAN_BUY_ZERO"]
-					&& 'Y' == $arCatalogProduct["QUANTITY_TRACE"]
-					&& ($arCatalogProduct["QUANTITY"] <= 0 || $quantity > $arCatalogProduct["QUANTITY"])
-				)
-				{
-					return $arResult;
-				}
+				return $arResult;
 			}
 		}
 		else
@@ -685,36 +681,12 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			$appliedCoupons = array();
 			foreach ($arPrice['DISCOUNT_LIST'] as &$arOneDiscount)
 			{
-				$arOneList = array(
-					'ID' => $arOneDiscount['ID'],
-					'NAME' => $arOneDiscount['NAME'],
-					'COUPON' => '',
-					'COUPON_TYPE' => '',
-					'USE_COUPONS' => (isset($arOneDiscount['USE_COUPONS']) ? $arOneDiscount['USE_COUPONS'] : 'N'),
-					'MODULE_ID' => (isset($oneDiscount['MODULE_ID']) ? $oneDiscount['MODULE_ID'] : 'catalog'),
-					'TYPE' => $arOneDiscount['TYPE'],
-					'VALUE' => $arOneDiscount['VALUE'],
-					'VALUE_TYPE' => $arOneDiscount['VALUE_TYPE'],
-					'MAX_VALUE' => (
-						$arOneDiscount['VALUE_TYPE'] == Catalog\DiscountTable::VALUE_TYPE_PERCENT
-						? $arOneDiscount['MAX_DISCOUNT']
-						: 0
-					),
-					'CURRENCY' => $arOneDiscount['CURRENCY'],
-					'HANDLERS' => (isset($arOneDiscount['HANDLERS']) ? $arOneDiscount['HANDLERS'] : array())
-				);
+				$arDiscountList[] = CCatalogDiscount::getDiscountDescription($arOneDiscount);
 
 				if (!empty($arOneDiscount['COUPON']))
-				{
-					$arOneList['USE_COUPONS'] = 'Y';
-					$arOneList['COUPON'] = $arOneDiscount['COUPON'];
-					$arOneList['COUPON_TYPE'] = $arOneDiscount['COUPON_ONE_TIME'];
 					$appliedCoupons[] = $arOneDiscount['COUPON'];
-				}
-
-				$arDiscountList[] = $arOneList;
 			}
-			unset($arOneList, $arOneDiscount);
+			unset($arOneDiscount);
 			if (!empty($appliedCoupons))
 				$resultApply = DiscountCouponsManager::setApplyByProduct($productHash, $appliedCoupons);
 			unset($resultApply, $appliedCoupons);
@@ -752,7 +724,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			"DETAIL_PAGE_URL" => $arProduct['~DETAIL_PAGE_URL'],
 			"NOTES" => $arPrice["PRICE"]["CATALOG_GROUP_NAME"],
 			"DISCOUNT_PRICE" => $arPrice['RESULT_PRICE']['DISCOUNT'],
-			"TYPE" => ($arCatalogProduct["TYPE"] == CCatalogProduct::TYPE_SET) ? CCatalogProductSet::TYPE_SET : NULL,
+			"TYPE" => ($arCatalogProduct["TYPE"] == CCatalogProduct::TYPE_SET) ? CCatalogProductSet::TYPE_SET : null,
 			"DISCOUNT_VALUE" => ($arPrice['RESULT_PRICE']['PERCENT'] > 0 ? $arPrice['RESULT_PRICE']['PERCENT'].'%' : 0),
 			"DISCOUNT_NAME" => '',
 			"DISCOUNT_COUPON" => '',
@@ -770,9 +742,8 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		{
 			$arResult['DISCOUNT_NAME'] = '['.$arPrice['DISCOUNT']['ID'].'] '.$arPrice['DISCOUNT']['NAME'];
 			if (!empty($arPrice['DISCOUNT']['COUPON']))
-			{
 				$arResult['DISCOUNT_COUPON'] = $arPrice['DISCOUNT']['COUPON'];
-			}
+
 			if (empty($arResult['DISCOUNT_LIST']))
 				$arResult['DISCOUNT_LIST'] = array($arPrice['DISCOUNT']);
 		}
@@ -859,130 +830,102 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 				'LENGTH',
 				'BARCODE_MULTI',
 				'TYPE',
-				'NEGATIVE_AMOUNT_TRACE',
 				'QUANTITY_RESERVED'
 			)
 		);
 
-		if ($arProduct = $rsProducts->Fetch())
+		$arProduct = $rsProducts->Fetch();
+		if (empty($arProduct))
 		{
-			if ($disableReservation)
+			$APPLICATION->ThrowException(Loc::getMessage("RSRV_ID_NOT_FOUND", array("#PRODUCT_ID#" => $arParams["PRODUCT_ID"])), "ID_NOT_FOUND");
+			$arRes["RESULT"] = false;
+			return $arRes;
+		}
+
+		if ($arProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+		{
+			$APPLICATION->ThrowException(Loc::getMessage("RSRV_SKU_FOUND", array("#PRODUCT_ID#" => $arParams["PRODUCT_ID"])), "SKU_FOUND");
+			$arRes["RESULT"] = false;
+			return $arRes;
+		}
+
+
+		if ($disableReservation)
+		{
+			$startReservedQuantity = 0;
+
+			if ($arParams["UNDO_RESERVATION"] != "Y")
+				$arFields = array("QUANTITY" => $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"]);
+			else
+				$arFields = array("QUANTITY" => $arProduct["QUANTITY"] + $arParams["QUANTITY_ADD"]);
+
+			$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+
+			if (self::isNeedClearPublicCache(
+				$arProduct['QUANTITY'],
+				$arFields['QUANTITY'],
+				$arProduct['QUANTITY_TRACE'],
+				$arProduct['CAN_BUY_ZERO']
+			))
 			{
-				$startReservedQuantity = 0;
-
-				if ($arParams["UNDO_RESERVATION"] != "Y")
-					$arFields = array("QUANTITY" => $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"]);
-				else
-					$arFields = array("QUANTITY" => $arProduct["QUANTITY"] + $arParams["QUANTITY_ADD"]);
-
-				$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+				$productInfo = array(
+					'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
+					'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
+					'OLD_QUANTITY' => $arProduct['QUANTITY'],
+					'QUANTITY' => $arFields['QUANTITY'],
+					'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
+				);
+				self::clearPublicCache($arProduct['ID'], $productInfo);
+			}
+		}
+		else
+		{
+			if ($arProduct["QUANTITY_TRACE"] == "N" || (isset($arParams["ORDER_DEDUCTED"]) && $arParams["ORDER_DEDUCTED"] == "Y"))
+			{
+				$arRes["RESULT"] = true;
 				$arFields["QUANTITY_RESERVED"] = 0;
-				if (self::isNeedClearPublicCache(
-					$arProduct['QUANTITY'],
-					$arFields['QUANTITY'],
-					$arProduct['QUANTITY_TRACE'],
-					$arProduct['CAN_BUY_ZERO']
-				))
-				{
-					$productInfo = array(
-						'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-						'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
-						'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
-						'OLD_QUANTITY' => $arProduct['QUANTITY'],
-						'QUANTITY' => $arFields['QUANTITY'],
-						'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
-					);
-					self::clearPublicCache($arProduct['ID'], $productInfo);
-				}
+				$startReservedQuantity = 0;
 			}
 			else
 			{
-				if ($arProduct["QUANTITY_TRACE"] == "N" || (isset($arParams["ORDER_DEDUCTED"]) && $arParams["ORDER_DEDUCTED"] == "Y"))
+				$startReservedQuantity = $arProduct["QUANTITY_RESERVED"];
+
+				if ($arParams["UNDO_RESERVATION"] == "N")
 				{
-					$arRes["RESULT"] = true;
-					$arFields["QUANTITY_RESERVED"] = 0;
-					$startReservedQuantity = 0;
-				}
-				else
-				{
-					$startReservedQuantity = $arProduct["QUANTITY_RESERVED"];
-
-					if ($arParams["UNDO_RESERVATION"] == "N")
+					if ($arProduct["CAN_BUY_ZERO"] == "Y")
 					{
-						if ($arProduct["CAN_BUY_ZERO"] == "Y")
+						$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arParams["QUANTITY_ADD"];
+
+						if ($arProduct["QUANTITY"] >= $arParams["QUANTITY_ADD"])
 						{
-							$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arParams["QUANTITY_ADD"];
-
-							if ($arProduct["QUANTITY"] >= $arParams["QUANTITY_ADD"])
-							{
-								$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
-							}
-							elseif ($arProduct["QUANTITY"] < $arParams["QUANTITY_ADD"])
-							{
-								if ($arProduct["NEGATIVE_AMOUNT_TRACE"] == "Y")
-								{
-									//reserve value, quantity will be negative
-									$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
-								}
-								else
-								{
-									$arFields["QUANTITY"] = 0;
-								}
-							}
-
-							$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+							$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
 						}
-						else //CAN_BUY_ZERO = N
+						elseif ($arProduct["QUANTITY"] < $arParams["QUANTITY_ADD"])
 						{
-							if ($arProduct["QUANTITY"] >= $arParams["QUANTITY_ADD"])
-							{
-								$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
-								$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arParams["QUANTITY_ADD"];
-							}
-							elseif ($arProduct["QUANTITY"] < $arParams["QUANTITY_ADD"])
-							{
-								//reserve only possible value, quantity = 0
-
-								$arRes["QUANTITY_NOT_RESERVED"] = $arParams["QUANTITY_ADD"] - $arProduct["QUANTITY"];
-
-								$arFields["QUANTITY"] = 0;
-								$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"];
-
-								$APPLICATION->ThrowException(Loc::getMessage("RSRV_QUANTITY_NOT_ENOUGH_ERROR", self::GetProductCatalogInfo($arParams["PRODUCT_ID"])), "ERROR_NOT_ENOUGH_QUANTITY");
-							}
-							if (self::isNeedClearPublicCache(
-								$arProduct['QUANTITY'],
-								$arFields['QUANTITY'],
-								$arProduct['QUANTITY_TRACE'],
-								$arProduct['CAN_BUY_ZERO']
-							))
-							{
-								$productInfo = array(
-									'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-									'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
-									'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
-									'OLD_QUANTITY' => $arProduct['QUANTITY'],
-									'QUANTITY' => $arFields['QUANTITY'],
-									'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
-								);
-								self::clearPublicCache($arProduct['ID'], $productInfo);
-							}
-							$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+							//reserve value, quantity will be negative
+							$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
 						}
-					}
-					else //undo reservation
-					{
-						$arFields["QUANTITY"] = $arProduct["QUANTITY"] + $arParams["QUANTITY_ADD"];
-
-						$needReserved = $arProduct["QUANTITY_RESERVED"] - $arParams["QUANTITY_ADD"];
-						if ($arParams["QUANTITY_ADD"] > $arProduct["QUANTITY_RESERVED"])
-						{
-							$needReserved = $arProduct["QUANTITY_RESERVED"];
-						}
-
-						$arFields["QUANTITY_RESERVED"] = $needReserved;
 
 						$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+					}
+					else //CAN_BUY_ZERO = N
+					{
+						if ($arProduct["QUANTITY"] >= $arParams["QUANTITY_ADD"])
+						{
+							$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY_ADD"];
+							$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arParams["QUANTITY_ADD"];
+						}
+						elseif ($arProduct["QUANTITY"] < $arParams["QUANTITY_ADD"])
+						{
+							//reserve only possible value, quantity = 0
+
+							$arRes["QUANTITY_NOT_RESERVED"] = $arParams["QUANTITY_ADD"] - $arProduct["QUANTITY"];
+
+							$arFields["QUANTITY"] = 0;
+							$arFields["QUANTITY_RESERVED"] = $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"];
+
+							$APPLICATION->ThrowException(Loc::getMessage("RSRV_QUANTITY_NOT_ENOUGH_ERROR", self::GetProductCatalogInfo($arParams["PRODUCT_ID"])), "ERROR_NOT_ENOUGH_QUANTITY");
+						}
 						if (self::isNeedClearPublicCache(
 							$arProduct['QUANTITY'],
 							$arFields['QUANTITY'],
@@ -992,7 +935,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 						{
 							$productInfo = array(
 								'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-								'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
 								'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
 								'OLD_QUANTITY' => $arProduct['QUANTITY'],
 								'QUANTITY' => $arFields['QUANTITY'],
@@ -1000,15 +942,40 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 							);
 							self::clearPublicCache($arProduct['ID'], $productInfo);
 						}
+						$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
 					}
-				} //quantity trace
-			}
-		} //product found
-		else
-		{
-			$APPLICATION->ThrowException(Loc::getMessage("RSRV_ID_NOT_FOUND", array("#PRODUCT_ID#" => $arParams["PRODUCT_ID"])), "ID_NOT_FOUND");
-			$arRes["RESULT"] = false;
-			return $arRes;
+				}
+				else //undo reservation
+				{
+					$arFields["QUANTITY"] = $arProduct["QUANTITY"] + $arParams["QUANTITY_ADD"];
+
+					$needReserved = $arProduct["QUANTITY_RESERVED"] - $arParams["QUANTITY_ADD"];
+					if ($arParams["QUANTITY_ADD"] > $arProduct["QUANTITY_RESERVED"])
+					{
+						$needReserved = $arProduct["QUANTITY_RESERVED"];
+					}
+
+					$arFields["QUANTITY_RESERVED"] = $needReserved;
+
+					$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+					if (self::isNeedClearPublicCache(
+						$arProduct['QUANTITY'],
+						$arFields['QUANTITY'],
+						$arProduct['QUANTITY_TRACE'],
+						$arProduct['CAN_BUY_ZERO']
+					))
+					{
+						$productInfo = array(
+							'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
+							'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
+							'OLD_QUANTITY' => $arProduct['QUANTITY'],
+							'QUANTITY' => $arFields['QUANTITY'],
+							'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
+						);
+						self::clearPublicCache($arProduct['ID'], $productInfo);
+					}
+				}
+			} //quantity trace
 		}
 
 		if ($arRes["RESULT"])
@@ -1027,7 +994,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			$APPLICATION->ThrowException(Loc::getMessage("RSRV_UNKNOWN_ERROR", self::GetProductCatalogInfo($arParams["PRODUCT_ID"])), "UNKNOWN_RESERVATION_ERROR");
 		}
 
-		static::clearHitCache('CATALOG_PRODUCT');
+		static::clearHitCache(self::CACHE_PRODUCT);
 
 		$arRes['CAN_RESERVE'] = ($disableReservation ? "N" : "Y");
 
@@ -1049,11 +1016,10 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			&& COption::GetOptionString("sale", "product_reserve_condition") != "S"
 			&& $strUseStoreControl != "Y");
 
-		if ($disableReservation)
-		{
-			$arRes["RESULT"] = true;
-			return $arRes;
-		}
+
+		if ((string)$arParams["UNDO_DEDUCTION"] != "Y")
+			$arParams["UNDO_DEDUCTION"] = "N";
+
 
 		if ((int)$arParams["PRODUCT_ID"] <= 0)
 		{
@@ -1066,8 +1032,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 		$arParams["QUANTITY"] = doubleval($arParams["QUANTITY"]);
 
-		if ((string)$arParams["UNDO_DEDUCTION"] != "Y")
-			$arParams["UNDO_DEDUCTION"] = "N";
+
 
 		if ((string)$arParams["EMULATE"] != "Y")
 			$arParams["EMULATE"] = "N";
@@ -1096,12 +1061,16 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			array('ID' => $arParams["PRODUCT_ID"]),
 			false,
 			false,
-			array('ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO', 'NEGATIVE_AMOUNT_TRACE')
+			array('ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO', 'TYPE')
 		);
 
 		if ($arProduct = $rsProducts->Fetch())
 		{
-			if ($arParams["UNDO_DEDUCTION"] == "N")
+			if ($arProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+			{
+				$arRes["RESULT"] = false;
+			}
+			elseif ($arParams["UNDO_DEDUCTION"] == "N")
 			{
 				if ($arParams["EMULATE"] == "Y" || $arProduct["QUANTITY_TRACE"] == "N")
 				{
@@ -1356,7 +1325,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 							{
 								$productInfo = array(
 									'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-									'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
 									'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
 									'OLD_QUANTITY' => $arProduct['QUANTITY'],
 									'QUANTITY' => $arFields['QUANTITY'],
@@ -1376,73 +1344,79 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					}
 					else // store control not used
 					{
-						if ($arParams["QUANTITY"] <= $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"])
+						if (($disableReservation && ($arParams['UNDO_DEDUCTION'] == "Y" || $arParams["PRODUCT_RESERVED"] == "N")) || !$disableReservation)
 						{
-							if ($arParams["PRODUCT_RESERVED"] == "Y")
+							if ($arParams["QUANTITY"] <= $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"])
 							{
-								if ($arParams["QUANTITY"] <= $arProduct["QUANTITY_RESERVED"])
+								if ($arParams["PRODUCT_RESERVED"] == "Y")
 								{
-
-									$needReserved = $arProduct["QUANTITY_RESERVED"] - $arParams["QUANTITY"];
-									if ($arParams["QUANTITY"] > $arProduct["QUANTITY_RESERVED"])
+									if ($arParams["QUANTITY"] <= $arProduct["QUANTITY_RESERVED"])
 									{
-										$needReserved = $arProduct["QUANTITY_RESERVED"];
-									}
 
-									$arFields["QUANTITY_RESERVED"] = $needReserved;
+										$needReserved = $arProduct["QUANTITY_RESERVED"] - $arParams["QUANTITY"];
+										if ($arParams["QUANTITY"] > $arProduct["QUANTITY_RESERVED"])
+										{
+											$needReserved = $arProduct["QUANTITY_RESERVED"];
+										}
+
+										$arFields["QUANTITY_RESERVED"] = $needReserved;
+									}
+									else
+									{
+										$arFields["QUANTITY_RESERVED"] = 0;
+										$arFields["QUANTITY"] = $arProduct["QUANTITY"] - ($arParams["QUANTITY"] - $arProduct["QUANTITY_RESERVED"]);
+									}
 								}
-								else
+								else //product not reserved, use main quantity field to deduct from, quantity_reserved only if there is shortage in the main field
 								{
-									$arFields["QUANTITY_RESERVED"] = 0;
-									$arFields["QUANTITY"] = $arProduct["QUANTITY"] - ($arParams["QUANTITY"] - $arProduct["QUANTITY_RESERVED"]);
+									if ($arParams["QUANTITY"] <= $arProduct["QUANTITY"])
+									{
+										$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY"];
+									}
+									else
+									{
+										$arFields["QUANTITY"] = 0;
+
+										$minusQuantity = ($arParams["QUANTITY"] - $arProduct["QUANTITY"]);
+
+										$needReserved = $arProduct["QUANTITY_RESERVED"] - $minusQuantity;
+										if ($minusQuantity > $arProduct["QUANTITY_RESERVED"])
+										{
+											$needReserved = $arProduct["QUANTITY_RESERVED"];
+										}
+
+										$arFields["QUANTITY_RESERVED"] = $needReserved;
+									}
+								}
+
+								$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
+								if (isset($arFields['QUANTITY']) && self::isNeedClearPublicCache(
+										$arProduct['QUANTITY'],
+										$arFields['QUANTITY'],
+										$arProduct['QUANTITY_TRACE'],
+										$arProduct['CAN_BUY_ZERO']
+									))
+								{
+									$productInfo = array(
+										'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
+										'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
+										'OLD_QUANTITY' => $arProduct['QUANTITY'],
+										'QUANTITY' => $arFields['QUANTITY'],
+										'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
+									);
+									self::clearPublicCache($arProduct['ID'], $productInfo);
 								}
 							}
-							else //product not reserved, use main quantity field to deduct from, quantity_reserved only if there is shortage in the main field
+							else //not enough products - don't deduct anything
 							{
-								if ($arParams["QUANTITY"] <= $arProduct["QUANTITY"])
-								{
-									$arFields["QUANTITY"] = $arProduct["QUANTITY"] - $arParams["QUANTITY"];
-								}
-								else
-								{
-									$arFields["QUANTITY"] = 0;
-
-									$minusQuantity = ($arParams["QUANTITY"] - $arProduct["QUANTITY"]);
-
-									$needReserved = $arProduct["QUANTITY_RESERVED"] - $minusQuantity;
-									if ($minusQuantity > $arProduct["QUANTITY_RESERVED"])
-									{
-										$needReserved = $arProduct["QUANTITY_RESERVED"];
-									}
-
-									$arFields["QUANTITY_RESERVED"] = $needReserved;
-								}
-							}
-
-							$arRes["RESULT"] = CCatalogProduct::Update($arParams["PRODUCT_ID"], $arFields);
-							if (isset($arFields['QUANTITY']) && self::isNeedClearPublicCache(
-									$arProduct['QUANTITY'],
-									$arFields['QUANTITY'],
-									$arProduct['QUANTITY_TRACE'],
-									$arProduct['CAN_BUY_ZERO']
-								))
-							{
-								$productInfo = array(
-									'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-									'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
-									'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
-									'OLD_QUANTITY' => $arProduct['QUANTITY'],
-									'QUANTITY' => $arFields['QUANTITY'],
-									'DELTA' => $arFields['QUANTITY'] - $arProduct['QUANTITY']
-								);
-								self::clearPublicCache($arProduct['ID'], $productInfo);
+								$APPLICATION->ThrowException(Loc::getMessage("DDCT_DEDUCTION_QUANTITY_ERROR", self::GetProductCatalogInfo($arParams["PRODUCT_ID"])), "DDCT_DEDUCTION_QUANTITY_ERROR");
+								$arRes["RESULT"] = false;
+								return $arRes;
 							}
 						}
-						else //not enough products - don't deduct anything
+						else
 						{
-							$APPLICATION->ThrowException(Loc::getMessage("DDCT_DEDUCTION_QUANTITY_ERROR", self::GetProductCatalogInfo($arParams["PRODUCT_ID"])), "DDCT_DEDUCTION_QUANTITY_ERROR");
-							$arRes["RESULT"] = false;
-							return $arRes;
+							$arRes["RESULT"] = true;
 						}
 
 					} //store control
@@ -1579,7 +1553,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 							{
 								$productInfo = array(
 									'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-									'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
 									'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
 									'OLD_QUANTITY' => $arProduct['QUANTITY'],
 									'QUANTITY' => $arUpdateFields['QUANTITY'],
@@ -1620,7 +1593,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 						{
 							$productInfo = array(
 								'CAN_BUY_ZERO' => $arProduct['CAN_BUY_ZERO'],
-								'NEGATIVE_AMOUNT_TRACE' => $arProduct['NEGATIVE_AMOUNT_TRACE'],
 								'QUANTITY_TRACE' => $arProduct['QUANTITY_TRACE'],
 								'OLD_QUANTITY' => $arProduct['QUANTITY'],
 								'QUANTITY' => $arFields['QUANTITY'],
@@ -1644,7 +1616,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 		if ($arRes['RESULT'] === true)
 		{
-			static::clearHitCache('CATALOG_PRODUCT');
+			static::clearHitCache(self::CACHE_PRODUCT);
 		}
 
 		return $arRes;
@@ -1669,212 +1641,205 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			&& COption::GetOptionString("sale", "product_reserve_condition", "O") != "S"
 			&& $strUseStoreControl != "Y");
 
-		if ($disableReservation)
-		{
-			return $result;
-		}
 
 		$productId = $basketItem->getProductId();
 
-//		if ((int)$arParams["PRODUCT_ID"] <= 0)
-//		{
-//			$APPLICATION->ThrowException(Loc::getMessage("RSRV_INCORRECT_ID"), "NO_ORDER_ID");
-//			$arRes["RESULT"] = false;
-//			return $arRes;
-//		}
-
-		$rsProducts = CCatalogProduct::GetList(
-			array(),
-			array('ID' => $productId),
-			false,
-			false,
-			array('ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO', 'NEGATIVE_AMOUNT_TRACE')
-		);
-
-		if ($arProduct = $rsProducts->Fetch())
+		$arProduct = Catalog\ProductTable::getList(array(
+			'select' => array('ID', 'TYPE', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO'),
+			'filter' => array('=ID' => $productId)
+		))->fetch();
+		if (empty($arProduct))
 		{
+			$result->addError( new \Bitrix\Sale\ResultError(Loc::getMessage("DDCT_DEDUCTION_PRODUCT_NOT_FOUND_ERROR", self::GetProductCatalogInfo($productId)), "DDCT_DEDUCTION_PRODUCT_NOT_FOUND_ERROR") );
+			return $result;
+		}
 
-			if ($strUseStoreControl == "Y")
+		if ($arProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+			return $result;
+
+		if ($strUseStoreControl == "Y")
+		{
+			if (empty($basketStoreData))
 			{
-				if (empty($basketStoreData))
-				{
-					$countStores = static::GetStoresCount(array('SITE_ID' => $basketItem->getField('LID')));
-					$defaultDeductionStore = Main\Config\Option::get("sale", "deduct_store_id", "", $basketItem->getField('LID'));
+				$countStores = static::GetStoresCount(array('SITE_ID' => $basketItem->getField('LID')));
+				$defaultDeductionStore = Main\Config\Option::get("sale", "deduct_store_id", "", $basketItem->getField('LID'));
 
-					if (($countStores == 1 || $countStores == -1 || $defaultDeductionStore > 0) && !$basketItem->isBarcodeMulti())
+				if (($countStores == 1 || $countStores == -1 || $defaultDeductionStore > 0) && !$basketItem->isBarcodeMulti())
+				{
+					if ($productStore = static::GetProductStores(array(
+						'PRODUCT_ID' => $productId,
+						'SITE_ID' => $basketItem->getField('LID')
+					)))
 					{
-						if ($productStore = static::GetProductStores(array(
-							'PRODUCT_ID' => $productId,
-							'SITE_ID' => $basketItem->getField('LID')
-						)))
-						{
-							$productStore = reset($productStore);
-							$basketStoreData = array(
-								$productStore['STORE_ID'] => array(
-									'QUANTITY' => $quantity
-								),
-							);
-						}
+						$productStore = reset($productStore);
+						$basketStoreData = array(
+							$productStore['STORE_ID'] => array(
+								'QUANTITY' => $quantity
+							),
+						);
 					}
 				}
+			}
 
-				if (!empty($basketStoreData))
+			if (!empty($basketStoreData))
+			{
+				$totalAmount = 0;
+				foreach ($basketStoreData as $storeId => $basketStore)
 				{
-					$totalAmount = 0;
-					foreach ($basketStoreData as $storeId => $basketStore)
+
+					if (intval($storeId) < -1 || intval($storeId) == 0
+						|| !isset($basketStore["QUANTITY"]) || intval($basketStore["QUANTITY"]) < 0)
+					{
+						$result->addError( new \Bitrix\Sale\ResultError(Loc::getMessage("DDCT_DEDUCTION_STORE_ERROR", self::GetProductCatalogInfo($productId)), "DDCT_DEDUCTION_STORE_ERROR") );
+
+						return $result;
+					}
+
+					if (intval($storeId) == -1)
+					{
+						$totalAmount = intval($basketStore["QUANTITY"]);
+					}
+					else
 					{
 
-						if (intval($storeId) < -1 || intval($storeId) == 0
-							|| !isset($basketStore["QUANTITY"]) || intval($basketStore["QUANTITY"]) < 0)
+						$rsProps = CCatalogStoreProduct::GetList(
+							array(),
+							array(
+								"PRODUCT_ID" => $productId,
+								"STORE_ID" => $storeId
+							),
+							false,
+							false,
+							array('ID', 'AMOUNT')
+						);
+						if ($arProp = $rsProps->Fetch())
 						{
-							$result->addError( new \Bitrix\Sale\ResultError(Loc::getMessage("DDCT_DEDUCTION_STORE_ERROR", self::GetProductCatalogInfo($productId)), "DDCT_DEDUCTION_STORE_ERROR") );
-
-							return $result;
-						}
-
-						if (intval($storeId) == -1)
-						{
-							$totalAmount = intval($basketStore["QUANTITY"]);
-						}
-						else
-						{
-
-							$rsProps = CCatalogStoreProduct::GetList(
-								array(),
-								array(
-									"PRODUCT_ID" => $productId,
-									"STORE_ID" => $storeId
-								),
-								false,
-								false,
-								array('ID', 'AMOUNT')
-							);
-							if ($arProp = $rsProps->Fetch())
+							if ($arProp["AMOUNT"] < $basketStore["QUANTITY"])
 							{
-								if ($arProp["AMOUNT"] < $basketStore["QUANTITY"])
-								{
-									$result->addError( new \Bitrix\Sale\ResultError(
-										Loc::getMessage(
-											"DDCT_DEDUCTION_QUANTITY_STORE_ERROR",
-											array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $storeId))
-										),
-										"DDCT_DEDUCTION_QUANTITY_STORE_ERROR"
-									));
-									return $result;
-								}
-								else
-								{
+								$result->addError( new \Bitrix\Sale\ResultError(
+									Loc::getMessage(
+										"DDCT_DEDUCTION_QUANTITY_STORE_ERROR",
+										array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $storeId))
+									),
+									"DDCT_DEDUCTION_QUANTITY_STORE_ERROR"
+								));
+								return $result;
+							}
+							else
+							{
 
-									$storesList[$storeId] = $basketStore["QUANTITY"];
-									$totalAmount += $basketStore["QUANTITY"];
+								$storesList[$storeId] = $basketStore["QUANTITY"];
+								$totalAmount += $basketStore["QUANTITY"];
 
-									//check barcodes
-									if (isset($basketStore["BARCODE"]) && is_array($basketStore["BARCODE"]) && count($basketStore["BARCODE"]) > 0)
+								//check barcodes
+								if (isset($basketStore["BARCODE"]) && is_array($basketStore["BARCODE"]) && count($basketStore["BARCODE"]) > 0)
+								{
+									foreach ($basketStore["BARCODE"] as $barcodeId => $barcodeValue)
 									{
-										foreach ($basketStore["BARCODE"] as $barcodeId => $barcodeValue)
+										if (strval(trim($barcodeValue)) == "")
 										{
-											if (strval(trim($barcodeValue)) == "")
-											{
-												if ($basketItem->isBarcodeMulti())
-												{
-													$result->addError( new \Bitrix\Sale\ResultError(
-														Loc::getMessage(
-															"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY",
-															array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $basketStore['STORE_ID']))
-														),
-														"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY"
-													));
-												}
-												continue;
-											}
-
-											$arFields = array(
-												"STORE_ID" => static::CATALOG_PROVIDER_EMPTY_STORE_ID,
-												"BARCODE" => $barcodeValue,
-												"PRODUCT_ID" => $productId
-											);
-
 											if ($basketItem->isBarcodeMulti())
-											{
-												$arFields['STORE_ID'] = $storeId;
-											}
-
-											$dbres = CCatalogStoreBarcode::GetList(
-												array(),
-												$arFields,
-												false,
-												false,
-												array("ID", "STORE_ID", "BARCODE", "PRODUCT_ID")
-											);
-
-											if (!$arRes = $dbres->Fetch())
 											{
 												$result->addError( new \Bitrix\Sale\ResultError(
 													Loc::getMessage(
-														"DDCT_DEDUCTION_BARCODE_ERROR",
-														array_merge(self::GetProductCatalogInfo($productId), array("#BARCODE#" => $barcodeValue))
+														"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY",
+														array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $basketStore['STORE_ID']))
 													),
-													"DDCT_DEDUCTION_BARCODE_ERROR"
-												) );
+													"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY"
+												));
 											}
+											continue;
+										}
+
+										$arFields = array(
+											"STORE_ID" => static::CATALOG_PROVIDER_EMPTY_STORE_ID,
+											"BARCODE" => $barcodeValue,
+											"PRODUCT_ID" => $productId
+										);
+
+										if ($basketItem->isBarcodeMulti())
+										{
+											$arFields['STORE_ID'] = $storeId;
+										}
+
+										$dbres = CCatalogStoreBarcode::GetList(
+											array(),
+											$arFields,
+											false,
+											false,
+											array("ID", "STORE_ID", "BARCODE", "PRODUCT_ID")
+										);
+
+										if (!$arRes = $dbres->Fetch())
+										{
+											$result->addError( new \Bitrix\Sale\ResultError(
+												Loc::getMessage(
+													"DDCT_DEDUCTION_BARCODE_ERROR",
+													array_merge(self::GetProductCatalogInfo($productId), array("#BARCODE#" => $barcodeValue))
+												),
+												"DDCT_DEDUCTION_BARCODE_ERROR"
+											) );
 										}
 									}
-									elseif($basketItem->isBarcodeMulti())
-									{
-										$result->addError( new \Bitrix\Sale\ResultError(
-											Loc::getMessage(
-												"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY",
-												array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $basketStore['STORE_ID']))
-											),
-											"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY"
-										));
-									}
+								}
+								elseif($basketItem->isBarcodeMulti())
+								{
+									$result->addError( new \Bitrix\Sale\ResultError(
+										Loc::getMessage(
+											"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY",
+											array_merge(self::GetProductCatalogInfo($productId), array("#STORE_ID#" => $basketStore['STORE_ID']))
+										),
+										"DDCT_DEDUCTION_MULTI_BARCODE_EMPTY"
+									));
 								}
 							}
 						}
-
-						if (!$result->isSuccess(true))
-						{
-							return $result;
-						}
-
-						if ($reserved == 'Y')
-						{
-							$reservedPoolQuantity = static::getProductPoolQuantityByBasketItem($basketItem);
-							$reservedQuantity = $arProduct["QUANTITY_RESERVED"] + floatval($reservedPoolQuantity);
-						}
-
-
-						$productQuantity = ($reserved == 'Y' ? $reservedQuantity : $arProduct["QUANTITY"]);
-
-						/*if (($totalAmount > $productQuantity)
-							|| ($totalAmount > $reservedQuantity + $arProduct["QUANTITY"]))*/
-						if ($totalAmount > $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"])
-						{
-							$result->addError( new \Bitrix\Sale\ResultError(
-								Loc::getMessage("SALE_PROVIDER_SHIPMENT_QUANTITY_NOT_ENOUGH", self::GetProductCatalogInfo($productId)),
-								"SALE_PROVIDER_SHIPMENT_QUANTITY_NOT_ENOUGH"
-							));
-							return $result;
-						}
-
 					}
-				}
-				else
-				{
-					$result->addError( new \Bitrix\Sale\ResultError(
-						Loc::getMessage("DDCT_DEDUCTION_STORE_ERROR", self::GetProductCatalogInfo($productId)),
-						"DEDUCTION_STORE_ERROR1"
-					) );
-					return $result;
+
+					if (!$result->isSuccess(true))
+					{
+						return $result;
+					}
+
+					if ($reserved == 'Y')
+					{
+						$reservedPoolQuantity = static::getProductPoolQuantityByBasketItem($basketItem);
+						$reservedQuantity = $arProduct["QUANTITY_RESERVED"] + floatval($reservedPoolQuantity);
+					}
+
+
+					$productQuantity = ($reserved == 'Y' ? $reservedQuantity : $arProduct["QUANTITY"]);
+
+					/*if (($totalAmount > $productQuantity)
+						|| ($totalAmount > $reservedQuantity + $arProduct["QUANTITY"]))*/
+					if ($totalAmount > $arProduct["QUANTITY_RESERVED"] + $arProduct["QUANTITY"])
+					{
+						$result->addError( new \Bitrix\Sale\ResultError(
+							Loc::getMessage("SALE_PROVIDER_SHIPMENT_QUANTITY_NOT_ENOUGH", self::GetProductCatalogInfo($productId)),
+							"SALE_PROVIDER_SHIPMENT_QUANTITY_NOT_ENOUGH"
+						));
+						return $result;
+					}
+
 				}
 			}
-			else // store control not used
+			else
 			{
+				$result->addError( new \Bitrix\Sale\ResultError(
+					Loc::getMessage("DDCT_DEDUCTION_STORE_ERROR", self::GetProductCatalogInfo($productId)),
+					"DEDUCTION_STORE_ERROR1"
+				) );
+				return $result;
+			}
+		}
+		else // store control not used
+		{
 
-				$reservedPoolQuantity = static::getProductPoolQuantityByBasketItem($basketItem);
-				$reservedQuantity = $arProduct["QUANTITY_RESERVED"] + floatval($reservedPoolQuantity);
+			$reservedPoolQuantity = static::getProductPoolQuantityByBasketItem($basketItem);
+			$reservedQuantity = $arProduct["QUANTITY_RESERVED"] + floatval($reservedPoolQuantity);
 
+			if ($arProduct["CAN_BUY_ZERO"] != "Y" && $arProduct["QUANTITY_TRACE"] == "Y")
+			{
 				if ($quantity > $reservedQuantity + $arProduct["QUANTITY"])
 				{
 					$result->addError( new \Bitrix\Sale\ResultError(
@@ -1883,11 +1848,11 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 					) );
 					return $result;
 				}
+			}
 
 //				$arRes["RESULT"] = true;
 
-			} //store control
-		}
+		} //store control
 
 		return $result;
 	}
@@ -1904,22 +1869,21 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			&& COption::GetOptionString("sale", "product_reserve_condition", "O") != "S"
 			&& $strUseStoreControl != "Y");
 
-		if ($disableReservation)
-		{
-			return $result;
-		}
 
 		$rsProducts = CCatalogProduct::GetList(
 			array(),
 			array('ID' => $productId),
 			false,
 			false,
-			array('ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO', 'NEGATIVE_AMOUNT_TRACE')
+			array('ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE', 'CAN_BUY_ZERO', 'TYPE')
 		);
 
 		if ($arProduct = $rsProducts->Fetch())
 		{
-			$fields["QUANTITY_TRACE"] = ($arProduct["QUANTITY_TRACE"] == "Y");
+			if ($arProduct['TYPE'] != Catalog\ProductTable::TYPE_SKU && $arProduct['TYPE'] != Catalog\ProductTable::TYPE_EMPTY_SKU)
+			{
+				$fields["QUANTITY_TRACE"] = ($arProduct["QUANTITY_TRACE"] == "Y");
+			}
 		}
 
 		if (!empty($fields))
@@ -1944,11 +1908,8 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		if (isset($arParams["SITE_ID"]) && strlen($arParams["SITE_ID"]) > 0)
 			$arFilter["+SITE_ID"] = $arParams["SITE_ID"];
 
-
-		$arStoreID = array();
-
 		$proxyStoresCountKey = md5(join('|', $arFilter));
-		if (!$arStoreID = static::getHitCache('CATALOG_STORE', $proxyStoresCountKey))
+		if (!$arStoreID = static::getHitCache(self::CACHE_STORE, $proxyStoresCountKey))
 		{
 
 			$dbStoreRes = CCatalogStore::GetList(
@@ -1962,7 +1923,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			while ($arStoreRes = $dbStoreRes->GetNext())
 				$arStoreID[] = $arStoreRes["ID"];
 
-			static::setHitCache('CATALOG_STORE', $proxyStoresCountKey, $arStoreID);
+			static::setHitCache(self::CACHE_STORE, $proxyStoresCountKey, $arStoreID);
 		}
 
 
@@ -1977,9 +1938,6 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		if ($strUseStoreControl == "N")
 			return false;
 
-		$arResult = array();
-		$arStoreID = array();
-
 		if (intval($arParams["PRODUCT_ID"] < 0))
 			return false;
 
@@ -1991,7 +1949,7 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 		$proxyStoresCountKey = md5(join('|', $arFilter));
 
-		if (!$arStoreID = static::getHitCache('CATALOG_STORE', $proxyStoresCountKey))
+		if (!$arStoreID = static::getHitCache(self::CACHE_STORE, $proxyStoresCountKey))
 		{
 
 			$dbStoreRes = CCatalogStore::GetList(
@@ -2004,10 +1962,13 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			while ($arStoreRes = $dbStoreRes->Fetch())
 				$arStoreID[] = $arStoreRes["ID"];
 
-			static::setHitCache('CATALOG_STORE', $proxyStoresCountKey, $arStoreID);
+			static::setHitCache(self::CACHE_STORE, $proxyStoresCountKey, $arStoreID);
 		}
 
-		if (!$arResult = static::getHitCache('CATALOG_STORE_PRODUCT', $arParams["PRODUCT_ID"]))
+		if (!is_array($arStoreID))
+			$arStoreID = array();
+
+		if (!$arResult = static::getHitCache(self::CACHE_STORE_PRODUCT, $arParams["PRODUCT_ID"]))
 		{
 			$dbRes = CCatalogStoreProduct::GetList(
 				array(),
@@ -2032,11 +1993,10 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 			if (!empty($arResult) && is_array($arResult))
 			{
-				static::setHitCache('CATALOG_STORE_PRODUCT', $arParams["PRODUCT_ID"], $arResult);
+				static::setHitCache(self::CACHE_STORE_PRODUCT, $arParams["PRODUCT_ID"], $arResult);
 			}
 
 		}
-
 
 		return $arResult;
 	}
@@ -2079,14 +2039,8 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			}
 		}
 
-		if (!empty($arProduct) && is_array($arProduct))
-		{
-			if ($arProduct["IBLOCK_ID"] > 0)
-				$arProduct["EDIT_PAGE_URL"] = CIBlock::GetAdminElementEditLink($arProduct["IBLOCK_ID"], $productID);
-		}
-
 		return array(
-			"#PRODUCT_ID#"   => $arProduct["ID"],
+			"#PRODUCT_ID#" => $arProduct["ID"],
 			"#PRODUCT_NAME#" => $arProduct["NAME"],
 		);
 	}
@@ -2301,6 +2255,8 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		$productInfo['ID'] = $productID;
 		$productInfo['ELEMENT_IBLOCK_ID'] = $iblockID;
 		$productInfo['IBLOCK_ID'] = $iblockID;
+		if (isset($productInfo['CAN_BUY_ZERO']))
+			$productInfo['NEGATIVE_AMOUNT_TRACE'] = $productInfo['CAN_BUY_ZERO'];
 		foreach (GetModuleEvents('catalog', 'OnProductQuantityTrace', true) as $arEvent)
 			ExecuteModuleEventEx($arEvent, array($productID, $productInfo));
 	}
@@ -2361,11 +2317,11 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 
 			$iblockRights = null;
 
-			if (!$iblockRights = static::getHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID']))
+			if (!$iblockRights = static::getHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID']))
 			{
 				if ($iblockRights = CIBlock::GetArrayByID($arProduct['IBLOCK_ID'], 'RIGHTS_MODE'))
 				{
-					static::setHitCache('IBLOCK_RIGHT', $arProduct['IBLOCK_ID'], $iblockRights);
+					static::setHitCache(self::CACHE_IBLOCK_RIGHTS_MODE, $arProduct['IBLOCK_ID'], $iblockRights);
 				}
 			}
 
@@ -2373,11 +2329,11 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			{
 				$proxyUserPermissionKey = $productId."|".$userId;
 
-				if (!$arUserRights = static::getHitCache('USER_RIGHT', $proxyUserPermissionKey))
+				if (!$arUserRights = static::getHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey))
 				{
 					if ($arUserRights = CIBlockElementRights::GetUserOperations($productId, $userId))
 					{
-						static::setHitCache('USER_RIGHT', $proxyUserPermissionKey, $arUserRights);
+						static::setHitCache(self::CACHE_USER_RIGHTS, $proxyUserPermissionKey, $arUserRights);
 					}
 				}
 
@@ -2419,12 +2375,16 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 			array(
 				'ID',
 				'QUANTITY',
+				'TYPE'
 			)
 		);
 
 		if ($arCatalogProduct = $rsProducts->Fetch())
 		{
-			return $arCatalogProduct['QUANTITY'];
+			if ($arCatalogProduct['TYPE'] != Catalog\ProductTable::TYPE_SKU && $arCatalogProduct['TYPE'] != Catalog\ProductTable::TYPE_EMPTY_SKU)
+			{
+				return $arCatalogProduct['QUANTITY'];
+			}
 		}
 
 		return false;
@@ -2463,15 +2423,11 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 	{
 		/** @var \Bitrix\Sale\Basket $basket */
 		if (!$basket = $basketItem->getCollection())
-		{
 			return false;
-		}
 
 		/** @var \Bitrix\Sale\Order $order */
 		if (!$order = $basket->getOrder())
-		{
 			return false;
-		}
 
 		return \Bitrix\Sale\Provider::getReservationPoolItem($order->getInternalId(), $basketItem);
 	}
@@ -2484,88 +2440,114 @@ class CCatalogProductProvider implements IBXSaleProductProvider
 		if (!isset(self::$priceTitleCache[$priceType]))
 		{
 			self::$priceTitleCache[$priceType] = '';
-			$groupIterator = Catalog\GroupTable::getList(array(
+			$group = Catalog\GroupTable::getList(array(
 				'select' => array('ID', 'NAME', 'NAME_LANG' => 'CURRENT_LANG.NAME'),
 				'filter' => array('=ID' => $priceType)
-			));
-			$group = $groupIterator->fetch();
+			))->fetch();
 			if (!empty($group))
 			{
 				$group['NAME_LANG'] = (string)$group['NAME_LANG'];
 				self::$priceTitleCache[$priceType] = ($group['NAME_LANG'] != '' ? $group['NAME_LANG'] : $group['NAME']);
 			}
-			unset($group, $groupIterator);
+			unset($group);
 		}
 		return self::$priceTitleCache[$priceType];
 	}
 
 	/**
-	 * @internal
-	 * @param $type
-	 * @param $key
+	 * Check exist and activity parent product.
+	 *
+	 * @param int $productId			Product Id.
+	 * @param int $iblockId				Iblock Id.
 	 * @return bool
+	 */
+	protected static function checkParentActivity($productId, $iblockId = 0)
+	{
+		$cacheKey = $productId.'|'.$iblockId;
+		if (!static::isExistsHitCache(self::CACHE_PARENT_PRODUCT_ACTIVE, $cacheKey))
+		{
+			$result = 'Y';
+			$parent = CCatalogSku::GetProductInfo($productId, $iblockId);
+			if (!empty($parent))
+			{
+				$itemList = CIBlockElement::GetList(
+					array(),
+					array(
+						'ID' => $parent['ID'],
+						'IBLOCK_ID' => $parent['IBLOCK_ID'],
+						'ACTIVE' => 'Y',
+						'ACTIVE_DATE' => 'Y',
+						'CHECK_PERMISSIONS' => 'N'
+					),
+					false,
+					false,
+					array('ID')
+				);
+				$item = $itemList->Fetch();
+				unset($itemList);
+				if (empty($item))
+					$result = 'N';
+			}
+			static::setHitCache(self::CACHE_PARENT_PRODUCT_ACTIVE, $cacheKey, $result);
+			unset($result);
+		}
+		return (static::getHitCache(self::CACHE_PARENT_PRODUCT_ACTIVE, $cacheKey) != 'N');
+	}
+
+	/**
+	 * @internal
+	 * @param string $type
+	 * @param string $key
+	 * @return false|mixed
 	 */
 	public static function getHitCache($type, $key)
 	{
 		if (!empty(self::$hitCache[$type]) && !empty(self::$hitCache[$type][$key]))
-		{
 			return self::$hitCache[$type][$key];
-		}
 
 		return false;
 	}
 
 	/**
 	 * @internal
-	 * @param $type
-	 * @param $key
+	 * @param string $type
+	 * @param string $key
 	 * @return bool
 	 */
 	public static function isExistsHitCache($type, $key)
 	{
-		if (!empty(self::$hitCache[$type]) && !empty(self::$hitCache[$type][$key]))
-		{
-			return true;
-		}
-
-		return false;
+		return (!empty(self::$hitCache[$type]) && !empty(self::$hitCache[$type][$key]));
 	}
 
 	/**
 	 * @internal
-	 * @param $type
-	 * @param $key
-	 * @param $value
+	 * @param string $type
+	 * @param string $key
+	 * @param mixed $value
+	 * @return void
 	 */
 	public static function setHitCache($type, $key, $value)
 	{
 		if (empty(self::$hitCache[$type]))
-		{
 			self::$hitCache[$type] = array();
-		}
 
 		if (empty(self::$hitCache[$type][$key]))
-		{
 			self::$hitCache[$type][$key] = array();
-		}
 
 		self::$hitCache[$type][$key] = $value;
 	}
 
 	/**
 	 * @internal
-	 * @param null $type
+	 * @param string|null $type
+	 * @return void
 	 */
-	public  static function clearHitCache($type = null)
+	public static function clearHitCache($type = null)
 	{
 		if ($type === null)
-		{
 			unset(self::$hitCache);
-		}
 
 		if (!empty(self::$hitCache[$type]))
-		{
 			unset(self::$hitCache[$type]);
-		}
 	}
 }

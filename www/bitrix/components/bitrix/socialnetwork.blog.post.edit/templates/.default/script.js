@@ -53,7 +53,10 @@ window.SBPETabs.prototype = {
 			btnText.innerHTML = name;
 			btn.className = "feed-add-post-form-link feed-add-post-form-link-more feed-add-post-form-link-active feed-add-post-form-" + id + "-link";
 
-			window.SBPETabs.changePostFormTab(id);
+			if (id != 'lists')
+			{
+				window.SBPETabs.changePostFormTab(id);
+			}
 
 			if (BX.type.isNotEmptyString(onclick))
 			{
@@ -80,7 +83,7 @@ window.SBPETabs.prototype = {
 				this.menuItems.push({
 					tabId : id,
 					text : arTabs[i].getAttribute("data-name"),
-					className : "feed-add-post-form-" + id,
+					className : "feed-add-post-form-" + id + " feed-add-post-form-" + id + "-more",
 					onclick : this._createOnclick(id, arTabs[i].getAttribute("data-name"), arTabs[i].getAttribute("data-onclick"))
 				});
 
@@ -376,7 +379,7 @@ window.SBPETabs.prototype = {
 
 	getLists : function()
 	{
-		var tabContainer = BX('feed-add-post-form-tab-lists'),
+		var tabContainer = (BX('feed-add-post-form-tab-lists') && BX('feed-add-post-form-tab-lists').style.display != 'none' ? BX('feed-add-post-form-tab-lists') : BX('feed-add-post-form-link-more')),
 			tabs = BX.findChildren(tabContainer, {'tag':'span', 'className': 'feed-add-post-form-link-lists'}, true),
 			tabsDefault = BX.findChildren(tabContainer, {'tag':'span', 'className': 'feed-add-post-form-link-lists-default'}, true),
 			menuItemsListsDefault = [],
@@ -436,6 +439,7 @@ window.SBPETabs.prototype = {
 
 						tabs = BX.findChildren(tabContainer, {'tag':'span', 'className': 'feed-add-post-form-link-lists'}, true);
 						menuItemsLists = getMenuItems(tabs, createOnclickLists);
+
 						if(!tabsDefault.length)
 						{
 							for(var k in result.permissions)
@@ -520,7 +524,7 @@ window.SBPETabs.prototype = {
 				menuItemsLists.push({
 					tabId : id,
 					text : BX.util.htmlspecialchars(tabs[i].getAttribute("data-name")),
-					className : "feed-add-post-form-" + id,
+					className : "feed-add-post-form-" + id + "feed-add-post-form-" + id + "-item",
 					onclick : createOnclickLists(
 						id,
 						[
@@ -562,9 +566,10 @@ window.SBPETabs.prototype = {
 
 	showMoreMenuLists : function(menuItemsLists)
 	{
+		var menuBindElement = (BX('feed-add-post-form-tab-lists').style.display != 'none' ? BX('feed-add-post-form-tab-lists') : BX('feed-add-post-form-link-more'));
 		var menu = BX.PopupMenu.create(
 			"lists",
-			BX("feed-add-post-form-tab-lists"),
+			menuBindElement,
 			menuItemsLists,
 			{
 				closeByEsc : true,
@@ -573,10 +578,12 @@ window.SBPETabs.prototype = {
 				angle: true
 			}
 		);
+
 		var spanIcon = BX.findChildren(BX('popup-window-content-menu-popup-lists'), {'tag':'span', 'className': 'menu-popup-item-icon'}, true),
-			spanDataPicture = BX.findChildren(BX('feed-add-post-form-tab-lists'), {'tag':'span', 'className': 'feed-add-post-form-link-lists'}, true),
-			spanDataPictureDefault = BX.findChildren(BX('feed-add-post-form-tab-lists'), {'tag':'span', 'className': 'feed-add-post-form-link-lists-default'}, true);
+			spanDataPicture = BX.findChildren(menuBindElement, {'tag':'span', 'className': 'feed-add-post-form-link-lists'}, true),
+			spanDataPictureDefault = BX.findChildren(menuBindElement, {'tag':'span', 'className': 'feed-add-post-form-link-lists-default'}, true);
 		spanDataPicture = spanDataPicture.concat(spanDataPictureDefault);
+
 		for(var i = 0; i < spanIcon.length; i++)
 		{
 			if(spanDataPicture[i].getAttribute('data-picture-small'))
@@ -584,6 +591,7 @@ window.SBPETabs.prototype = {
 				spanIcon[i].innerHTML = spanDataPicture[i].getAttribute('data-picture-small');
 			}
 		}
+
 		menu.popupWindow.show();
 	},
 
@@ -1000,6 +1008,12 @@ BX.SocnetBlogPostInit = function(formID, params)
 		else
 			formParams[formID]['showTitle'] = bShowTitleCopy;
 	};
+
+	window["setBlogPostFormSubmitted"] = function(value)
+	{
+		formParams[formID]["submitted"] = value;
+	};
+
 	window["submitBlogPostForm"] = function(editor, value)
 	{
 		if (typeof editor != "object")
@@ -1007,6 +1021,7 @@ BX.SocnetBlogPostInit = function(formID, params)
 			value = editor;
 			editor = LHEPostForm.getEditor(formParams[formID]['editorID']);
 		}
+
 		if (editor && editor.id == formParams[formID]['editorID'])
 		{
 			if(formParams[formID]["submitted"])

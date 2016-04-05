@@ -2338,6 +2338,7 @@ function getProductDataToFillBasket($productId, $quantity, $userId, $LID, $userC
 		}
 		else
 		{
+			$column = strtoupper($column);
 			$propertyCode = substr($column, 9);
 			if ($propertyCode == '')
 			{
@@ -2391,7 +2392,13 @@ function getProductDataToFillBasket($productId, $quantity, $userId, $LID, $userC
 				if (strncmp($key, 'PROPERTY_', 9) == 0 && substr($key, -6) == "_VALUE")
 				{
 					$columnCode = str_replace("_VALUE", "", $key);
+					if (!isset($arPropertyInfo[$columnCode]))
+						continue;
+					$keyResult = 'PROPERTY_'.$arPropertyInfo[$columnCode]['CODE'].'_VALUE';
 					$arElement[$key] = getIblockPropInfo($value, $arPropertyInfo[$columnCode], array("WIDTH" => 90, "HEIGHT" => 90));
+					if ($keyResult != $key)
+						$arElement[$keyResult] = $arElement[$key];
+					unset($keyResult);
 				}
 			}
 		}

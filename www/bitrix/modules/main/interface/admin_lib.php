@@ -17,11 +17,11 @@ class CAdminPage
 	var $aModules = array();
 	var $bInit = false;
 
-	function CAdminPage()
+	public function CAdminPage()
 	{
 	}
 
-	function Init()
+	public function Init()
 	{
 		if($this->bInit)
 			return;
@@ -32,13 +32,13 @@ class CAdminPage
 			$this->aModules[] = $module["ID"];
 	}
 
-	function ShowTitle()
+	public function ShowTitle()
 	{
 		global $APPLICATION;
 		$APPLICATION->AddBufferContent(array(&$this, "GetTitle"));
 	}
 
-	function ShowJsTitle()
+	public function ShowJsTitle()
 	{
 		global $APPLICATION;
 		$APPLICATION->AddBufferContent(array(&$this, "GetJsTitle"));
@@ -56,7 +56,7 @@ class CAdminPage
 		return CUtil::JSEscape($APPLICATION->GetTitle(false, true));
 	}
 
-	function ShowPopupCSS()
+	public function ShowPopupCSS()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -79,7 +79,7 @@ class CAdminPage
 		return $s;
 	}
 
-	function ShowCSS()
+	public function ShowCSS()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -106,7 +106,7 @@ class CAdminPage
 		return $s;
 	}
 
-	function GetModulesCSS($module_id='')
+	public function GetModulesCSS($module_id='')
 	{
 		global $CACHE_MANAGER;
 		$rel_theme_path = ADMIN_THEMES_PATH."/".ADMIN_THEME_ID."/";
@@ -163,7 +163,7 @@ class CAdminPage
 			return array();
 	}
 
-	function ShowScript()
+	public function ShowScript()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -213,7 +213,7 @@ var phpVars = {
 		return $s;
 	}
 
-	function ShowSectionIndex($menu_id, $module_id=false)
+	public function ShowSectionIndex($menu_id, $module_id=false)
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -292,6 +292,90 @@ var phpVars = {
 			}
 		}
 		return $res;
+	}
+
+	public function getSSOSwitcherButton()
+	{
+		global $CACHE_MANAGER, $USER;
+
+		if($CACHE_MANAGER->Read(86400, "sso_portal_list_".$USER->GetID()))
+		{
+			$queryResult = $CACHE_MANAGER->Get("sso_portal_list_".$USER->GetID());
+		}
+		else
+		{
+			$queryResult = false;
+			if(\Bitrix\Main\Loader::includeModule('socialservices'))
+			{
+				$query = \CBitrix24NetTransport::init();
+				if ($query)
+				{
+					$queryResult = $query->call('admin.profile.list', array());
+				}
+
+				$CACHE_MANAGER->Set("sso_portal_list_".$USER->GetID(), $queryResult);
+			}
+		}
+
+		if(is_array($queryResult))
+		{
+			$ssoMenu = array();
+
+			if(isset($queryResult['error']))
+			{
+				if(
+					$queryResult['error'] == 'insufficient_scope'
+					&& \Bitrix\Main\Loader::includeModule('socialservices')
+					&& class_exists("Bitrix\\Socialservices\\Network")
+					&& method_exists("Bitrix\\Socialservices\\Network", "getAuthUrl")
+				)
+				{
+					$n = new \Bitrix\Socialservices\Network();
+					$ssoMenu[] =  array(
+						"TEXT" => \Bitrix\Main\Localization\Loc::getMessage("admin_lib_sso_auth"),
+						"TITLE" => \Bitrix\Main\Localization\Loc::getMessage("admin_lib_sso_auth_title"),
+						"ONCLICK"=>"BX.util.popup('".CUtil::JSEscape($n->getAuthUrl("popup", array("admin")))."', 800, 600);",
+					);
+				}
+			}
+			elseif(isset($queryResult['result']))
+			{
+				$currentHost = \Bitrix\Main\Context::getCurrent()->getRequest()->getHttpHost();
+
+				foreach($queryResult['result']['admin'] as $site)
+				{
+					if($site["TITLE"] != $currentHost)
+					{
+						$ssoMenu[] =  array(
+							"TEXT" => $site["TITLE"],
+							"TITLE"=> "Go to ". $site["TITLE"],
+							"LINK"=>$site["URL"]."bitrix/admin/",
+						);
+					}
+				}
+
+				if(
+					count($ssoMenu) > 0
+					&& count($queryResult['result']["portal"]) > 0
+				)
+				{
+					$ssoMenu[] = array("SEPARATOR" => true);
+				}
+
+				foreach($queryResult['result']['portal'] as $site)
+				{
+					$ssoMenu[] =  array(
+						"TEXT" => $site["TITLE"],
+						"TITLE"=> "Go to ". $site["TITLE"],
+						"LINK"=>$site["URL"],
+					);
+				}
+			}
+
+			return $ssoMenu;
+		}
+
+		return false;
 	}
 }
 
@@ -1051,7 +1135,7 @@ window.'.$this->name.' = new PopupMenu("'.$this->id.'"'.
 		return false;
 	}
 
-	function PhpToJavaScript($items)
+	public static function PhpToJavaScript($items)
 	{
 		$sMenuUrl = "[";
 		if(is_array($items))
@@ -1209,7 +1293,7 @@ class CAdminFilter
 
 		$this->arOptFlt["presetsDeletedJS"] = $presetsDeletedJS;
 
-		$dbRes = $this->GetList(array(), array("USER_ID" => $uid, "FILTER_ID" => $this->id), true);
+		$dbRes = self::GetList(array(), array("USER_ID" => $uid, "FILTER_ID" => $this->id), true);
 		while($arFilter = $dbRes->Fetch())
 		{
 			if(!is_null($arFilter["LANGUAGE_ID"]) && $arFilter["LANGUAGE_ID"] != LANG )
@@ -1512,7 +1596,7 @@ class CAdminFilter
 		return CAdminFilter::Add($arFields);
 	}
 
-	public function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -1533,14 +1617,14 @@ class CAdminFilter
 		return $ID;
 	}
 
-	public function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
 		return ($DB->Query("DELETE FROM b_filters WHERE ID='".intval($ID)."'", false, "File: ".__FILE__."<br>Line: ".__LINE__));
 	}
 
-	public function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		$ID = intval($ID);
@@ -1577,7 +1661,7 @@ class CAdminFilter
 		return false;
 	}
 
-	public function GetList($aSort=array(), $arFilter=Array(), $getCommon=true)
+	public static function GetList($aSort=array(), $arFilter=Array(), $getCommon=true)
 	{
 		global $DB;
 
@@ -1809,57 +1893,56 @@ class CAdminFilter
 
 		echo '
 <script type="text/javascript">
-		var '.$this->id.' = {};
-		BX.ready(function(){
-			'.$this->id.' = new BX.AdminFilter("'.$this->id.'", ['.$sRowIds.']);
-			'.$this->id.'.state.init = true;
-			'.$this->id.'.state.folded = '.($this->arOptFlt["styleFolded"] == "Y" ? "true" : "false").';
-			'.$this->id.'.InitFilter({'.$sVisRowsIds.'});
-			'.$this->id.'.oOptions = '.CUtil::PhpToJsObject($this->arItems).';
-			'.$this->id.'.popupItems = '.CUtil::PhpToJsObject($this->popup).';
-			'.$this->id.'.InitFirst();
-			'.$this->id.'.url = "'.CUtil::AddSlashes($this->url).'";
-			'.$this->id.'.table_id = "'.CUtil::AddSlashes($this->tableId).'";
-			'.$this->id.'.presetsDeleted = ['.$this->arOptFlt["presetsDeletedJS"].'];';
+	var '.$this->id.' = {};
+	BX.ready(function(){
+		'.$this->id.' = new BX.AdminFilter("'.$this->id.'", ['.$sRowIds.']);
+		'.$this->id.'.state.init = true;
+		'.$this->id.'.state.folded = '.($this->arOptFlt["styleFolded"] == "Y" ? "true" : "false").';
+		'.$this->id.'.InitFilter({'.$sVisRowsIds.'});
+		'.$this->id.'.oOptions = '.CUtil::PhpToJsObject($this->arItems).';
+		'.$this->id.'.popupItems = '.CUtil::PhpToJsObject($this->popup).';
+		'.$this->id.'.InitFirst();
+		'.$this->id.'.url = "'.CUtil::JSEscape($this->url).'";
+		'.$this->id.'.table_id = "'.CUtil::JSEscape($this->tableId).'";
+		'.$this->id.'.presetsDeleted = ['.$this->arOptFlt["presetsDeletedJS"].'];';
 
-			if($filteredTab != null || $openedTabUri != false)
-			{
-				$tabToInit = ($openedTabUri ? $openedTabUri : $filteredTab);
-
-				echo '
-			'.$this->id.'.InitFilteredTab("'.CUtil::JSEscape(htmlspecialcharsbx($tabToInit)).'");';
-			}
-
-			if($openedTabSes != null || $openedTabUri != false)
-				echo '
-			var openedFTab = '.$this->id.'.InitOpenedTab("'.CUtil::JSEscape(htmlspecialcharsbx($openedTabUri)).'", "'.CUtil::JSEscape(htmlspecialcharsbx($openedTabSes)).'");';
+		if($filteredTab != null || $openedTabUri != false)
+		{
+			$tabToInit = ($openedTabUri ? $openedTabUri : $filteredTab);
 
 			echo '
-			'.$this->id.'.state.init = false;
-			BX("adm-filter-tab-wrap-'.$this->id.'").style.display = "block";';
+		'.$this->id.'.InitFilteredTab("'.CUtil::JSEscape($tabToInit).'");';
+		}
 
-			//making filter tabs draggable
-			if($this->url)
-			{
-				$registerUrl = CHTTP::urlDeleteParams($this->url, array("adm_filter_applied", "adm_filter_preset"));
-
-				foreach($this->arItems as $filter_id => $filter)
-				{
-					$arParamsAdd = array("adm_filter_applied"=>$filter_id);
-
-					if(isset($filter["PRESET_ID"]))
-						$arParamsAdd["adm_filter_preset"] = $filter["PRESET_ID"];
-
-					$filterUrl = CHTTP::urlAddParams($registerUrl, $arParamsAdd, array("encode","skip_empty"));
-
-					echo "
-					BX.adminMenu.registerItem('adm-filter-tab-".$this->id.'-'.$filter_id."', {URL:'".$filterUrl."', TITLE: true});";
-				}
-			}
-
+		if($openedTabSes != null || $openedTabUri != false)
 			echo '
+		var openedFTab = '.$this->id.'.InitOpenedTab("'.CUtil::JSEscape($openedTabUri).'", "'.CUtil::JSEscape($openedTabSes).'");';
+
+		echo '
+		'.$this->id.'.state.init = false;
+		BX("adm-filter-tab-wrap-'.$this->id.'").style.display = "block";';
+
+		//making filter tabs draggable
+		if($this->url)
+		{
+			$registerUrl = CHTTP::urlDeleteParams($this->url, array("adm_filter_applied", "adm_filter_preset"));
+
+			foreach($this->arItems as $filter_id => $filter)
+			{
+				$arParamsAdd = array("adm_filter_applied"=>$filter_id);
+
+				if(isset($filter["PRESET_ID"]))
+					$arParamsAdd["adm_filter_preset"] = $filter["PRESET_ID"];
+
+				$filterUrl = CHTTP::urlAddParams($registerUrl, $arParamsAdd, array("encode","skip_empty"));
+
+				echo "
+		BX.adminMenu.registerItem('adm-filter-tab-".$this->id.'-'.$filter_id."', {URL:'".$filterUrl."', TITLE: true});";
 			}
-		);
+		}
+
+		echo '
+	});
 </script>';
 
 		$hkInst = CHotKeys::getInstance();
@@ -1943,7 +2026,7 @@ class CAdminFilter
 		<?
 	}
 
-	public function UnEscape($aFilter)
+	public static function UnEscape($aFilter)
 	{
 		if(defined("BX_UTF"))
 			return;
@@ -2285,13 +2368,13 @@ class CAdminResult extends CDBResult
 	var $nInitialSize;
 	var $table_id;
 
-	function CAdminResult($res, $table_id)
+	public function CAdminResult($res, $table_id)
 	{
 		parent::CDBResult($res);
 		$this->table_id = $table_id;
 	}
 
-	function NavStart($nPageSize=20, $bShowAll=true, $iNumPage=false)
+	public function NavStart($nPageSize=20, $bShowAll=true, $iNumPage=false)
 	{
 		$nSize = CAdminResult::GetNavSize($this->table_id, $nPageSize);
 
@@ -2348,7 +2431,7 @@ class CAdminResult extends CDBResult
 		return $nSize;
 	}
 
-	function GetNavPrint($title, $show_allways=true, $StyleText="", $template_path=false, $arDeleteParam=false)
+	public function GetNavPrint($title, $show_allways=true, $StyleText="", $template_path=false, $arDeleteParam=false)
 	{
 		if($template_path === false)
 			$template_path = $_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/interface/navigation.php";
@@ -3002,14 +3085,14 @@ class CAdminList
 	 * @param string $table_id
 	 * @param CAdminSorting|bool $sort
 	 */
-	function CAdminList($table_id, $sort = false)
+	public function CAdminList($table_id, $sort = false)
 	{
 		$this->table_id = $table_id;
 		$this->sort = $sort;
 	}
 
 	//id, name, content, sort, default
-	function AddHeaders($aParams)
+	public function AddHeaders($aParams)
 	{
 		if (isset($_REQUEST['showallcol']) && $_REQUEST['showallcol'])
 			$_SESSION['SHALL'] = ($_REQUEST['showallcol'] == 'Y');
@@ -3073,7 +3156,7 @@ class CAdminList
 		die();
 	}
 
-	function AddVisibleHeaderColumn($id)
+	public function AddVisibleHeaderColumn($id)
 	{
 		if (isset($this->aHeaders[$id]) && !isset($this->aVisibleHeaders[$id]))
 		{
@@ -3082,12 +3165,12 @@ class CAdminList
 		}
 	}
 
-	function GetVisibleHeaderColumns()
+	public function GetVisibleHeaderColumns()
 	{
 		return $this->arVisibleColumns;
 	}
 
-	function AddAdminContextMenu($aContext=array(), $bShowExcel=true, $bShowSettings=true)
+	public function AddAdminContextMenu($aContext=array(), $bShowExcel=true, $bShowSettings=true)
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -3123,7 +3206,7 @@ class CAdminList
 			$this->context = new CAdminContextMenuList($aContext, $aAdditionalMenu);
 	}
 
-	function IsUpdated($ID)
+	public function IsUpdated($ID)
 	{
 		$f = $_REQUEST['FIELDS'][$ID];
 		$f_old = $_REQUEST['FIELDS_OLD'][$ID];
@@ -3164,7 +3247,7 @@ class CAdminList
 		return false;
 	}
 
-	function EditAction()
+	public function EditAction()
 	{
 		if($_SERVER['REQUEST_METHOD']=='POST' && isset($_REQUEST['save'])  && check_bitrix_sessid())
 		{
@@ -3194,7 +3277,7 @@ class CAdminList
 		return false;
 	}
 
-	function GroupAction()
+	public function GroupAction()
 	{
 		//AddMessage2Log("GroupAction");
 		if(!empty($_REQUEST['action_button']))
@@ -3233,7 +3316,7 @@ class CAdminList
 		return $arID;
 	}
 
-	function ActionRedirect($url)
+	public function ActionRedirect($url)
 	{
 		if(strpos($url, "lang=")===false)
 		{
@@ -3246,7 +3329,7 @@ class CAdminList
 		return "BX.adminPanel.Redirect([], '".CUtil::AddSlashes($url)."', event);";
 	}
 
-	function ActionAjaxReload($url)
+	public function ActionAjaxReload($url)
 	{
 		if(strpos($url, "lang=")===false)
 		{
@@ -3259,7 +3342,7 @@ class CAdminList
 		return $this->table_id.".GetAdminList('".CUtil::AddSlashes($url)."');";
 	}
 
-	function ActionPost($url = false, $action_name = false, $action_value = 'Y')
+	public function ActionPost($url = false, $action_name = false, $action_value = 'Y')
 	{
 		$res = '';
 		if($url)
@@ -3285,14 +3368,14 @@ class CAdminList
 			return $res.'; BX.submit(document.forms.form_'.$this->table_id.');';
 	}
 
-	function ActionDoGroup($id, $action_id, $add_params='')
+	public function ActionDoGroup($id, $action_id, $add_params='')
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
 		return $this->table_id.".GetAdminList('".CUtil::AddSlashes($APPLICATION->GetCurPage())."?ID=".CUtil::AddSlashes($id)."&action_button=".CUtil::AddSlashes($action_id)."&lang=".LANGUAGE_ID."&".bitrix_sessid_get().($add_params<>""?"&".CUtil::AddSlashes($add_params):"")."');";
 	}
 
-	function InitFilter($arFilterFields)
+	public function InitFilter($arFilterFields)
 	{
 		$sTableID = $this->table_id;
 		global $del_filter, $set_filter, $save_filter;
@@ -3330,14 +3413,14 @@ class CAdminList
 		return $this->filter;
 	}
 
-	function IsDefaultFilter()
+	public function IsDefaultFilter()
 	{
 		global $set_default;
 		$sTableID = $this->table_id;
 		return $set_default=="Y" && (!isset($_SESSION["SESS_ADMIN"][$sTableID]) || empty($_SESSION["SESS_ADMIN"][$sTableID]));
 	}
 
-	function &AddRow($id = false, $arRes = Array(), $link = false, $title = false)
+	public function &AddRow($id = false, $arRes = Array(), $link = false, $title = false)
 	{
 		$row = new CAdminListRow($this->aHeaders, $this->table_id);
 		$row->id = $id;
@@ -3358,17 +3441,49 @@ class CAdminList
 		return $row;
 	}
 
-	function AddFooter($aFooter)
+	public function AddFooter($aFooter)
 	{
 		$this->aFooter = $aFooter;
 	}
 
-	function NavText($sNavText)
+	public function NavText($sNavText)
 	{
 		$this->sNavText = $sNavText;
 	}
 
-	function Display()
+	/**
+	 * @param \Bitrix\Main\UI\PageNavigation $nav
+	 * @param string $title
+	 * @param bool $showAllways
+	 * @param bool $post
+	 */
+	public function setNavigation(\Bitrix\Main\UI\PageNavigation $nav, $title, $showAllways = true, $post = false)
+	{
+		global $APPLICATION;
+
+		ob_start();
+
+		$APPLICATION->IncludeComponent(
+			"bitrix:main.pagenavigation",
+			"admin",
+			array(
+				"NAV_OBJECT" => $nav,
+				"TITLE" => $title,
+				"PAGE_WINDOW" => 10,
+				"SHOW_ALWAYS" => $showAllways,
+				"POST" => $post,
+				"TABLE_ID" => $this->table_id,
+			),
+			false,
+			array(
+				"HIDE_ICONS" => "Y",
+			)
+		);
+
+		$this->NavText(ob_get_clean());
+	}
+
+	public function Display()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -3503,7 +3618,7 @@ class CAdminList
 		echo $this->sNavText;
 	}
 
-	function DisplayExcel()
+	public function DisplayExcel()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -3575,7 +3690,7 @@ class CAdminList
 					echo ' align="'.$header_props['align'].'"';
 				if ($header_props['valign'])
 					echo ' valign="'.$header_props['valign'].'"';
-				if (preg_match("/^([1-9][0-9]*|[1-9][0-9]*[.,][0-9]+)\$/", $val))
+				if ($header_props['align'] === "right" && preg_match("/^([1-9][0-9]*|[1-9][0-9]*[.,][0-9]+)\$/", $val))
 					echo ' class="number0"';
 				echo '>';
 				echo ($val<>""? $val: '&nbsp;');
@@ -3589,7 +3704,7 @@ class CAdminList
 	}
 
 
-	function AddGroupActionTable($arActions, $arParams=array())
+	public function AddGroupActionTable($arActions, $arParams=array())
 	{
 		//array("action"=>"text", ...)
 		//OR array(array("action" => "custom JS", "value" => "action", "type" => "button", "title" => "", "name" => ""), ...)
@@ -3598,7 +3713,7 @@ class CAdminList
 		$this->arActionsParams = $arParams;
 	}
 
-	function ShowActionTable()
+	public function ShowActionTable()
 	{
 		if(count($this->arActions)<=0 && !$this->bCanBeEdited)
 			return;
@@ -3703,7 +3818,7 @@ class CAdminList
 <?
 	}
 
-	function DisplayList($arParams = array())
+	public function DisplayList($arParams = array())
 	{
 		$menu = new CAdminPopup($this->table_id."_menu", $this->table_id."_menu");
 		$menu->Show();
@@ -3752,62 +3867,62 @@ BX.adminChain.addItems("<?=$tbl?>_navchain_div");
 		echo '</div>';
 	}
 
-	function AddUpdateError($strError, $id = false)
+	public function AddUpdateError($strError, $id = false)
 	{
 		$this->arUpdateErrors[] = Array($strError, $id);
 		$this->arUpdateErrorIDs[] = $id;
 	}
 
-	function AddGroupError($strError, $id = false)
+	public function AddGroupError($strError, $id = false)
 	{
 		$this->arGroupErrors[] = Array($strError, $id);
 		$this->arGroupErrorIDs[] = $id;
 	}
 
-	function AddActionSuccessMessage($strMessage)
+	public function AddActionSuccessMessage($strMessage)
 	{
 		$this->arActionSuccess[] = $strMessage;
 	}
 
-	function AddFilterError($strError)
+	public function AddFilterError($strError)
 	{
 		$this->arFilterErrors[] = $strError;
 	}
 
-	function BeginPrologContent()
+	public function BeginPrologContent()
 	{
 		ob_start();
 	}
 
-	function EndPrologContent()
+	public function EndPrologContent()
 	{
 		$this->sPrologContent .= ob_get_contents();
 		ob_end_clean();
 	}
 
-	function BeginEpilogContent()
+	public function BeginEpilogContent()
 	{
 		ob_start();
 	}
 
-	function EndEpilogContent()
+	public function EndEpilogContent()
 	{
 		$this->sEpilogContent = ob_get_contents();
 		ob_end_clean();
 	}
 
-	function BeginCustomContent()
+	public function BeginCustomContent()
 	{
 		ob_start();
 	}
 
-	function EndCustomContent()
+	public function EndCustomContent()
 	{
 		$this->sContent = ob_get_contents();
 		ob_end_clean();
 	}
 
-	function CreateChain()
+	public function CreateChain()
 	{
 		return new CAdminChain($this->table_id."_navchain_div", false);
 	}
@@ -3815,14 +3930,14 @@ BX.adminChain.addItems("<?=$tbl?>_navchain_div");
 	/**
 	 * @param CAdminChain $chain
 	 */
-	function ShowChain($chain)
+	public function ShowChain($chain)
 	{
 		$this->BeginPrologContent();
 		$chain->Show();
 		$this->EndPrologContent();
 	}
 
-	function CheckListMode()
+	public function CheckListMode()
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -4554,7 +4669,7 @@ class CAdminCalendar
 	const PERIOD_AFTER = "after";
 	const PERIOD_INTERVAL = "interval";
 
-	private function InitPeriodList($arPeriodParams = array())
+	private static function InitPeriodList($arPeriodParams = array())
 	{
 		$arPeriod = array(
 			self::PERIOD_EMPTY => GetMessage("admin_lib_calend_no_period"),
@@ -4587,12 +4702,12 @@ class CAdminCalendar
 		return $arReturnPeriod;
 	}
 
-	public function ShowScript()
+	public static function ShowScript()
 	{
 		CJSCore::Init(array('date'));
 	}
 
-	public function Calendar($sFieldName, $sFromName="", $sToName="", $bTime=false)
+	public static function Calendar($sFieldName, $sFromName="", $sToName="", $bTime=false)
 	{
 		/** @global CMain $APPLICATION */
 		global $APPLICATION;
@@ -4610,7 +4725,7 @@ class CAdminCalendar
 		return $res;
 	}
 
-	public function CalendarDate($sFieldName, $sValue="", $size="10", $bTime=false)
+	public static function CalendarDate($sFieldName, $sValue="", $size="10", $bTime=false)
 	{
 		// component can't set 'size' param
 		return '
@@ -4633,7 +4748,7 @@ class CAdminCalendar
 	 * @param string $periodValue
 	 * @return string
 	 */
-	public function CalendarPeriodCustom($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size=10, $bTime=false, $arPeriod = false, $periodValue = '')
+	public static function CalendarPeriodCustom($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size=10, $bTime=false, $arPeriod = false, $periodValue = '')
 	{
 		$arPeriodList = self::InitPeriodList($arPeriod);
 
@@ -4650,7 +4765,7 @@ class CAdminCalendar
 	 * @param bool $bTime
 	 * @return string
 	 */
-	public function CalendarPeriod($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size=10, $bTime=false)
+	public static function CalendarPeriod($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size=10, $bTime=false)
 	{
 		$arPeriodList = self::InitPeriodList();
 
@@ -4669,7 +4784,7 @@ class CAdminCalendar
 	 * @param string $periodValue
 	 * @return string
 	 */
-	private function GetPeriodHtml($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size = 10, $bTime=false, $arPeriod, $periodValue = '')
+	private static function GetPeriodHtml($sFromName, $sToName, $sFromVal="", $sToVal="", $bSelectShow=false, $size = 10, $bTime=false, $arPeriod, $periodValue = '')
 	{
 		$size = (int)$size;
 
@@ -4743,7 +4858,7 @@ class CAdminCalendar
 
 class CAdminTheme
 {
-	function GetList()
+	public static function GetList()
 	{
 		/** @noinspection PhpUnusedLocalVariableInspection */
 		global $MESS;
@@ -4785,7 +4900,7 @@ class CAdminTheme
 		return $aThemes;
 	}
 
-	function GetCurrentTheme()
+	public static function GetCurrentTheme()
 	{
 		$aUserOpt = CUserOptions::GetOption("global", "settings");
 		if($aUserOpt["theme_id"] <> "")

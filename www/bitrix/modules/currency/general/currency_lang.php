@@ -191,7 +191,7 @@ class CAllCurrencyLang
 		return true;
 	}
 
-	public function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -208,7 +208,7 @@ class CAllCurrencyLang
 		return true;
 	}
 
-	public function Update($currency, $lang, $arFields)
+	public static function Update($currency, $lang, $arFields)
 	{
 		global $DB;
 
@@ -232,7 +232,7 @@ class CAllCurrencyLang
 		return true;
 	}
 
-	public function Delete($currency, $lang)
+	public static function Delete($currency, $lang)
 	{
 		global $DB;
 
@@ -249,7 +249,7 @@ class CAllCurrencyLang
 		return true;
 	}
 
-	public function GetByID($currency, $lang)
+	public static function GetByID($currency, $lang)
 	{
 		global $DB;
 
@@ -267,8 +267,9 @@ class CAllCurrencyLang
 		return false;
 	}
 
-	public function GetCurrencyFormat($currency, $lang = LANGUAGE_ID)
+	public static function GetCurrencyFormat($currency, $lang = LANGUAGE_ID)
 	{
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		if (defined("CURRENCY_SKIP_CACHE") && CURRENCY_SKIP_CACHE)
@@ -279,7 +280,7 @@ class CAllCurrencyLang
 		{
 			$cacheTime = CURRENCY_CACHE_DEFAULT_TIME;
 			if (defined("CURRENCY_CACHE_TIME"))
-				$cacheTime = intval(CURRENCY_CACHE_TIME);
+				$cacheTime = (int)CURRENCY_CACHE_TIME;
 
 			$strCacheKey = $currency."_".$lang;
 
@@ -299,16 +300,14 @@ class CAllCurrencyLang
 		return $arCurrencyLang;
 	}
 
-	public function GetList(&$by, &$order, $currency = "")
+	public static function GetList(&$by, &$order, $currency = "")
 	{
 		global $DB;
 
 		$strSql = "select CURL.* from b_catalog_currency_lang CURL ";
 
 		if ('' != $currency)
-		{
 			$strSql .= "where CURL.CURRENCY = '".$DB->ForSql($currency, 3)."' ";
-		}
 
 		if (strtolower($by) == "currency") $strSqlOrder = " order by CURL.CURRENCY ";
 		elseif (strtolower($by) == "name") $strSqlOrder = " order by CURL.FULL_NAME ";
@@ -498,7 +497,6 @@ class CAllCurrencyLang
 	{
 		static $eventExists = null;
 
-		$result = '';
 		$useTemplate = !!$useTemplate;
 		if ($useTemplate)
 		{
@@ -523,6 +521,7 @@ class CAllCurrencyLang
 		if ($currency === false)
 			return '';
 
+		$price = (float)$price;
 		$arCurFormat = (isset(self::$arCurrencyFormat[$currency]) ? self::$arCurrencyFormat[$currency] : self::GetFormatDescription($currency));
 		$intDecimals = $arCurFormat['DECIMALS'];
 		if (self::isAllowUseHideZero() && $arCurFormat['HIDE_ZERO'] == 'Y')
@@ -536,7 +535,7 @@ class CAllCurrencyLang
 
 		return (
 			$useTemplate
-			? str_replace('#', $price, $arCurFormat['FORMAT_STRING'])
+			? preg_replace('/(^|[^&])#/', '${1}'.$price, $arCurFormat['FORMAT_STRING'])
 			: $price
 		);
 	}
@@ -571,4 +570,3 @@ class CAllCurrencyLang
 class CCurrencyLang extends CAllCurrencyLang
 {
 }
-?>

@@ -76,6 +76,7 @@ class sender extends CModule
 			RegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\Preset\\TemplateBase", "onPresetTemplateList");
 			RegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\TemplateTable", "onPresetTemplateList");
 			RegisterModuleDependences("sender", "OnPresetMailBlockList", "sender", "Bitrix\\Sender\\Preset\\MailBlockBase", "OnPresetMailBlockList");
+			RegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\Preset\\TemplateBase", "onPresetTemplateListSite");
 
 			// triggers
 			RegisterModuleDependences("sender", "OnTriggerList", "sender", "bitrix\\sender\\triggermanager", "onTriggerList");
@@ -127,6 +128,7 @@ class sender extends CModule
 		UnRegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\Preset\\TemplateBase", "onPresetTemplateList");
 		UnRegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\TemplateTable", "onPresetTemplateList");
 		UnRegisterModuleDependences("sender", "OnPresetMailBlockList", "sender", "Bitrix\\Sender\\Preset\\MailBlockBase", "OnPresetMailBlockList");
+		UnRegisterModuleDependences("sender", "OnPresetTemplateList", "sender", "Bitrix\\Sender\\Preset\\TemplateBase", "onPresetTemplateListSite");
 
 		UnRegisterModuleDependences("sender", "OnTriggerList", "sender", "bitrix\\sender\\triggermanager", "onTriggerList");
 		UnRegisterModuleDependences("sender", "OnAfterRecipientUnsub", "sender", "Bitrix\\Sender\\TriggerManager", "onAfterRecipientUnsub");

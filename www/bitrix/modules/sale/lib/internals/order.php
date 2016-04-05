@@ -218,7 +218,7 @@ class OrderTable extends Main\Entity\DataManager
 			new Main\Entity\FloatField(
 				'PRICE',
 				array(
-					'required' => true
+					'default_value' => '0.0000'
 				)
 			),
 
@@ -406,7 +406,8 @@ class OrderTable extends Main\Entity\DataManager
 			new Main\Entity\BooleanField(
 				'UPDATED_1C',
 				array(
-					'values' => array('N', 'Y')
+					'values' => array('N', 'Y'),
+					'default' => 'N'
 				)
 			),
 

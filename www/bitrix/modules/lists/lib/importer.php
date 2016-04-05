@@ -352,7 +352,7 @@ class Importer
 		if ($iblockType == static::getIBlockType())
 			$documentType = array('lists', 'BizprocDocument', 'iblock_'.$iblockId);
 		else
-			$documentType = array('iblock', 'CIBlockDocument', 'iblock_'.$iblockId);
+			$documentType = array('lists', 'Bitrix\Lists\BizprocDocumentLists', 'iblock_'.$iblockId);
 
 		return $documentType;
 	}
@@ -575,7 +575,7 @@ class Importer
 		}
 
 		\CBPDocument::MigrateDocumentType(
-			array("iblock", "CIBlockDocument", "iblock_".$id),
+			array("lists", 'Bitrix\Lists\BizprocDocumentLists', "iblock_".$id),
 			array("lists", "BizprocDocument", "iblock_".$id)
 		);
 	}

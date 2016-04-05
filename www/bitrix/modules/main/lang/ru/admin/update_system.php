@@ -182,9 +182,10 @@ $MESS["SUP_SYSTEM_MESSAGE"] = "Внимание";
 $MESS["SUP_CANT_LOCK_UPDATES"] = "Система обновлений должна быть запущена в одном окне браузера";
 $MESS["SUP_NEW_UPDATE_SYSTEM_HINT"] = "Вам необходимо обновить систему обновлений";
 $MESS["SUP_HTTP_BX_MASTER"] = "Кластер можно обновлять только с мастер-копии по адресу <a href=\"#ADDR#\">#ADDR#</a>";
-$MESS["SUP_CHECK_LIC"] = "<a href=\"http://www.1c-bitrix.ru/support/key_info.php?license_key=#LICENSE_KEY#\" target=\"_blank\">Проверить ключ</a>";
-$MESS["SUP_SUA_DOMAIN"] = "www.1c-bitrix.ru";
+$MESS["SUP_CHECK_LIC"] = "<a href=\"https://www.1c-bitrix.ru/support/key_info.php?license_key=#LICENSE_KEY#\" target=\"_blank\">Проверить ключ</a>";
+$MESS["SUP_SUA_DOMAIN"] = "https//www.1c-bitrix.ru/support/key_info.php";
 $MESS["SUP_CHECK_LIC_MESSAGE"] = "Проверить ключ";
 $MESS["SUP_CANT_REPARE"] = "Ошибка инициализации системы обновлений. Обратитесь, пожалуйста, в службу технической поддержки";
 $MESS["SUP_CANT_EACCELERATOR"] = "Начиная с текущей версии поддержка eAccelerator прекращена. Обратитесь, пожалуйста, к вашему администратору или в службу технической поддержки для консультаций";
+$MESS["SUP_SALE_1500_HINT"] = "Для того, чтобы продолжить установку обновлений, необходимо <a href=\"#ADDR#\">конвертировать модуль интернет-магазина</a>.";
 ?>

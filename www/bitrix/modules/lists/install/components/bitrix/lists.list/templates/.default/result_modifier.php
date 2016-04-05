@@ -6,8 +6,7 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 /** @var array $arParams */
 /** @var array $arResult */
 
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/result_modifier.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 
 $arArrays = array();
 $arElements = array();
@@ -39,7 +38,10 @@ foreach($arResult["ELEMENTS_ROWS"] as $i => $arRow)
 		}
 		foreach ($arDocumentStates as $kk => $vv)
 		{
-			if($vv["ID"] && $proccesses && !empty($arRow["data"]["WORKFLOW_ID"]))
+			if(!$vv["ID"])
+				continue;
+
+			if($proccesses && !empty($arRow["data"]["WORKFLOW_ID"]))
 				$workflows[] = 'WF_'.$vv["ID"];
 
 			$canViewWorkflow = CIBlockDocument::CanUserOperateDocument(

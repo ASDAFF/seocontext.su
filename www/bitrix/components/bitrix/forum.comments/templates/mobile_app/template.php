@@ -6,26 +6,18 @@
  * @var CUser $USER
  * @var CBitrixComponentTemplate $this
  */
-$link = GetPagePath(false, false)."?".http_build_query(
-		array_diff_key(
-			$_REQUEST,
-			array_flip(
-				array(
-					"MID",
-					"sessid",
-					"AJAX_POST",
-					"ENTITY_XML_ID",
-					"ENTITY_TYPE",
-					"ENTITY_ID",
-					"REVIEW_ACTION",
-					"MODE",
-					"FILTER",
-					"result",
-					"clear_cache"
-				)
-			)
-		)
-	);
+$link = $APPLICATION->GetCurPageParam("MID=#ID#", array(
+	"MID",
+	"sessid",
+	"AJAX_POST",
+	"ENTITY_XML_ID",
+	"ENTITY_TYPE",
+	"ENTITY_ID",
+	"REVIEW_ACTION",
+	"MODE",
+	"FILTER",
+	"result",
+	"clear_cache"));
 $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 	"bitrix:main.post.list",
 	"",
@@ -54,7 +46,7 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 		"EDIT_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "GET"), false, false),
 		"MODERATE_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "#ACTION#"), false, false),
 		"DELETE_URL" => ForumAddPageParams($link, array("REVIEW_ACTION" => "DEL"), false, false),
-		"AUTHOR_URL" => $arParams["PATH_TO_USER"],
+		"AUTHOR_URL" => $arParams["URL_TEMPLATES_PROFILE_VIEW"],
 
 		"AVATAR_SIZE" => $arParams["AVATAR_SIZE_COMMENT"],
 		"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"],

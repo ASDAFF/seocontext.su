@@ -2,6 +2,26 @@
 
 use \Bitrix\Sale\Order;
 
+$request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
+
+$entityId = IntVal($request->get("LMI_PAYMENT_NO"));
+list($orderId, $paymentId) = \Bitrix\Sale\PaySystem\Manager::getIdsByPayment($entityId);
+
+/** @var \Bitrix\Sale\Order $order */
+$order = \Bitrix\Sale\Order::load($orderId);
+
+/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+$paymentCollection = $order->getPaymentCollection();
+
+/** @var \Bitrix\Sale\Payment $payment */
+$payment = $paymentCollection->getItemById($paymentId);
+
+$data = \Bitrix\Sale\PaySystem\Manager::getById($payment->getPaymentSystemId());
+
+$service = new \Bitrix\Sale\PaySystem\Service($data);
+$service->processRequest($request);
+
+return;
 if ($_SERVER["REQUEST_METHOD"] == "POST")
 {
 	$orderId = intval($_POST['LMI_PAYMENT_NO']);

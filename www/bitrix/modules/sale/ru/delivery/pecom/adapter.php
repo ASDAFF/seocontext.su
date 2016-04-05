@@ -133,6 +133,31 @@ class Adapter
 		return $result;
 	}
 
+	protected static function mapLocation2($internalLocationId)
+	{
+		if(intval($internalLocationId) <=0)
+			return array();
+
+		static $result = array();
+
+		if(!isset($result[$internalLocationId]))
+		{
+			$result[$internalLocationId] = array();
+
+			$internalLocation = \CSaleHelper::getLocationByIdHitCached($internalLocationId);
+			$externalId = Location::getExternalId($internalLocationId);
+
+			if(strlen($externalId) > 0)
+			{
+				$result[$internalLocationId] = array(
+						$externalId => !empty($internalLocation["CITY_NAME_LANG"]) ? $internalLocation["CITY_NAME_LANG"] : ""
+				);
+			}
+		}
+
+		return $result[$internalLocationId];
+	}
+
 	/**
 	 * Returns Pecom .location id
 	 * @param $locationId - Bitrix location id
@@ -141,6 +166,9 @@ class Adapter
 	 */
 	public static function mapLocation($locationId, $cleanCache = false)
 	{
+		if(Location::isInstalled())
+			return self::mapLocation2($locationId);
+
 		$cityName = static::getCityNameFromLocationId($locationId);
 
 		if(!$cityName)

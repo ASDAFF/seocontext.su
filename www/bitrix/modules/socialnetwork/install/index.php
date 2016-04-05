@@ -479,6 +479,18 @@ Class socialnetwork extends CModule
 				);
 			}
 
+			$arFields[] = array(
+				"USER_TYPE_ID" => 'url_preview',
+				"ENTITY_ID" => "SONET_COMMENT",
+				"FIELD_NAME" => "UF_SONET_COM_URL_PRV",
+				"XML_ID" => "UF_SONET_COM_URL_PRV",
+				"MULTIPLE" => 'N',
+				"MANDATORY" => "N",
+				"SHOW_FILTER" => "N",
+				"SHOW_IN_LIST" => "N",
+				"EDIT_IN_LIST" => "Y",
+			);
+
 			$obUserField = new CUserTypeEntity;
 			foreach ($arFields as $arField)
 			{
@@ -604,6 +616,11 @@ Class socialnetwork extends CModule
 					"FIELD_NAME" => "UF_BLOG_POST_VOTE",
 					"XML_ID" => "UF_BLOG_POST_VOTE"
 				),
+				array(
+					"ENTITY_ID" => "SONET_COMMENT",
+					"FIELD_NAME" => "UF_SONET_COM_URL_PRV",
+					"XML_ID" => "UF_SONET_COM_URL_PRV"
+				)
 			);
 
 			if ($id == "webdav")

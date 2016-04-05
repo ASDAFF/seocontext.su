@@ -125,4 +125,9 @@ class SqlExpression
 
 		return $matches[0];
 	}
+
+	public function __toString()
+	{
+		return $this->compile();
+	}
 }

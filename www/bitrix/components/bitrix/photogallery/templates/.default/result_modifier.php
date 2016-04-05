@@ -1,10 +1,4 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-//$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/js/main/utils.js'); // ??
-
-//$GLOBALS['APPLICATION']->AddHeadScript("/bitrix/components/bitrix/photogallery/templates/.default/script.js");
-//$GLOBALS['APPLICATION']->AddHeadScript("/bitrix/components/bitrix/photogallery/templates/.default/bitrix/iblock.vote/ajax/script.js");
-//$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/result_modifier.php")));
-//__IncludeLang($file);
 
 $arResult["MENU_VARIABLES"] = array();
 if ($this->__page !== "menu")
@@ -18,7 +12,7 @@ if ($this->__page !== "menu")
 		$this->__page = $sTempatePage;
 		$this->__file = $sTempateFile;
 	}
-	
+
 	/************** Themes *********************************************/
 	$arThemes = array();
 	$sTemplateDirFull = preg_replace("'[\\\\/]+'", "/", dirname(realpath(__FILE__))."/");
@@ -41,7 +35,7 @@ if ($this->__page !== "menu")
 		if (is_file($_SERVER['DOCUMENT_ROOT'].$val."style.css"))
 			$arParams["THEME"] = $val;
 	}
-	$arParams["THEME"] = (empty($arParams["THEME"]) && in_array("gray", $arThemes) ? "gray" : $arParams["THEME"]); 
+	$arParams["THEME"] = (empty($arParams["THEME"]) && in_array("gray", $arThemes) ? "gray" : $arParams["THEME"]);
 	if (!empty($arParams["THEME"]))
 	{
 		if (in_array($arParams["THEME"], $arThemes))
@@ -66,8 +60,8 @@ if ($this->__page !== "menu")
 div.photo-album-avatar{
 	width:<?=$arParams["ALBUM_PHOTO_SIZE"]?>px;
 	height:<?=$arParams["ALBUM_PHOTO_SIZE"]?>px;}
-div.photo-item-cover-block-container, 
-div.photo-item-cover-block-outer, 
+div.photo-item-cover-block-container,
+div.photo-item-cover-block-outer,
 div.photo-item-cover-block-inner{
 	background-color: white;
 	height:<?=($arParams["ALBUM_PHOTO_SIZE"] + 16)?>px;

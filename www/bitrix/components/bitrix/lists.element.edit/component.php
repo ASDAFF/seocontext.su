@@ -129,11 +129,18 @@ $arResult["CAN_ADD_ELEMENT"] = (
 $arResult["CAN_DELETE_ELEMENT"] =
 	!$arResult["IS_SOCNET_GROUP_CLOSED"]
 	&& $ELEMENT_ID > 0
+	&& ($lists_perm >= CListPermissions::CAN_WRITE
+		|| CIBlockElementRights::UserHasRightTo($IBLOCK_ID, $ELEMENT_ID, "element_delete"));
+
+$arResult["CAN_FULL_EDIT"] = (
+	!$arResult["IS_SOCNET_GROUP_CLOSED"]
+	&& $ELEMENT_ID > 0
 	&& (
-		$lists_perm >= CListPermissions::CAN_WRITE
-		|| CIBlockElementRights::UserHasRightTo($IBLOCK_ID, $ELEMENT_ID, "element_delete")
+		$lists_perm >= CListPermissions::IS_ADMIN
+		|| CIBlockRights::UserHasRightTo($IBLOCK_ID, $IBLOCK_ID, "iblock_edit")
 	)
-;
+);
+
 $arResult["IBLOCK_PERM"] = $lists_perm;
 $arResult["USER_GROUPS"] = $USER->GetUserGroupArray();
 $arIBlock = CIBlock::GetArrayByID(intval($arParams["~IBLOCK_ID"]));
@@ -231,6 +238,7 @@ $rsElement = CIBlockElement::GetList(
 	array(
 		"IBLOCK_ID" => $arResult["IBLOCK_ID"],
 		"=ID" => ($copy_id? $copy_id: $arParams["ELEMENT_ID"]),
+		"SHOW_NEW" => ($arResult["CAN_FULL_EDIT"] ? "Y" : "N")
 	),
 	false,
 	false,
@@ -351,59 +359,7 @@ if(
 		$arParams["~LIST_ELEMENT_URL"]
 	));
 
-	//When Save or Apply buttons was pressed
-	if(isset($_POST["action"]) && $_POST["action"] == "stop_bizproc")
-	{
-		if(isset($_POST["stop_bizproc"]) && strlen($_POST["stop_bizproc"]) && $bBizproc)
-		{
-			$strError = "";
-
-			if (CIBlockElementRights::UserHasRightTo($IBLOCK_ID, $arResult["ELEMENT_ID"], "element_rights_edit"))
-			{
-				$arErrorsTmp = array();
-
-				CBPDocument::TerminateWorkflow(
-					$_POST["stop_bizproc"],
-					BizProcDocument::getDocumentComplexId($arParams["IBLOCK_TYPE_ID"], $arResult["ELEMENT_ID"]),
-					$arErrorsTmp
-				);
-
-				foreach($arErrorsTmp as $a)
-					$strError .= $a["message"]."<br />";
-			}
-			else
-			{
-				$strError .= GetMessage("CC_BLEE_ACCESS_DENIED")."<br />";
-			}
-
-			if($strError)
-			{
-				ShowError($strError);
-				$bVarsFromForm = true;
-			}
-			else
-			{
-				$url = CHTTP::urlAddParams(str_replace(
-						array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
-						array($arResult["IBLOCK_ID"], intval($arResult["ELEMENT_FIELDS"]["IBLOCK_SECTION_ID"]), $arResult["ELEMENT_ID"], $arParams["SOCNET_GROUP_ID"]),
-						$arParams["~LIST_ELEMENT_URL"]
-					),
-					array($tab_name => $_POST[$tab_name]),
-					array("skip_empty" => true, "encode" => true)
-				);
-				if(isset($_GET["list_section_id"]) && strlen($_GET["list_section_id"]) == 0)
-					$url = CHTTP::urlAddParams($url, array("list_section_id" => ""));
-
-				LocalRedirect($url);
-			}
-		}
-		else
-		{
-			//Stop BP without even ID and bp module is an error
-			LocalRedirect($arResult["~LIST_SECTION_URL"]);
-		}
-	}
-	elseif(
+	if(
 		$arResult["ELEMENT_ID"]
 		&& isset($_POST["action"])
 		&& $_POST["action"]==="delete"
@@ -453,7 +409,6 @@ if(
 			"NAME" => $_POST["NAME"],
 		);
 		$arProps = array();
-
 		foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		{
 			if($FIELD_ID == "PREVIEW_PICTURE" || $FIELD_ID == "DETAIL_PICTURE")
@@ -485,6 +440,7 @@ if(
 					$arDel = $_POST[$FIELD_ID."_del"];
 				else
 					$arDel = array();
+
 				$arProps[$arField["ID"]] = array();
 				CFile::ConvertFilesToPost($_FILES[$FIELD_ID], $arProps[$arField["ID"]]);
 				foreach($arProps[$arField["ID"]] as $file_id => $arFile)
@@ -497,6 +453,8 @@ if(
 						)
 					)
 					{
+						if(!$arFile["VALUE"]["error"])
+							continue;
 						if(isset($arProps[$arField["ID"]][$file_id]["VALUE"]))
 							$arProps[$arField["ID"]][$file_id]["VALUE"]["del"] = "Y";
 						else
@@ -578,8 +536,10 @@ if(
 		if(count($arProps))
 		{
 			$arElement["PROPERTY_VALUES"] = $arProps;
+			$oldPropertyValues = array();
 			if($arResult["ELEMENT_ID"] > 0)
 			{
+				$ignoreProperty = array("F", "L");
 				//We have to read properties from database in order not to delete its values
 				$dbPropV = CIBlockElement::GetProperty(
 					$arResult["IBLOCK_ID"],
@@ -589,7 +549,7 @@ if(
 				);
 				while($arPropV = $dbPropV->Fetch())
 				{
-					if($arPropV["PROPERTY_TYPE"] != "F" && empty($arProps[$arPropV["ID"]]))
+					if(!in_array($arPropV["PROPERTY_TYPE"], $ignoreProperty) && empty($arProps[$arPropV["ID"]]))
 					{
 						if(!array_key_exists($arPropV["ID"], $arElement["PROPERTY_VALUES"]))
 							$arElement["PROPERTY_VALUES"][$arPropV["ID"]] = array();
@@ -598,6 +558,10 @@ if(
 							"VALUE" => $arPropV["VALUE"],
 							"DESCRIPTION" => $arPropV["DESCRIPTION"],
 						);
+					}
+					if($arPropV["USER_TYPE"] == "DiskFile")
+					{
+						$oldPropertyValues[$arPropV["ID"]][$arPropV["PROPERTY_VALUE_ID"]]["VALUE"] = $arPropV["VALUE"];
 					}
 				}
 			}
@@ -609,25 +573,28 @@ if(
 		)
 		{
 			if(is_array($_POST["RIGHTS"]))
-				$arPOSTRights = CIBlockRights::Post2Array($_POST["RIGHTS"]);
+				$postRights = CIBlockRights::Post2Array($_POST["RIGHTS"]);
 			else
-				$arPOSTRights = array();
+				$postRights = array();
 
 			if($ELEMENT_ID)
-				$obRights = new CIBlockElementRights($arResult["IBLOCK_ID"], $ELEMENT_ID);
+				$objectRights = new CIBlockElementRights($arResult["IBLOCK_ID"], $ELEMENT_ID);
 			else
-				$obRights = new CIBlockSectionRights($arResult["IBLOCK_ID"], $SECTION_ID);
-			$arDBRights = $obRights->GetRights();
-
-			$arElement["RIGHTS"] = CListPermissions::MergeRights(
-				$arParams["~IBLOCK_TYPE_ID"],
-				$arDBRights,
-				$arPOSTRights
-			);
+				$objectRights = new CIBlockSectionRights($arResult["IBLOCK_ID"], $SECTION_ID);
+			$rights = $objectRights->GetRights();
+			$arElement["RIGHTS"] = array();
+			foreach($rights as $rightId => $right)
+			{
+				if(array_key_exists($rightId, $postRights))
+					$arElement["RIGHTS"][$rightId] = $right;
+			}
+			foreach($postRights as $rightId => $right)
+				$arElement["RIGHTS"][$rightId] = $right;
 
 		}
 
 		//---BP---
+		$arResult["isConstantsTuned"] = false;
 		if($bBizproc)
 		{
 			$documentType = BizProcDocument::generateDocumentComplexType($arParams["IBLOCK_TYPE_ID"], $arResult["IBLOCK_ID"]);
@@ -638,6 +605,7 @@ if(
 				"Y"
 			);
 
+			$templatesOnStartup = false;
 			$arCurrentUserGroups = $USER->GetUserGroupArray();
 			if(!$arResult["ELEMENT_FIELDS"] || $arResult["ELEMENT_FIELDS"]["CREATED_BY"] == $USER->GetID())
 			{
@@ -673,6 +641,7 @@ if(
 				{
 					if(strlen($arDocumentState["ID"]) <= 0)
 					{
+						$templatesOnStartup = true;
 						$arErrorsTmp = array();
 
 						$arBizProcParametersValues[$arDocumentState["TEMPLATE_ID"]] = CBPDocument::StartWorkflowParametersValidate(
@@ -686,17 +655,19 @@ if(
 							$strError .= $e["message"]."<br />";
 					}
 				}
-				$templateObject = CBPWorkflowTemplateLoader::getTemplatesList(
-					array('ID' => 'DESC'),
-					array('DOCUMENT_TYPE' => $documentType, 'AUTO_EXECUTE' => CBPDocumentEventType::Create),
-					false,
-					false,
-					array('ID')
+				$templates = array_merge(
+					\CBPWorkflowTemplateLoader::SearchTemplatesByDocumentType($documentType, CBPDocumentEventType::Create),
+					\CBPWorkflowTemplateLoader::SearchTemplatesByDocumentType($documentType, CBPDocumentEventType::Edit)
 				);
-				while($template = $templateObject->fetch())
+				$error = false;
+				foreach($templates as $template)
 				{
-					if(!CBPWorkflowTemplateLoader::isConstantsTuned($template["ID"]))
-						$strError .= GetMessage('CC_BLEE_IS_CONSTANTS_TUNED_NEW')."<br />";
+					if(!CBPWorkflowTemplateLoader::isConstantsTuned($template["ID"]) && !$error)
+					{
+						$error = true;
+						$strError .= GetMessage('CC_BLEE_IS_CONSTANTS_TUNED')."<br />";
+						$arResult["isConstantsTuned"] = true;
+					}
 				}
 			}
 		}
@@ -725,6 +696,212 @@ if(
 		{
 			if(!$strError)
 			{
+				/* Find the new or modified field. */
+				if($ELEMENT_ID && $templatesOnStartup)
+				{
+					$modifiedFields = array();
+					/* We get the new data element. */
+					$elementNewData = array();
+					$elementOldData = array();
+					$elementQuery = CIBlockElement::getList(
+						array(),
+						array(
+							"IBLOCK_ID" => $arResult["IBLOCK_ID"],
+							"=ID" => $arResult["ELEMENT_ID"],
+						),
+						false,
+						false,
+						$arSelect
+					);
+					$elementObject = $elementQuery->getNextElement();
+
+					if(is_object($elementObject))
+						$elementNewData = $elementObject->getFields();
+
+					$elementOldData = $arResult["ELEMENT_FIELDS"];
+					unset($elementNewData["TIMESTAMP_X"]);
+					unset($elementOldData["TIMESTAMP_X"]);
+
+					$elementNewData["PROPERTY_VALUES"] = array();
+					if(is_object($elementObject))
+					{
+						$propertyQuery = CIBlockElement::getProperty(
+							$arResult["IBLOCK_ID"],
+							$arResult["ELEMENT_ID"],
+							array("sort"=>"asc", "id"=>"asc", "enum_sort"=>"asc", "value_id"=>"asc"),
+							array("ACTIVE"=>"Y", "EMPTY"=>"N")
+						);
+						while($property = $propertyQuery->fetch())
+						{
+							$propertyId = $property["ID"];
+							if(!array_key_exists($propertyId, $elementNewData["PROPERTY_VALUES"]))
+							{
+								$elementNewData["PROPERTY_VALUES"][$propertyId] = $property;
+								unset($elementNewData["PROPERTY_VALUES"][$propertyId]["DESCRIPTION"]);
+								unset($elementNewData["PROPERTY_VALUES"][$propertyId]["VALUE_ENUM_ID"]);
+								unset($elementNewData["PROPERTY_VALUES"][$propertyId]["VALUE_ENUM"]);
+								unset($elementNewData["PROPERTY_VALUES"][$propertyId]["VALUE_XML_ID"]);
+								$elementNewData["PROPERTY_VALUES"][$propertyId]["FULL_VALUES"] = array();
+								$elementNewData["PROPERTY_VALUES"][$propertyId]["VALUES_LIST"] = array();
+							}
+
+							$elementNewData["PROPERTY_VALUES"][$propertyId]["FULL_VALUES"][$property["PROPERTY_VALUE_ID"]] = array(
+								"VALUE" => $property["VALUE"],
+								"DESCRIPTION" => $property["DESCRIPTION"],
+							);
+							$elementNewData["PROPERTY_VALUES"][$propertyId]["VALUES_LIST"][$property["PROPERTY_VALUE_ID"]] = $property["VALUE"];
+						}
+					}
+
+					$elementOldData["PROPERTY_VALUES"] = $arResult["ELEMENT_PROPS"];
+
+					/* Check added or deleted fields. */
+					$listNewFieldIdToDelete = array();
+					$listOldFieldIdToDelete = array();
+					$differences = array_diff_key($elementNewData, $elementOldData);
+					foreach(array_keys($differences) as $fieldId)
+					{
+						$modifiedFields[] = $fieldId;
+						$listNewFieldIdToDelete["FIELD"][] = $fieldId;
+					}
+					$differences = array_diff_key($elementOldData, $elementNewData);
+					foreach(array_keys($differences) as $fieldId)
+					{
+						$modifiedFields[] = $fieldId;
+						$listOldFieldIdToDelete["FIELD"][] = $fieldId;
+					}
+
+					$differences = array_diff_key(
+						$elementNewData["PROPERTY_VALUES"],
+						$elementOldData["PROPERTY_VALUES"]
+					);
+					foreach(array_keys($differences) as $fieldId)
+					{
+						$listNewFieldIdToDelete["PROPERTY"][] = $fieldId;
+
+						if(!empty($elementNewData["PROPERTY_VALUES"][$fieldId]["CODE"]))
+							$fieldId = "PROPERTY_".$elementNewData["PROPERTY_VALUES"][$fieldId]["CODE"];
+						else
+							$fieldId = "PROPERTY_".$fieldId;
+						$modifiedFields[] = $fieldId;
+					}
+					$differences = array_diff_key(
+						$elementOldData["PROPERTY_VALUES"],
+						$elementNewData["PROPERTY_VALUES"]
+					);
+					foreach(array_keys($differences) as $fieldId)
+					{
+						$listOldFieldIdToDelete["PROPERTY"][] = $fieldId;
+
+						if(!empty($elementOldData["PROPERTY_VALUES"][$fieldId]["CODE"]))
+							$fieldId = "PROPERTY_".$elementOldData["PROPERTY_VALUES"][$fieldId]["CODE"];
+						else
+							$fieldId = "PROPERTY_".$fieldId;
+						$modifiedFields[] = $fieldId;
+					}
+
+					foreach($listNewFieldIdToDelete as $typeField => $listField)
+					{
+						if($typeField == "FIELD")
+							foreach($listField as $fieldId)
+								unset($elementNewData[$fieldId]);
+						elseif($typeField == "PROPERTY")
+							foreach($listField as $fieldId)
+								unset($elementNewData["PROPERTY_VALUES"][$fieldId]);
+					}
+					foreach($listOldFieldIdToDelete as $typeField => $listField)
+					{
+						if($typeField == "FIELD")
+							foreach($listField as $fieldId)
+								unset($elementOldData[$fieldId]);
+						elseif($typeField == "PROPERTY")
+							foreach($listField as $fieldId)
+								unset($elementOldData["PROPERTY_VALUES"][$fieldId]);
+					}
+
+					/* Preparing arrays to compare */
+					foreach($elementNewData as $fieldId => $fieldValue)
+					{
+						if(!$obList->is_field($fieldId) && $fieldId != "PROPERTY_VALUES")
+						{
+							unset($elementNewData[$fieldId]);
+						}
+						elseif($fieldId == "PROPERTY_VALUES")
+						{
+							foreach($fieldValue as $propertyId => $propertyData)
+							{
+								if(!empty($propertyData["CODE"]))
+									$elementNewData["PROPERTY_".$propertyData["CODE"]] = $propertyData["VALUES_LIST"];
+								else
+									$elementNewData["PROPERTY_".$propertyData["ID"]] = $propertyData["VALUES_LIST"];
+
+								unset($elementNewData["PROPERTY_VALUES"][$propertyId]);
+							}
+							unset($elementNewData["PROPERTY_VALUES"]);
+						}
+					}
+					foreach($elementOldData as $fieldId => $fieldValue)
+					{
+						if(!$obList->is_field($fieldId) && $fieldId != "PROPERTY_VALUES")
+						{
+							unset($elementOldData[$fieldId]);
+						}
+						elseif($fieldId == "PROPERTY_VALUES")
+						{
+							foreach($fieldValue as $propertyId => $propertyData)
+							{
+								if(!empty($propertyData["CODE"]))
+									$elementOldData["PROPERTY_".$propertyData["CODE"]] = $propertyData["VALUES_LIST"];
+								else
+									$elementOldData["PROPERTY_".$propertyData["ID"]] = $propertyData["VALUES_LIST"];
+
+								unset($elementOldData["PROPERTY_VALUES"][$propertyId]);
+							}
+							unset($elementOldData["PROPERTY_VALUES"]);
+						}
+					}
+
+					/* Compares the value */
+					foreach($elementNewData as $fieldName => $fieldValue)
+					{
+						if(is_array($fieldValue))
+						{
+							if(is_array(current($fieldValue)))
+							{
+								$firstValues = array();
+								$secondValues = array();
+								foreach($fieldValue as $values)
+									$firstValues = $values;
+								foreach($elementOldData[$fieldName] as $values)
+									$secondValues = $values;
+
+								if(array_key_exists("TEXT", $firstValues))
+								{
+									$differences = array_diff($firstValues, $secondValues);
+									if(!empty($differences))
+										$modifiedFields[] = $fieldName;
+								}
+								else
+								{
+									if(count($firstValues) != count($secondValues))
+										$modifiedFields[] = $fieldName;
+								}
+							}
+							else
+							{
+								$differences = array_diff($fieldValue, $elementOldData[$fieldName]);
+								if(!empty($differences))
+									$modifiedFields[] = $fieldName;
+							}
+						}
+						else
+						{
+							if(strcmp((string)$fieldValue, (string)$elementOldData[$fieldName]) !== 0)
+								$modifiedFields[] = $fieldName;
+						}
+					}
+				}
+
 				$arBizProcWorkflowId = array();
 				foreach($arDocumentStates as $arDocumentState)
 				{
@@ -735,7 +912,10 @@ if(
 						$arBizProcWorkflowId[$arDocumentState["TEMPLATE_ID"]] = CBPDocument::StartWorkflow(
 							$arDocumentState["TEMPLATE_ID"],
 							BizProcDocument::getDocumentComplexId($arParams["IBLOCK_TYPE_ID"], $arResult["ELEMENT_ID"]),
-							array_merge($arBizProcParametersValues[$arDocumentState["TEMPLATE_ID"]], array("TargetUser" => "user_".intval($GLOBALS["USER"]->GetID()))),
+							array_merge($arBizProcParametersValues[$arDocumentState["TEMPLATE_ID"]], array(
+								CBPDocument::PARAM_TAGRET_USER => "user_".intval($GLOBALS["USER"]->GetID()),
+								CBPDocument::PARAM_MODIFIED_DOCUMENT_FIELDS => $modifiedFields
+							)),
 							$arErrorsTmp
 						);
 
@@ -836,6 +1016,12 @@ if(
 		LocalRedirect($arResult["~LIST_SECTION_URL"]);
 	}
 }
+
+$arResult["ELEMENT_URL"] = str_replace(
+	array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
+	array($arResult["IBLOCK_ID"], intval($arParams["~SECTION_ID"]), $arResult["ELEMENT_ID"], $arParams["SOCNET_GROUP_ID"]),
+	$arParams["LIST_ELEMENT_URL"]
+);
 
 $data = array();
 if($bVarsFromForm)
@@ -1025,76 +1211,13 @@ if(
 )
 {
 	$arResult["RIGHTS"] = array();
-	$arResult["SELECTED"] = array();
-	if (IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
-	{
-		if ($arParams["SOCNET_GROUP_ID"])
-			$arResult["HIGHLIGHT"] = array(
-				"socnetgroup" => array("group_id" => $arParams["SOCNET_GROUP_ID"]),
-				"groups" => array("disabled" => true),
-			);
-		else
-			$arResult["HIGHLIGHT"] = array(
-				"groups" => array("disabled" => true),
-			);
-	}
-	else
-	{
-		if ($arParams["SOCNET_GROUP_ID"])
-			$arResult["HIGHLIGHT"] = array(
-				"socnetgroup" => array("group_id" => $arParams["SOCNET_GROUP_ID"]),
-			);
-		else
-			$arResult["HIGHLIGHT"] = null;
-	}
-
 	if($arResult["ELEMENT_ID"])
-		$obRights = new CIBlockElementRights($arResult["IBLOCK_ID"], $arResult["ELEMENT_ID"]);
+		$objectRights = new CIBlockElementRights($arResult["IBLOCK_ID"], $arResult["ELEMENT_ID"]);
 	else
-		$obRights = new CIBlockSectionRights($arResult["IBLOCK_ID"], intval($data["IBLOCK_SECTION_ID"]));
+		$objectRights = new CIBlockSectionRights($arResult["IBLOCK_ID"], intval($data["IBLOCK_SECTION_ID"]));
 
-	$arResult["RIGHTS"] = $obRights->GetRights(array("parents" => array($data["IBLOCK_SECTION_ID"])));
-	$arListsPerm = CLists::GetPermission($arParams["~IBLOCK_TYPE_ID"]);
-	foreach($arResult["RIGHTS"] as $RIGHT_ID => $arRight)
-	{
-		//1) protect groups from module settings
-		$match = array();
-		if(
-			preg_match("/^G(\\d)\$/", $arRight["GROUP_CODE"], $match)
-			&& is_array($arListsPerm) && in_array($match[1], $arListsPerm)
-		)
-		{
-			unset($arResult["RIGHTS"][$RIGHT_ID]);
-			$arResult["SELECTED"][$arRight["GROUP_CODE"]] = true;
-		}
-		else
-		{
-			//2) protect groups with iblock_% operations
-			$arOperations = CTask::GetOperations($arRight['TASK_ID'], true);
-			foreach($arOperations as $operation)
-			{
-				if(preg_match("/^iblock_(?!admin)/", $operation))
-				{
-					unset($arResult["RIGHTS"][$RIGHT_ID]);
-					$arResult["SELECTED"][$arRight["GROUP_CODE"]] = true;
-					break;
-				}
-			}
-		}
-	}
-
+	$arResult["RIGHTS"] = $objectRights->GetRights(array("parents" => array($data["IBLOCK_SECTION_ID"])));
 	$arResult["TASKS"] = CIBlockRights::GetRightsList();
-	foreach($arResult["TASKS"] as $TASK_ID => $label)
-	{
-		//2) protect tasks with iblock_% operations
-		$arOperations = CTask::GetOperations($TASK_ID, true);
-		foreach($arOperations as $operation)
-			if(preg_match("/^iblock_(?!admin)/", $operation))
-			{
-				unset($arResult["TASKS"][$TASK_ID]);
-				break;
-			}
-	}
 }
 
 $arResult["VARS_FROM_FORM"] = $bVarsFromForm;
@@ -1124,6 +1247,8 @@ foreach($data as $key => $value)
 		$arResult["FORM_DATA"][$key] = htmlspecialcharsbx($value);
 	}
 }
+
+$arResult['RAND_STRING'] = $this->randString();
 
 $this->IncludeComponentTemplate();
 

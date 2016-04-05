@@ -8,7 +8,7 @@ class CAllSocNetGroup
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $DB, $arSocNetAllowedInitiatePerms, $arSocNetAllowedSpamPerms;
 
@@ -157,7 +157,7 @@ class CAllSocNetGroup
 		return True;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
@@ -282,7 +282,7 @@ class CAllSocNetGroup
 		return $bSuccess;
 	}
 
-	function DeleteNoDemand($userID)
+	public static function DeleteNoDemand($userID)
 	{
 		if (!CSocNetGroup::__ValidateID($userID))
 			return false;
@@ -305,7 +305,7 @@ class CAllSocNetGroup
 		}
 	}
 
-	function SetStat($ID)
+	public static function SetStat($ID)
 	{
 		global $DB;
 
@@ -345,7 +345,7 @@ class CAllSocNetGroup
 		);
 	}
 
-	function SetLastActivity($ID, $date = false)
+	public static function SetLastActivity($ID, $date = false)
 	{
 		if (!CSocNetGroup::__ValidateID($ID))
 			return false;
@@ -361,7 +361,7 @@ class CAllSocNetGroup
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetByID($ID, $bCheckPermissions = false)
+	public static function GetByID($ID, $bCheckPermissions = false)
 	{
 		global $DB, $USER;
 
@@ -476,7 +476,7 @@ class CAllSocNetGroup
 	/***************************************/
 	/**********  COMMON METHODS  ***********/
 	/***************************************/
-	function CanUserInitiate($userID, $groupID)
+	public static function CanUserInitiate($userID, $groupID)
 	{
 		$userID = IntVal($userID);
 		$groupID = IntVal($groupID);
@@ -516,7 +516,7 @@ class CAllSocNetGroup
 		return false;
 	}
 
-	function CanUserViewGroup($userID, $groupID)
+	public static function CanUserViewGroup($userID, $groupID)
 	{
 		$userID = IntVal($userID);
 		$groupID = IntVal($groupID);
@@ -542,7 +542,7 @@ class CAllSocNetGroup
 		return false;
 	}
 
-	function CanUserReadGroup($userID, $groupID)
+	public static function CanUserReadGroup($userID, $groupID)
 	{
 		$userID = IntVal($userID);
 		$groupID = IntVal($groupID);
@@ -571,7 +571,7 @@ class CAllSocNetGroup
 	/***************************************/
 	/************  ACTIONS  ****************/
 	/***************************************/
-	function CreateGroup($ownerID, $arFields, $bAutoSubscribe = true)
+	public static function CreateGroup($ownerID, $arFields, $bAutoSubscribe = true)
 	{
 		global $APPLICATION, $DB;
 
@@ -661,7 +661,7 @@ class CAllSocNetGroup
 	/***************************************/
 	/*************  UTILITIES  *************/
 	/***************************************/
-	function __ValidateID($ID)
+	public static function __ValidateID($ID)
 	{
 		if (IntVal($ID)."|" == $ID."|")
 			return true;
@@ -670,7 +670,7 @@ class CAllSocNetGroup
 		return false;
 	}
 
-	function GetFilterOperation($key)
+	public static function GetFilterOperation($key)
 	{
 		$strNegative = "N";
 		if (substr($key, 0, 1)=="!")
@@ -729,7 +729,7 @@ class CAllSocNetGroup
 		return array("FIELD" => $key, "NEGATIVE" => $strNegative, "OPERATION" => $strOperation, "OR_NULL" => $strOrNull);
 	}
 
-	function PrepareSql(&$arFields, $arOrder, $arFilter, $arGroupBy, $arSelectFields, $arUF = array())
+	public static function PrepareSql(&$arFields, $arOrder, $arFilter, $arGroupBy, $arSelectFields, $arUF = array())
 	{
 		global $DB;
 
@@ -988,14 +988,38 @@ class CAllSocNetGroup
 	/*************    *************/
 	/***************************************/
 
-	function GetSite($group_id)
+	public static function GetSite($group_id)
 	{
 		global $DB;
-		$strSql = "SELECT L.*, SGS.* FROM b_sonet_group_site SGS, b_lang L WHERE L.LID=SGS.SITE_ID AND SGS.GROUP_ID=".IntVal($group_id);
+
+		if (is_array($group_id))
+		{
+			if (empty($group_id))
+			{
+				return false;
+			}
+
+			$strVal = "";
+
+			foreach ($group_id as $val)
+			{
+				if (strlen($strVal) > 0)
+				{
+					$strVal .= ', ';
+				}
+				$strVal .= intval($val);
+			}
+			$strSql = "SELECT L.*, SGS.* FROM b_sonet_group_site SGS, b_lang L WHERE L.LID=SGS.SITE_ID AND SGS.GROUP_ID IN (".$strVal.")";
+		}
+		else
+		{
+			$strSql = "SELECT L.*, SGS.* FROM b_sonet_group_site SGS, b_lang L WHERE L.LID=SGS.SITE_ID AND SGS.GROUP_ID=".IntVal($group_id);
+		}
+
 		return $DB->Query($strSql);
 	}
 
-	function GetDefaultSiteId($groupId, $siteId = false)
+	public static function GetDefaultSiteId($groupId, $siteId = false)
 	{
 		$groupSiteId = ($siteId ? $siteId : SITE_ID);
 
@@ -1020,7 +1044,7 @@ class CAllSocNetGroup
 		return $groupSiteId;
 	}
 
-	function OnBeforeLangDelete($lang)
+	public static function OnBeforeLangDelete($lang)
 	{
 		global $APPLICATION, $DB;
 		$r = $DB->Query("
@@ -1041,4 +1065,3 @@ class CAllSocNetGroup
 			return true;
 	}
 }
-?>

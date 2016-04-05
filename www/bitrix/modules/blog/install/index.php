@@ -109,19 +109,35 @@ Class blog extends CModule
 				"BLOG_POST" => array(
 					"ENTITY_ID" => "BLOG_POST",
 					"FIELD_NAME" => "UF_BLOG_POST_DOC",
-					"XML_ID" => "UF_BLOG_POST_DOC"
+					"XML_ID" => "UF_BLOG_POST_DOC",
+					"USER_TYPE_ID" => "file",
+					"MULTIPLE" => "Y",
 				),
 				"BLOG_COMMENT" => array(
 					"ENTITY_ID" => "BLOG_COMMENT",
 					"FIELD_NAME" => "UF_BLOG_COMMENT_DOC",
-					"XML_ID" => "UF_BLOG_COMMENT_DOC"
+					"XML_ID" => "UF_BLOG_COMMENT_DOC",
+					"USER_TYPE_ID" => "file",
+					"MULTIPLE" => "Y",
 				),
+				"UF_BLOG_POST_URL_PRV" => array(
+					"ENTITY_ID" => "BLOG_POST",
+					"FIELD_NAME" => "UF_BLOG_POST_URL_PRV",
+					"XML_ID" => "UF_BLOG_POST_URL_PRV",
+					"USER_TYPE_ID" => "url_preview",
+					"MULTIPLE" => "N",
+				),
+				"UF_BLOG_COMM_URL_PRV" => array(
+					"ENTITY_ID" => "BLOG_COMMENT",
+					"FIELD_NAME" => "UF_BLOG_COMM_URL_PRV",
+					"XML_ID" => "UF_BLOG_COMM_URL_PRV",
+					"USER_TYPE_ID" => "url_preview",
+					"MULTIPLE" => "N",
+				)
 			);
 
 			$arFieldProps = Array(
-				"USER_TYPE_ID" => "file",
 				"SORT" => 100,
-				"MULTIPLE" => "Y",
 				"MANDATORY" => "N",
 				"SHOW_FILTER" => "N",
 				"SHOW_IN_LIST" => "N",
@@ -254,6 +270,10 @@ Class blog extends CModule
 		RegisterModuleDependences('conversion', 'OnGetCounterTypes' , 'blog', '\Bitrix\Blog\Internals\ConversionHandlers', 'onGetCounterTypes');
 		RegisterModuleDependences('conversion', 'OnGetRateTypes' , 'blog', '\Bitrix\Blog\Internals\ConversionHandlers', 'onGetRateTypes');
 		RegisterModuleDependences('blog', 'OnPostAdd', 'blog', '\Bitrix\Blog\Internals\ConversionHandlers', 'onPostAdd');
+
+		$eventManager = \Bitrix\Main\EventManager::getInstance();
+		$eventManager->registerEventHandler('mail', 'onReplyReceivedBLOG_POST', 'blog', '\Bitrix\Blog\Internals\MailHandler', 'handleReplyReceivedBlogPost');
+		$eventManager->registerEventHandler('mail', 'onForwardReceivedBLOG_POST', 'blog', '\Bitrix\Blog\Internals\MailHandler', 'handleForwardReceivedBlogPost');
 
 		CModule::IncludeModule("blog");
 		if (CModule::IncludeModule("search"))
@@ -426,6 +446,10 @@ Class blog extends CModule
 		UnRegisterModuleDependences('conversion', 'OnGetRateTypes' , 'blog', '\Bitrix\Blog\Internals\ConversionHandlers', 'onGetRateTypes');
 		UnRegisterModuleDependences('blog', 'OnPostAdd', 'blog', '\Bitrix\Blog\Internals\ConversionHandlers', 'onPostAdd');
 
+		$eventManager = \Bitrix\Main\EventManager::getInstance();
+		$eventManager->unregisterEventHandler('mail', 'onReplyReceivedBLOG_POST', 'blog', '\Bitrix\Blog\Internals\MailHandler', 'handleReplyReceivedBlogPost');
+		$eventManager->unregisterEventHandler('mail', 'onForwardReceivedBLOG_POST', 'blog', '\Bitrix\Blog\Internals\MailHandler', 'handleForwardReceivedBlogPost');
+
 		UnRegisterModule("blog");
 
 		return true;
@@ -447,6 +471,16 @@ Class blog extends CModule
 				"FIELD_NAME" => "UF_BLOG_COMMENT_DOC",
 				"XML_ID" => "UF_BLOG_COMMENT_DOC"
 			),
+			"UF_BLOG_POST_URL_PRV" => array(
+				"ENTITY_ID" => "BLOG_POST",
+				"FIELD_NAME" => "UF_BLOG_POST_URL_PRV",
+				"XML_ID" => "UF_BLOG_POST_URL_PRV",
+			),
+			"UF_BLOG_COMM_URL_PRV" => array(
+				"ENTITY_ID" => "BLOG_COMMENT",
+				"FIELD_NAME" => "UF_BLOG_COMM_URL_PRV",
+				"XML_ID" => "UF_BLOG_COMM_URL_PRV",
+			)
 		);
 
 		foreach ($arFields as $fieldName => $arField)

@@ -379,6 +379,7 @@
 	};
 	var simpleForm = function(handler) {
 		this.handler = handler;
+		this.id = BX.util.getRandomString(8);
 		this.params = {
 			placeholder: BX.message("MPFPlaceholder"),
 			button_name: BX.message("MPFButtonSend"),
@@ -426,11 +427,19 @@
 		};
 	};
 	simpleForm.prototype = {
-		handleAppData : function(text) {
+		handleAppData : function(text, repeat) {
+			if (!repeat)
+			{
+				this.handler.comment.node = null;
+			}
 			this.stopCheckWriting();
 			BX.onCustomEvent(this, 'onFormSubmitted', [text]);
 		},
-		handleAppFile : function(uri) {
+		handleAppFile : function(uri, repeat) {
+			if (!repeat)
+			{
+				this.handler.comment.node = null;
+			}
 			this.stopCheckWriting();
 			BX.onCustomEvent(this, 'onFileSubmitted', [new fileObj(uri)]);
 		},
@@ -440,6 +449,9 @@
 				this.writingParams.lastEvent = e;
 				this.writingParams.text += e.text;
 				this.writingParams["~text"] = e.text;
+
+				window.app.onCustomEvent("main.post.form/text", [e.text]);
+
 				if (this.writingParams.text.length > 4)
 				{
 					this.writingParams.text = '';
@@ -447,11 +459,24 @@
 				}
 			}
 		},
-		init : function() {
+		init : function(text) {
+			text = (text || '');
+
+			this.params.text = text;
 			window.BXMobileApp.UI.Page.TextPanel.show(this.params);
-			window.BXMobileApp.UI.Page.TextPanel.clear();
+
+			if (BX.type.isNotEmptyString(text))
+			{
+				//setTimeout(function(){ window.BXMobileApp.UI.Page.TextPanel.setText(text); }, 100);
+				this.writingParams["~text"] = text;
+			}
+			else
+			{
+				//window.BXMobileApp.UI.Page.TextPanel.clear();
+				this.writingParams["~text"] = '';
+			}
+
 			this.writingParams.text = '';
-			this.writingParams["~text"] = '';
 		},
 		show : function(text) {
 			if (BX.type.isString(text))
@@ -532,14 +557,15 @@
 	extendedForm.prototype = {
 		initFiles : function(controllers) {
 			this.controllers = {
-				/*				common : {
-				 storage : "bfile",
-				 parser : "postimage",
-				 node : window,
-				 obj : null,
-				 init : false
-				 }
-				 */
+				/*
+				common : {
+					storage : "bfile",
+					parser : "postimage",
+					node : window,
+					obj : null,
+					init : false
+				}
+				*/
 			};
 			if (!controllers || typeof controllers !== "object")
 				return [];
@@ -680,7 +706,7 @@
 
 		repo[this.id] = this;
 
-		this.initEvents(params);
+		this.initEvents();
 
 		this.controllers = {};
 		this.initControllers(params["CID"]);
@@ -693,7 +719,7 @@
 			error00 : "BX.MPL: Mobile Application is obsolete.",
 			error01 : "BX.MPL: form does not exist."
 		},
-		initEvents : function(params) {
+		initEvents : function() {
 			BX.addCustomEvent(this.simpleForm, 'onFormSubmitted', BX.delegate(this.submitPlain, this));
 			BX.addCustomEvent(this.simpleForm, 'onFileSubmitted', BX.delegate(this.submitBase64, this));
 			BX.addCustomEvent(this.simpleForm, 'onUserIsWriting', BX.delegate(this.writing, this));
@@ -739,9 +765,10 @@
 			this.currentForm = (extended === true ? this.extendedForm : this.simpleForm);
 		},
 		init : function(comment) {
+
 			this.comment = comment;
 			this.setForm(false);
-			this.simpleForm.init();
+			this.simpleForm.init(comment.text);
 		},
 		show : function(comment, edit) {
 			BX.onCustomEvent(this, "onShow", [this, comment]);

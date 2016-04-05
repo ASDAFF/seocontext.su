@@ -96,7 +96,7 @@ div#wiki-post div.wiki-post-area input.search-tags
 }
 
 div#wiki-post div.wiki-post-area div.wiki-wcode-line a, div.wiki-smiles-line a {vertical-align: middle;}
-div#wiki-post div.wiki-post-area div.wiki-wcode-line a {width: 20px; height: 20px; float: left; margin-right: 0.2em; background-position: center center;  background-repeat:no-repeat; display: block;}
+div#wiki-post div.wiki-post-area div.wiki-wcode-line a {width: 20px; height: 20px; float: left; margin-right: 0.2em; background-position: center center;  background-repeat:no-repeat; display: block; cursor:pointer;}
 
 /*WIKI line*/
 div#wiki-post div.wiki-post-area div.wiki-wcode-line {margin-right: 2em; float: left;}

@@ -1,8 +1,8 @@
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 
 $arComponentDescription = array(
-	"NAME" => GetMessage("IBLOCK_ELEMENT_TEMPLATE_NAME"),
-	"DESCRIPTION" => GetMessage("IBLOCK_ELEMENT_TEMPLATE_DESCRIPTION"),
+	"NAME" => GetMessage("IBLOCK_ELEMENT_TEMPLATE_NAME").' '.GetMessage("IMAGEROTATOR_DEPRECATED"),
+	"DESCRIPTION" => GetMessage("IBLOCK_ELEMENT_TEMPLATE_DESCRIPTION").' '.GetMessage("IMAGEROTATOR_DEPRECATED_2"),
 	"ICON" => "/images/icon.gif",
 	"CACHE_PATH" => "Y",
 	"SORT" => 30,
@@ -16,7 +16,7 @@ $arComponentDescription = array(
 				"ID" => "photo_gallery",
 			),
 		),
-	),
+	)
 );
 
 ?>

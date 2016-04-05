@@ -29,7 +29,7 @@ class CBPIMNotifyActivity
 		$arMessageUserTo = CBPHelper::ExtractUsers($this->MessageUserTo, $documentId, false);
 
 		$arMessageFields = array(
-			"FROM_USER_ID" => $arMessageUserFrom,
+			"FROM_USER_ID" => $this->MessageType == IM_NOTIFY_SYSTEM? 0: $arMessageUserFrom,
 			"NOTIFY_TYPE" => intval($this->MessageType), 
 			"NOTIFY_MESSAGE" => $this->MessageSite, 
 			"NOTIFY_MESSAGE_OUT" => $this->MessageOut,

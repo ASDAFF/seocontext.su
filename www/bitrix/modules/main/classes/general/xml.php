@@ -441,14 +441,14 @@ class CDataXML
 		return $result;
 	}
 
-	function xmlspecialchars($str)
+	public static function xmlspecialchars($str)
 	{
 		static $search = array("&","<",">","\"","'");
 		static $replace = array("&amp;","&lt;","&gt;","&quot;","&apos;");
 		return str_replace($search, $replace, $str);
 	}
 
-	function xmlspecialcharsback($str)
+	public static function xmlspecialcharsback($str)
 	{
 		static $search = array("&lt;","&gt;","&quot;","&apos;","&amp;");
 		static $replace = array("<",">","\"","'","&");

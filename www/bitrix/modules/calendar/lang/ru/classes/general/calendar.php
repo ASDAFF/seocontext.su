@@ -312,8 +312,10 @@ $MESS["EC_ALL_GUESTS"] = "Все участники";
 $MESS["EC_ALL_GUESTS_TITLE"] = "Показать всех участников";
 $MESS["EC_DEL_ENCOUNTER"] = "Отказаться от участия";
 $MESS["EC_EDEV_CONFIRMED"] = "Подтверждено";
-$MESS["EC_ACCEPT_MEETING"] = "Принять участие";
-$MESS["EC_ACCEPT_MEETING_2"] = "Передумать и принять участие";
+$MESS["EC_ACCEPT_MEETING"] = "Буду участвовать";
+$MESS["EC_ACCEPT_MAYBE_MEETING"] = "Возможно";
+$MESS["EC_ACCEPT_MAYBE_MEETING_2"] = "Возможно";
+$MESS["EC_ACCEPT_MEETING_2"] = "Передумать и участвовать";
 $MESS["EC_EDEV_CONF_Y_TITLE"] = "Подтвердить свое участие";
 $MESS["EC_EDEV_CONF_N"] = "Отказаться";
 $MESS["EC_EDEV_CONF_N_TITLE"] = "Отказаться от участия (Событие будет удалено из Вашего календаря)";
@@ -602,4 +604,19 @@ $MESS["EC_ATTENDEE_0"] = "#NUM# участников";
 $MESS["EC_DD_DENY_REPEATED"] = "Повторяемое событие нельзя перетаскивать";
 $MESS["EC_DD_DENY_TASK"] = "Задачу нельзя перетаскивать";
 $MESS["EC_DD_DENY_EVENT"] = "Это событие нельзя перетаскивать";
+
+$MESS["EC_EVENT_TZ_BUT_OPEN"] = "Указать часовой пояс";
+$MESS["EC_EVENT_TZ_BUT_CLOSE"] = "Скрыть часовой пояс";
+$MESS["EC_EVENT_TYPE"] = "Тип события";
+$MESS["EC_EVENT_ASK_TZ"] = "Укажите ваш часовой пояс:";
+$MESS["EC_EVENT_ASK_TZ_CHANGE"] = "Похоже что вы ваш часовой пояс изменился:";
+
+$MESS["EC_EVENT_TZ_DIFFERENT"] = "Разные часовые пояса начала и окончания события";
+$MESS["EC_EVENT_TZ_DEF_HINT"] = "Укажите часовой пояс, в котором вы находитесь. Мы его запомним и больше спрашивать не будем.";
+$MESS["EC_EVENT_TZ_HINT"] = "Если событие планируется в другом часовом поясе, укажите его, выбрав нужное значение из списка. Возможно, указать разные часовые пояса начала и окончания мероприятия.";
+$MESS["EC_TIMEZONE"] = "Ваш часовой пояс";
+$MESS["EC_RESERVE_PERIOD_WARN"] = "Бронирование переговорной периодическим событием недоступно.";
+$MESS["EC_CAL_OPEN_LINK"] = "Перейти в календарь";
+$MESS["EC_CAL_ACCESS_SETTINGS"] = "Настроить права доступа";
+$MESS["EC_CAL_ACCESS_SETTINGS_WARN"] = "Обратитесь к администратору для натстройки прав доступа";
 ?>

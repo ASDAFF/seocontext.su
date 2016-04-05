@@ -70,6 +70,11 @@ abstract class OtpAlgorithm
 	public function setSecret($secret)
 	{
 		$this->secret = $secret;
+
+		// Backward compatibility. Use sha256 for eToken with 256bits key
+		if (\Bitrix\Main\Text\String::getBinaryLength($this->secret) > 25)
+			$this->digest = 'sha256';
+
 		return $this;
 	}
 
@@ -144,7 +149,8 @@ abstract class OtpAlgorithm
 		{
 			$hmac[] = hexdec($hex);
 		}
-		$offset = $hmac[19] & 0xf;
+
+		$offset = $hmac[count($hmac)  - 1] & 0xf;
 		$code = ($hmac[$offset + 0] & 0x7F) << 24;
 		$code |= ($hmac[$offset + 1] & 0xFF) << 16;
 		$code |= ($hmac[$offset + 2] & 0xFF) << 8;

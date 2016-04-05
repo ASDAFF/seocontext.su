@@ -413,7 +413,7 @@ class CSaleOrderProps
 
 					$relationFilter []= array(
 						'=Bitrix\Sale\Internals\OrderPropsRelationTable:lPROPERTY.ENTITY_TYPE' => 'D',
-						'=Bitrix\Sale\Internals\OrderPropsRelationTable:lPROPERTY.ENTITY_ID' => $arFilter['RELATED']['DELIVERY_ID'],
+						'=Bitrix\Sale\Internals\OrderPropsRelationTable:lPROPERTY.ENTITY_ID' => \CSaleDelivery::getIdByCode($arFilter['RELATED']['DELIVERY_ID']),
 					);
 				}
 

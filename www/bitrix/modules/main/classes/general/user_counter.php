@@ -306,6 +306,7 @@ class CAllUserCounter
 				CPullStack::AddByChannel($channelId, Array(
 					'module_id' => 'main',
 					'command'   => 'user_counter',
+					'expiry' 	=> 3600,
 					'params'    => $arMessage,
 				));
 			}
@@ -314,7 +315,7 @@ class CAllUserCounter
 		return true;
 	}
 
-	protected static function CheckLiveMode()
+	public static function CheckLiveMode()
 	{
 		return CModule::IncludeModule('pull') && CPullOptions::GetNginxStatus();
 	}
@@ -383,6 +384,7 @@ class CAllUserCounter
 				CPullStack::AddByChannel($channelId, Array(
 					'module_id' => 'main',
 					'command'   => 'user_counter',
+					'expiry' 	=> 3600,
 					'params'    => $arMessage,
 				));
 			}
@@ -442,6 +444,91 @@ class CAllUserCounter
 	public static function GetLastDateByUserAndCode($user_id, $site_id = SITE_ID, $code = self::ALL_SITES)
 	{
 		return self::GetLastDate($user_id, $code, $site_id);
+	}
+
+	public static function DeleteOld()
+	{
+		global $DB;
+
+		$days = intval(\Bitrix\Main\Config\Option::get('main', 'user_counter_days', 20));
+
+		$time = $DB->CharToDateFunction(GetTime(time()- $days*60*60*24, "FULL"));
+		$DB->Query("DELETE FROM b_user_counter WHERE TIMESTAMP_X <= ".$time);
+
+		return "CUserCounter::DeleteOld();";
+	}
+}
+
+class CAllUserCounterPage
+{
+	protected static function setUserIdOption($value = false)
+	{
+		\Bitrix\Main\Config\Option::set('main', 'user_counter_pull_page_start', $value);
+	}
+
+	protected static function getUserIdOption()
+	{
+		return \Bitrix\Main\Config\Option::get('main', 'user_counter_pull_page_start', false);
+	}
+
+	private static function getPageSizeOption($defaultValue = 100)
+	{
+		$value = intval(\Bitrix\Main\Config\Option::get('main', 'user_counter_pull_page_size', $defaultValue));
+		if ($value <= 0)
+		{
+			$value = $defaultValue;
+		}
+
+		return $value;
+	}
+
+	public static function setNewEvent()
+	{
+		self::setUserIdOption(0);
+	}
+
+	protected static function getMinMax($prevMax = 0)
+	{
+		global $DB;
+
+		$pageSize = self::getPageSizeOption(100);
+
+		$strSQL = "
+				SELECT USER_ID
+				FROM b_user_counter uc
+				WHERE SENT = '0' AND USER_ID > ".intval($prevMax)."
+				GROUP BY USER_ID
+				ORDER BY USER_ID ASC
+				LIMIT ".$pageSize."
+			";
+
+		$res = $DB->query($strSQL, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
+
+		$i = 0;
+		while($row = $res->fetch())
+		{
+			if (!$i)
+			{
+				$minValue = $row["USER_ID"];
+			}
+			else
+			{
+				$maxValue = $row["USER_ID"];
+			}
+			$i++;
+		}
+
+		if ($i)
+		{
+			return array(
+				"MIN" => intval($minValue),
+				"MAX" => intval($maxValue)
+			);
+		}
+		else
+		{
+			return false;
+		}
 	}
 }
 ?>

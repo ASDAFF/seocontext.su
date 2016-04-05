@@ -76,7 +76,7 @@ class UserTypePropertyEmployee extends UserTypeProperty
 		if ($allowSelection)
 		{
 			$selectorValue = \CBPActivity::isExpression($value) ? $value : null;
-			$renderResult .= static::renderControlSelector($field, $selectorValue, true, 'employee');
+			$renderResult .= static::renderControlSelector($field, $selectorValue, true, 'employee', $fieldType);
 		}
 
 		return $renderResult;
@@ -106,7 +106,7 @@ class UserTypePropertyEmployee extends UserTypeProperty
 				if (\CBPActivity::isExpression($v))
 					$selectorValue = $v;
 			}
-			$renderResult .= static::renderControlSelector($field, $selectorValue, true, 'employee');
+			$renderResult .= static::renderControlSelector($field, $selectorValue, true, 'employee', $fieldType);
 		}
 
 		return $renderResult;
@@ -120,7 +120,9 @@ class UserTypePropertyEmployee extends UserTypeProperty
 	 */
 	protected static function extractValue(FieldType $fieldType, array $field, array $request)
 	{
-		$value = parent::extractValue($fieldType, $field, $request);
+		$value = (int) parent::extractValue($fieldType, $field, $request);
+		if (empty($value))
+			$value = null;
 
 		if ($value !== null && !static::isCompatibleMode())
 		{
@@ -138,6 +140,22 @@ class UserTypePropertyEmployee extends UserTypeProperty
 	protected static function formatValuePrintable(FieldType $fieldType, $value)
 	{
 		$value = static::fixUserPrefix($value);
+		$userType = static::getUserType($fieldType);
+		if (is_array($value) && isset($value['VALUE']))
+			$value = $value['VALUE'];
+
+		if (!empty($userType['GetPublicViewHTML']))
+		{
+			$result = call_user_func_array(
+				$userType['GetPublicViewHTML'],
+				array(
+					array('LINK_IBLOCK_ID' => $fieldType->getOptions()),
+					array('VALUE' => $value),
+					''
+				)
+			);
+			return htmlspecialcharsback($result);
+		}
 		return parent::formatValuePrintable($fieldType, $value);
 	}
 

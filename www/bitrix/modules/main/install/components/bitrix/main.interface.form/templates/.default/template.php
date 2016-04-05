@@ -197,6 +197,7 @@ else:
 <?
 			break;
 		case 'list':
+		case 'select':
 ?>
 <select name="<?=$field["id"]?>"<?=$params?>>
 <?
@@ -225,6 +226,7 @@ else:
 
 			break;
 		case 'date':
+		case 'date_short':
 ?>
 <?$APPLICATION->IncludeComponent(
 	"bitrix:main.calendar",
@@ -234,7 +236,7 @@ else:
 		"INPUT_NAME"=>$field["id"],
 		"INPUT_VALUE"=>$val,
 		"INPUT_ADDITIONAL_ATTR"=>$params,
-		"SHOW_TIME" => 'Y',
+		"SHOW_TIME" => $field["type"] === 'date'? 'Y' : 'N',
 	),
 	$component,
 	array("HIDE_ICONS"=>true)

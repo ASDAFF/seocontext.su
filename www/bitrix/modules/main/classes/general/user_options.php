@@ -186,6 +186,9 @@ class CUserOptions
 			"VALUE" => serialize($value),
 			"COMMON" => ($bCommon ? "Y" : "N"),
 		);
+
+		$DB->StartUsingMasterOnly();
+
 		$res = $DB->Query("
 			SELECT ID FROM b_user_option
 			WHERE
@@ -209,6 +212,8 @@ class CUserOptions
 			if (!$DB->Add("b_user_option", $arFields, array("VALUE")))
 				return false;
 		}
+
+		$DB->StopUsingMasterOnly();
 
 		if($bCommon)
 		{

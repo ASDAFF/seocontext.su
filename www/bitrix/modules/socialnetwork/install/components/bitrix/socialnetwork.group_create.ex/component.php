@@ -604,11 +604,38 @@ else
 
 									$userID = 0;
 
-									$rsUser = CUser::GetList(($by="id"), ($order="asc"), $arFilter, array("SELECT" => array("UF_DEPARTMENT")));
+									$rsUser = CUser::GetList(
+										($by="id"),
+										($order="asc"),
+										$arFilter,
+										array(
+											"FIELDS" => array("ID", "EXTERNAL_AUTH_ID"),
+											"SELECT" => array("UF_DEPARTMENT")
+										)
+									);
 									if ($arUser = $rsUser->Fetch())
 									{
 										//if user with this e-mail is registered, but is external user
-										if (
+										if ($arUser["EXTERNAL_AUTH_ID"] == 'email')
+										{
+											$ID_TRANSFERRED = CIntranetInviteDialog::TransferEmailUser($arUser["ID"], array(
+												"SITE_ID" => SITE_ID,
+												"GROUP_ID" => $userData["GROUP_ID"]
+											));
+
+											if (!$ID_TRANSFERRED)
+											{
+												if($e = $GLOBALS["APPLICATION"]->GetException())
+												{
+													$errorMessage .= $e->GetString();
+												}
+											}
+											else
+											{
+												$arUserIDs[] = $ID_TRANSFERRED;
+											}
+										}
+										elseif (
 											empty($arUser["UF_DEPARTMENT"])
 											|| (
 												is_array($arUser["UF_DEPARTMENT"])
@@ -675,7 +702,40 @@ else
 								"ADD_SEND_PASSWORD" => $_POST["ADD_SEND_PASSWORD"]
 							);
 
-							$ID_ADDED = CIntranetInviteDialog::AddNewUser(SITE_ID, $userData, $strError);
+							$rsUser = CUser::GetList(
+								($by="id"),
+								($order="asc"),
+								array(
+									"ADD_EMAIL" => $userData["ADD_EMAIL"]
+								),
+								array(
+									"FIELDS" => array("ID", "EXTERNAL_AUTH_ID")
+								)
+							);
+							if (
+								($arUser = $rsUser->Fetch())
+								&& ($arUser["EXTERNAL_AUTH_ID"] == 'email')
+							)
+							{
+								$ID_TRANSFERRED = CIntranetInviteDialog::TransferEmailUser($arUser["ID"], array(
+									"SITE_ID" => SITE_ID,
+									"NAME" => $userData["ADD_NAME"],
+									"LAST_NAME" => $userData["ADD_LAST_NAME"]
+								));
+
+								if (!$ID_TRANSFERRED)
+								{
+									if($e = $GLOBALS["APPLICATION"]->GetException())
+									{
+										$errorMessage .= (strlen($errorMessage) > 0 ? "<br />" : "").$e->GetString();
+									}
+								}
+							}
+							else
+							{
+								$ID_ADDED = CIntranetInviteDialog::AddNewUser(SITE_ID, $userData, $strError);
+							}
+
 							if ($ID_ADDED <= 0)
 							{
 								$errorMessage .= (strlen($errorMessage) > 0 ? "<br />" : "").$strError;

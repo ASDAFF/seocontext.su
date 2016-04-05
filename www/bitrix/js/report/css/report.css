@@ -2,7 +2,7 @@
 .report-table-wrap {/*overflow-x: auto; */position: relative;}
 .reports-list-left-corner {background:url("/bitrix/js/report/css/images/sprites.png") no-repeat -117px 0; font-size: 1px; height: 2px; left:0; position: absolute; top:0; width: 2px; z-index: 1;}
 .reports-list-right-corner {background:url("/bitrix/js/report/css/images/sprites.png") no-repeat -117px -2px; font-size: 1px; height: 2px; right: 0; position: absolute; top:0; width: 2px; z-index: 1;}
-.reports-title-buttons {position: absolute; right: 0; top: 5px; white-space: nowrap;}
+.reports-title-buttons { float:right; white-space: nowrap;}
 .reports-title-button {cursor: pointer; display: inline-block; height: 19px; outline: medium none; text-decoration: none !important; vertical-align: top;}
 .reports-title-button-back-icon,
 .reports-title-button-create-icon,

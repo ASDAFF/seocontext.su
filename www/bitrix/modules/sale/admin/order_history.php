@@ -155,12 +155,12 @@ while ($arChangeRecord = $dbRecords->Fetch())
 	$entityName = '';
 	$row =& $lAdminHistory->AddRow($arChangeRecord["ID"], $arChangeRecord, '', '');
 	$stmp = MakeTimeStamp($arChangeRecord["DATE_CREATE"], "DD.MM.YYYY HH:MI:SS");
-	$row->AddField("DATE_CREATE", date("d.m.Y H:i", $stmp));
+	$row->AddField("DATE_CREATE", date("d.m.Y H:i:s", $stmp));
 	$row->AddField("USER_ID", GetFormatedUserName($arChangeRecord["USER_ID"], false));
 	$arRecord = CSaleOrderChange::GetRecordDescription($arChangeRecord["TYPE"], $arChangeRecord["DATA"]);
 	$row->AddField("TYPE", $arRecord["NAME"]);
 	$row->AddField("DATA", htmlspecialcharsbx($arRecord["INFO"]));
-	if (!isset($entity))
+	if (!isset($entity) && intval($arChangeRecord["ENTITY_ID"]) > 0)
 	{
 		if ($arChangeRecord["ENTITY"] == 'SHIPMENT')
 		{

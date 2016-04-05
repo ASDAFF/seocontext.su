@@ -266,7 +266,7 @@ JSECEvent.prototype = {
 	{
 		if (!userId)
 			userId = this.oEC.userId;
-		return !!(oEvent.IS_MEETING && oEvent.MEETING_HOST == userId);
+		return (oEvent.IS_MEETING && (oEvent.MEETING_STATUS == 'H' || oEvent.ID == oEvent.PARENT_ID && userId == oEvent.MEETING_HOST));
 	},
 
 	IsAttendee: function(oEvent, userId)
@@ -274,10 +274,11 @@ JSECEvent.prototype = {
 		if (!userId)
 			userId = this.oEC.userId;
 
-		if (oEvent.IS_MEETING && oEvent.USER_MEETING)
+		//if (oEvent.IS_MEETING && oEvent.USER_MEETING)
+		if (oEvent.IS_MEETING)
 		{
-			if (oEvent.USER_MEETING.ATTENDEE_ID != userId)
-				return false;
+			//if (oEvent.USER_MEETING.ATTENDEE_ID != userId)
+			//	return false;
 			return true;
 		}
 		return false;
@@ -290,7 +291,7 @@ JSECEvent.prototype = {
 
 	IsBlinked: function(oEvent)
 	{
-		return oEvent.USER_MEETING && oEvent.USER_MEETING.STATUS == 'Q';
+		return oEvent.IS_MEETING && oEvent.MEETING_STATUS == 'Q';
 	},
 
 	IsRecursive: function(oEvent)
@@ -445,9 +446,9 @@ JSECEvent.prototype = {
 
 	SmartId : function(e)
 	{
-		var sid = e.ID;
+		var sid = e.PARENT_ID || e.ID;
 		if (this.IsRecursive(e))
-			sid += e.DT_FROM_TS;
+			sid += e.DATE_FROM;
 		if (e['~TYPE'] == 'tasks')
 			sid += 'task';
 		return sid;
@@ -463,6 +464,9 @@ JSECEvent.prototype = {
 		this.oEC.arLoadedParentId = {};
 		this.oEC.arLoadedMonth = {};
 		this.oEC.arEvents = [];
+		this.oEC.SetTabNeedRefresh('month', true);
+		this.oEC.SetTabNeedRefresh('week', true);
+		this.oEC.SetTabNeedRefresh('day', true);
 
 		if (bTimeout === false)
 			this.oEC.LoadEvents();
@@ -481,8 +485,9 @@ JSECEvent.prototype = {
 				id: P.id || 0,
 				name: P.name,
 				desc: P.desc || '',
-				from_ts: parseInt(P.from, 10), // timestamp here
-				to_ts: parseInt(P.to, 10),
+				date_from: P.date_from,
+				date_to: P.date_to,
+				default_tz: P.default_tz,
 				sections: [P.calendar],
 				location: P.location || {OLD: '', NEW: '', CHANGED: ''},
 				month: month + 1,
@@ -662,7 +667,9 @@ JSECEvent.prototype = {
 			oDiv = BX.create('DIV', {props:{className : 'bxec-event-actions'}}),
 			oDiv_ = oDiv.appendChild(BX.create('DIV', {props: {className : P.bTimeline ? 'bxec-icon-cont-tl' : 'bxec-icon-cont'}}));
 
-		if (this.CanDo(oEvent, 'edit') || (isTask && oEvent.CAN_EDIT))
+		if ((!this.IsMeeting(oEvent) || (this.IsMeeting(oEvent) && this.IsHost(oEvent))) &&
+			(this.CanDo(oEvent, 'edit') || (isTask && oEvent.CAN_EDIT)) &&
+			(!oEvent.PRIVATE_EVENT || this.oEC.Personal()))
 		{
 			ic = oDiv_.appendChild(BX.create('I', {props: {className : 'bxec-event-but bxec-ev-edit-icon', title: isTask ? EC_MESS.TaskEdit : EC_MESS.EditEvent}}));
 			ic.setAttribute('data-bx-event-action', 'edit');
@@ -671,7 +678,7 @@ JSECEvent.prototype = {
 			// Add del button
 			if (this.IsAttendee(oEvent) && !this.IsHost(oEvent))
 			{
-				if (oEvent.USER_MEETING.STATUS != 'N')
+				if (oEvent.MEETING_STATUS != 'N')
 				{
 					ic = oDiv_.appendChild(BX.create('I', {props: {className : 'bxec-event-but bxec-ev-del-icon', title: EC_MESS.DelEncounter}}));
 					ic.setAttribute('data-bx-event-action', 'del');
@@ -699,7 +706,7 @@ JSECEvent.prototype = {
 	GetLabelStyle: function(oEvent)
 	{
 		var
-			labelStyle = ''
+			labelStyle = '',
 			imp = oEvent.IMPORTANCE;
 		if (imp && imp != 'normal')
 			labelStyle = ' style="' + (imp == 'high' ? 'font-weight: bold;' : 'color: #535353;') + '"';
@@ -708,37 +715,24 @@ JSECEvent.prototype = {
 
 	PreHandle: function(oEvent)
 	{
-		oEvent.DT_FROM_TS = BX.date.getBrowserTimestamp(oEvent.DT_FROM_TS);
-		oEvent.DT_TO_TS = BX.date.getBrowserTimestamp(oEvent.DT_TO_TS);
-
-		if (oEvent.DT_FROM_TS > oEvent.DT_TO_TS)
-			oEvent.DT_FROM_TS = oEvent.DT_TO_TS;
-
-		if (this.IsRecursive(oEvent))
+		if (oEvent.DATE_FROM && oEvent.DATE_TO)
 		{
-			oEvent['~DT_FROM_TS'] = BX.date.getBrowserTimestamp(oEvent['~DT_FROM_TS']);
-			oEvent['~DT_TO_TS'] = BX.date.getBrowserTimestamp(oEvent['~DT_TO_TS']);
+			oEvent.dateFrom = BX.parseDate(oEvent.DATE_FROM);
+			oEvent.dateTo = BX.parseDate(oEvent.DATE_TO);
 
-			if (oEvent.RRULE && oEvent.RRULE.UNTIL)
-				oEvent.RRULE.UNTIL = BX.date.getBrowserTimestamp(oEvent.RRULE.UNTIL);
+			if (oEvent.dateFrom && oEvent.dateTo)
+			{
+				oEvent.DT_FROM_TS = oEvent.dateFrom.getTime();
+				oEvent.DT_TO_TS = oEvent.dateTo.getTime();
+
+				if (oEvent.DT_SKIP_TIME !== "Y")
+				{
+					oEvent.DT_FROM_TS -= (oEvent['~USER_OFFSET_FROM'] || 0) * 1000;
+					oEvent.DT_TO_TS -= (oEvent['~USER_OFFSET_TO'] || 0) * 1000;
+				}
+			}
 		}
-
 		return oEvent;
 	}
 };
 })(window);
-
-
-
-// BX.addCustomEvent(this, 'onCalendarEventView', function(oEC, oEvent)
-// {
-	// if (oEvent && oEvent['~TYPE'] == 'tasks')
-	// {
-		// if (window.taskIFramePopup && parseInt(oEvent['ID']) > 0)
-		// {
-			// taskIFramePopup.view(parseInt(oEvent['ID']));
-			// oEC.DefaultAction(false);
-		// }
-	// }
-// });
-

@@ -12,7 +12,7 @@ $bLists = $arResult["BLOG_POST_LISTS"];
 if (
 	!empty($arResult["Post"])
 	|| isset($arParams["DISPLAY"])
-	|| (CModule::IncludeModule('extranet') && !CExtranet::IsIntranetUser()) // Disable calendar feature for extranet users
+	|| $arResult["bExtranetUser"]
 )
 {
 	$bCalendar = false;
@@ -196,15 +196,6 @@ else
 		);
 	}
 
-	if($bLists)
-	{
-		$arTabs[] = array(
-			"ID" => "lists",
-			"NAME" => GetMessage("BLOG_TAB_LISTS"),
-			"ICON" => "feed-add-post-form-polls-link-icon"
-		);
-	}
-
 	if ($bVote)
 	{
 		$arTabs[] = array(
@@ -228,10 +219,22 @@ else
 	);
 
 	if($bLists)
+	{
+		$arTabs[] = array(
+			"ID" => "lists",
+			"NAME" => GetMessage("BLOG_TAB_LISTS"),
+			"ONCLICK" => "window.SBPETabs.getInstance().getLists();"
+//			"ICON" => "feed-add-post-form-polls-link-icon"
+		);
+	}
+
+	$maxTabs = 4;
+/*
+	if($bLists)
 		$maxTabs = 4;
 	else
 		$maxTabs = 3;
-
+*/
 	$tabsCnt = count($arTabs);
 	for ($i = 0; $i < $maxTabs; $i++)
 	{
@@ -408,7 +411,18 @@ HTML;
 							array_merge(
 								(is_array($arResult["POST_PROPERTIES"]["DATA"]["UF_BLOG_POST_DOC"]) ? $arResult["POST_PROPERTIES"]["DATA"]["UF_BLOG_POST_DOC"] : array()),
 								($bVarsFromForm && is_array($_POST["UF_BLOG_POST_DOC"]) ? array("VALUE" => $_POST["UF_BLOG_POST_DOC"]) : array()),
-								array("POSTFIX" => "file"))),
+								array("POSTFIX" => "file")),
+						array_key_exists("UF_BLOG_POST_URL_PRV", $arResult["POST_PROPERTIES"]["DATA"]) ?
+							array_merge(
+								$arResult["POST_PROPERTIES"]["DATA"]["UF_BLOG_POST_URL_PRV"],
+								array(
+									'ELEMENT_ID' => 'url_preview_'.$id,
+									'STYLE' => 'margin: 0 18px'
+								)
+							)
+							:
+							array()
+					),
 					"UPLOAD_FILE_PARAMS" => array('width' => $arParams["IMAGE_MAX_WIDTH"], 'height' => $arParams["IMAGE_MAX_HEIGHT"]),
 
 					"DESTINATION" => array(
@@ -437,7 +451,8 @@ HTML;
 						"bInitByJS" => (!$bVarsFromForm && $arParams["TOP_TABS_VISIBLE"] == "Y")
 					),
 					"USE_CLIENT_DATABASE" => "Y",
-					"DEST_CONTEXT" => "BLOG_POST"
+					"DEST_CONTEXT" => "BLOG_POST",
+					"ALLOW_EMAIL_INVITATION" => ($arResult["ALLOW_EMAIL_INVITATION"] ? 'Y' : 'N')
 				)),
 				false,
 				Array("HIDE_ICONS" => "Y")
@@ -662,7 +677,8 @@ HTML;
 										'groups' : {}
 									},
 									'itemsSelected' : <?=(($arGratCurrentUsers && is_array($arGratCurrentUsers)) ? CUtil::PhpToJSObject($arGratCurrentUsers) : '{}')?>,
-									'LHEObjName' : '<?=CUtil::JSEscape($jsObjName)?>'
+									'LHEObjName' : '<?=CUtil::JSEscape($jsObjName)?>',
+									'userNameTemplate': '<?=CUtil::JSEscape($arParams['NAME_TEMPLATE'])?>'
 								});
 								BX.bind(BX('feed-add-post-grat-input'), 'keyup', BX.delegate(BX.SocNetLogDestination.BXfpSearch, {
 									formName: window["BXSocNetLogGratFormName"],
@@ -714,9 +730,10 @@ HTML;
 					"POSTFIX" => "file",
 				),
 				"DESTINATION" => array(
-					"VALUE" => $arResult["PostToShow"]["FEED_DESTINATION"],
+					"VALUE" => (isset($arResult["PostToShow"]["FEED_DESTINATION_CALENDAR"]) ? $arResult["PostToShow"]["FEED_DESTINATION_CALENDAR"] : $arResult["PostToShow"]["FEED_DESTINATION"]),
 					"SHOW" => "Y"
 				),
+				"DEST_SORT" => (isset($arResult["DEST_SORT_CALENDAR"]) ? $arResult["DEST_SORT_CALENDAR"] : $arResult["DEST_SORT"]),
 				"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"]
 
 			), null, array("HIDE_ICONS"=>"Y"));

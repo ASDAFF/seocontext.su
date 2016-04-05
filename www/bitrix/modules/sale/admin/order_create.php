@@ -25,7 +25,9 @@ $isSavingOperation = (
 );
 $needFieldsRestore = $_SERVER["REQUEST_METHOD"] == "POST" && !$isSavingOperation;
 $isCopyingOrderOperation = $ID > 0;
-$createWithProducts = (isset($_GET["USER_ID"]) && isset($_GET["SITE_ID"]) && (isset($_GET["FUSER_ID"]) || isset($_GET["product"])));
+$createWithProducts = (isset($_GET["USER_ID"]) && isset($_GET["SITE_ID"]) || isset($_GET["product"]));
+$showProfiles = false;
+$profileId = 0;
 
 $arUserGroups = $USER->GetUserGroupArray();
 $saleModulePermissions = $APPLICATION->GetGroupRight("sale");
@@ -84,6 +86,16 @@ if($isSavingOperation || $needFieldsRestore)
 			if(!$res)
 				$result->addError(new \Bitrix\Main\Entity\EntityError("Can't save coupons!"));
 
+			/* To apply discounts depended on paysystems, or delivery services */
+			if (!($basket = $order->getBasket()))
+				throw new \Bitrix\Main\ObjectNotFoundException('Entity "Basket" not found');
+
+			$res = $basket->refreshData(array('PRICE', 'QUANTITY', 'COUPONS'));
+
+			if(!$res->isSuccess())
+				$result->addErrors($res->getErrors());
+			/* * */
+
 			$res = $order->save();
 
 			if($res->isSuccess())
@@ -114,6 +126,7 @@ if($isSavingOperation || $needFieldsRestore)
 }
 elseif($createWithProducts)
 {
+	$showProfiles = true;
 	$formData = array(
 		"USER_ID" => $_GET["USER_ID"],
 		"SITE_ID" => $_GET["SITE_ID"]
@@ -122,37 +135,9 @@ elseif($createWithProducts)
 
 	$formData["PRODUCT"] = array();
 	$basketCode = 1;
+	$userProfiles = array();
 
-
-	if (isset($_GET['FUSER_ID']) && intval($_GET['FUSER_ID']) > 0)
-	{
-		$basketFilter = array(
-			'filter' => array(
-				'LID' => $_GET['SITE_ID'],
-				'FUSER_ID' => intval($_GET['FUSER_ID']),
-				'ORDER_ID' => null,
-				'!MODULE' => false
-			),
-			'select' => array('PRODUCT_ID', 'QUANTITY'),
-			'order' => array('ID' => 'ASC'),
-		);
-
-		$res = \Bitrix\Sale\Basket::getList($basketFilter);
-		while($basketItem = $res->fetch())
-		{
-			$productParams = Blocks\OrderBasket::getProductDetails(
-				$basketItem['PRODUCT_ID'], $basketItem['QUANTITY'], $formData["USER_ID"], $formData["SITE_ID"]
-			);
-
-			if(!is_array($productParams) || empty($productParams))
-				continue;
-
-			$formData["PRODUCT"][$basketCode] = $productParams;
-			$formData["PRODUCT"][$basketCode]["BASKET_CODE"] = $basketCode;
-			$basketCode++;
-		}
-	}
-	elseif(isset($_GET["product"]) && is_array($_GET["product"]))
+	if(isset($_GET["product"]) && is_array($_GET["product"]))
 	{
 		foreach($_GET["product"] as $productId => $quantity)
 		{
@@ -175,15 +160,91 @@ elseif($createWithProducts)
 			$basketCode++;
 		}
 	}
+	else
+	{
+		if(isset($_GET['FUSER_ID']) && intval($_GET['FUSER_ID']) > 0)
+			$fuserId = $_GET['FUSER_ID'];
+		else
+			$fuserId = \Bitrix\Sale\Fuser::getIdByUserId($_GET["USER_ID"]);
+
+		if(intval($fuserId) > 0)
+		{
+			$basketFilter = array(
+				'filter' => array(
+					'LID' => $_GET['SITE_ID'],
+					'FUSER_ID' => intval($fuserId),
+					'CAN_BUY' => "Y",
+					'DELAY' => "N",
+					'ORDER_ID' => null,
+					'!MODULE' => false
+				),
+				'select' => array('PRODUCT_ID', 'QUANTITY'),
+				'order' => array('ID' => 'ASC'),
+			);
+
+			$res = \Bitrix\Sale\Basket::getList($basketFilter);
+			while($basketItem = $res->fetch())
+			{
+				$productParams = Blocks\OrderBasket::getProductDetails(
+					$basketItem['PRODUCT_ID'], $basketItem['QUANTITY'], $formData["USER_ID"], $formData["SITE_ID"]
+				);
+
+				if(!is_array($productParams) || empty($productParams))
+					continue;
+
+				$formData["PRODUCT"][$basketCode] = $productParams;
+				$formData["PRODUCT"][$basketCode]["BASKET_CODE"] = $basketCode;
+				$basketCode++;
+			}
+
+			$userProfiles = \Bitrix\Sale\Helpers\Admin\Blocks\OrderBuyer::getUserProfiles($_GET['USER_ID']);
+		}
+	}
 
 	if(empty($formData["PRODUCT"]))
 		unset($formData["PRODUCT"]);
 
-	$order = OrderEdit::createOrderFromForm($formData, $USER->GetID(), false, array(), $result);
+	$res = new \Bitrix\Sale\Result();
+	$order = OrderEdit::createOrderFromForm($formData, $USER->GetID(), false, array(), $res);
+
+	if($order && !empty($userProfiles))
+	{
+		$propCollection = $order->getPropertyCollection();
+		$ptList = \Bitrix\Sale\Helpers\Admin\Blocks\OrderBuyer::getBuyerTypesList($order->getSiteId());
+		$ptIndex = 0;
+
+		foreach($userProfiles as $userPersonTypeId => $profiles)
+			if(in_array($userPersonTypeId, $ptList))
+				break;
+
+		reset($userProfiles[$userPersonTypeId]);
+		$userProfile = current($userProfiles[$userPersonTypeId]);
+		$profileId = key($userProfiles[$userPersonTypeId]);
+		$order->setPersonTypeId($userPersonTypeId);
+
+		foreach($userProfile as $propId => $propValue)
+		{
+			$property = $propCollection->getItemByOrderPropertyId($propId);
+
+			if($property)
+			{
+				try
+				{
+					$property->setValue($propValue);
+				}
+				catch(\Exception $e)
+				{}
+			}
+		}
+	}
 
 	if(!$order)
-		$result->addError(new \Bitrix\Main\Entity\EntityError("Can't create order!"));
+	{
+		if(!$res->isSuccess())
+			$result->addErrors($res->getErrors());
 
+		$result->addError(new \Bitrix\Main\Entity\EntityError("Can't create order!"));
+	}
 }
 elseif($isCopyingOrderOperation) // copy order
 {
@@ -221,7 +282,8 @@ elseif($isCopyingOrderOperation) // copy order
 		$propCollection->setValuesFromPost($properties, $files);
 		$originalBasket = $originalOrder->getBasket();
 		$originalBasketItems = $originalBasket->getBasketItems();
-		$basket = \Bitrix\Sale\Basket::create($originalOrder->getSiteId(), $originalBasket->getFUserId());
+		$basket = \Bitrix\Sale\Basket::create($originalOrder->getSiteId());
+		$basket->setFUserId($originalBasket->getFUserId());
 
 		/** @var \Bitrix\Sale\BasketItem $originalBasketItem */
 		foreach($originalBasketItems as $originalBasketItem)
@@ -343,7 +405,7 @@ echo Blocks\OrderAdditional::getScripts();
 echo Blocks\OrderPayment::getScripts();
 echo Blocks\OrderShipment::getScripts();
 echo Blocks\OrderFinanceInfo::getScripts();
-echo $orderBasket->getScripts();
+echo $orderBasket->getScripts(false);
 
 $fastNavItems = array();
 
@@ -380,16 +442,16 @@ $blocksOrder = $tabControl->getCurrentTabBlocksOrder($defaultBlocksOrder);
 			switch ($blockCode)
 			{
 				case "basket":
-					echo $orderBasket->getEdit($order);
+					echo $orderBasket->getEdit(false);
 					break;
 				case "buyer":
-					echo Blocks\OrderBuyer::getEdit($order);
+					echo Blocks\OrderBuyer::getEdit($order, $showProfiles, $profileId);
 					break;
 				case "delivery":
 
 					$shipments = $order->getShipmentCollection();
 
-					if(count($shipments) == 0 )
+					if(count($shipments) < 2)
 						$order->getShipmentCollection()->createItem();
 
 					/** @var \Bitrix\Sale\Shipment  $shipment*/

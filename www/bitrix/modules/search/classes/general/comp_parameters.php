@@ -121,16 +121,9 @@ class CSearchParameters
 
 				if(IsModuleInstalled($module))
 				{
-					if(!class_exists($module))
+					$obModule = CModule::CreateModuleObject($module);
+					if($obModule)
 					{
-						$install = $_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/".$module."/install/index.php";
-						if(file_exists($install) && is_file($install))
-							include_once($install);
-					}
-
-					if(class_exists($module))
-					{
-						$obModule = new $module;
 						$result[$module] = "[".$module."] ".$obModule->MODULE_NAME;
 					}
 				}

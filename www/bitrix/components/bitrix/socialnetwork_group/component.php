@@ -1109,6 +1109,23 @@ elseif (strPos($componentPage, "user_content_search")!== false || strPos($compon
 /********************************************************************
 				/Content search
 ********************************************************************/
+
+//registering routes for building preview
+if(\Bitrix\Main\ModuleManager::isModuleInstalled('tasks'))
+{
+	Bitrix\Main\UrlPreview\Router::setRouteHandler(
+			$arParams['SEF_FOLDER'].$arUrlTemplates['group_tasks_task'],
+			'tasks',
+			'\Bitrix\Tasks\Ui\Preview\Task',
+			array(
+					'taskId' => '$task_id',
+					'groupId' => '$group_id',
+					'action' => '$action',
+					'PATH_TO_USER_PROFILE' => $arParams['SEF_FOLDER'].$arUrlTemplates['user'],
+			)
+	);
+}
+
 CUtil::InitJSCore(array("window", "ajax"));
 
 $this->IncludeComponentTemplate($componentPage, array_key_exists($componentPage, $arCustomPagesPath) ? $arCustomPagesPath[$componentPage] : "");

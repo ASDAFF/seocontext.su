@@ -58,9 +58,12 @@ class MessageParamTable extends Entity\DataManager
 			),
 			'PARAM_VALUE' => array(
 				'data_type' => 'string',
-				'required' => true,
 				'validation' => array(__CLASS__, 'validateParamValue'),
 				'title' => Loc::getMessage('MESSAGE_PARAM_ENTITY_PARAM_VALUE_FIELD'),
+			),
+			'PARAM_JSON' => array(
+				'data_type' => 'text',
+				'title' => Loc::getMessage('MESSAGE_PARAM_ENTITY_PARAM_JSON_FIELD'),
 			),
 		);
 	}

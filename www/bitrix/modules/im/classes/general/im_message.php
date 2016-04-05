@@ -31,13 +31,13 @@ class CIMMessage
 		return CIMMessenger::Add($arFields);
 	}
 
-	public function GetMessage($ID)
+	public function GetMessage($id)
 	{
 		global $DB;
 
-		$ID = intval($ID);
+		$id = intval($id);
 
-		$strSql = "SELECT M.* FROM b_im_relation R, b_im_message M WHERE M.ID = ".$ID." AND R.USER_ID = ".$this->user_id." AND R.CHAT_ID = M.CHAT_ID";
+		$strSql = "SELECT M.* FROM b_im_relation R, b_im_message M WHERE M.ID = ".$id." AND R.USER_ID = ".$this->user_id." AND R.CHAT_ID = M.CHAT_ID";
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 		if ($arRes = $dbRes->Fetch())
 			return $arRes;
@@ -335,13 +335,14 @@ class CIMMessage
 		if (!$bTimeZone)
 			CTimeZone::Disable();
 		$strSql ="
-			SELECT R1.CHAT_ID, R1.START_ID, R2.LAST_ID, ".$DB->DatetimeToTimestampFunction('R2.LAST_READ')." LAST_READ
+			SELECT R1.CHAT_ID, R1.START_ID, R2.LAST_ID, ".$DB->DatetimeToTimestampFunction('R2.LAST_READ')." LAST_READ, R1.NOTIFY_BLOCK
 			FROM b_im_relation R1
 			INNER JOIN b_im_relation R2 on R2.CHAT_ID = R1.CHAT_ID
 			WHERE
 				R1.USER_ID = ".$fromUserId."
 				AND R1.MESSAGE_TYPE = '".IM_MESSAGE_PRIVATE."'
 				AND R2.USER_ID = ".$toUserId."
+				AND R2.MESSAGE_TYPE = '".IM_MESSAGE_PRIVATE."'
 		";
 		if (!$bTimeZone)
 			CTimeZone::Enable();
@@ -352,6 +353,7 @@ class CIMMessage
 			$startId = intval($arRes['START_ID']);
 			$lastId = intval($arRes['LAST_ID']);
 			$lastRead = intval($arRes['LAST_READ']);
+			$blockNotify = $arRes['NOTIFY_BLOCK'] != 'N';
 		}
 
 		if ($chatId > 0)
@@ -379,7 +381,7 @@ class CIMMessage
 					M.NOTIFY_EVENT
 				FROM b_im_message M
 				WHERE M.CHAT_ID = ".$chatId." #LIMIT#
-				ORDER BY DATE_CREATE DESC, ID DESC
+				ORDER BY M.DATE_CREATE DESC, M.ID DESC
 			";
 			$strSql = $DB->TopSql($strSql, 20);
 			if (!$bTimeZone)
@@ -444,8 +446,16 @@ class CIMMessage
 					$arFiles[$fileId] = $fileId;
 				}
 			}
+			if (isset($arMessages[$messageId]['params']['URL_ID']))
+				unset($arMessages[$messageId]['params']['URL_ID']);
 		}
+
 		$arChatFiles = CIMDisk::GetFiles($chatId, $arFiles);
+		$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
+
+		$arUserChatBlockStatus = Array();
+		if ($blockNotify)
+			$arUserChatBlockStatus[$chatId][$fromUserId] = 'Y';
 
 		$arResult = Array(
 			'chatId' => $chatId,
@@ -454,7 +464,8 @@ class CIMMessage
 			'users' => Array(),
 			'userInGroup' => Array(),
 			'woUserInGroup' => Array(),
-			'files' => $arChatFiles
+			'files' => $arChatFiles,
+			'userChatBlockStatus' => $arUserChatBlockStatus
 		);
 
 		if ($lastRead > 0)
@@ -625,7 +636,7 @@ class CIMMessage
 			LEFT JOIN b_user U1 ON U1.ID = R.USER_ID
 			LEFT JOIN b_user U2 ON U2.ID = M.AUTHOR_ID
 			WHERE R.MESSAGE_TYPE = '".IM_MESSAGE_PRIVATE."' AND R.STATUS < ".IM_STATUS_NOTIFY."
-			".($order == "DESC"? "ORDER BY DATE_CREATE DESC, ID DESC": "")."
+			".($order == "DESC"? "ORDER BY M.DATE_CREATE DESC, M.ID DESC": "")."
 		";
 		CTimeZone::Enable();
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
@@ -925,16 +936,23 @@ class CIMMessage
 		$strSql = "
 			SELECT RF.CHAT_ID
 			FROM
-				b_im_relation RF
-				INNER JOIN b_im_relation RT on RF.CHAT_ID = RT.CHAT_ID
+                b_im_chat C,
+				b_im_relation RF,
+				b_im_relation RT
 			WHERE
-				RF.USER_ID = ".$fromUserId."
+				C.ID = RT.CHAT_ID
+			and C.TYPE = '".IM_MESSAGE_PRIVATE."'
+			and RF.USER_ID = ".$fromUserId."
 			and RT.USER_ID = ".$toUserId."
 			and RF.MESSAGE_TYPE = '".IM_MESSAGE_PRIVATE."'
+			and RT.MESSAGE_TYPE = '".IM_MESSAGE_PRIVATE."'
+			and RF.CHAT_ID = RT.CHAT_ID
 		";
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 		if ($arRes = $dbRes->Fetch())
+		{
 			$chatId = intval($arRes['CHAT_ID']);
+		}
 
 		if ($chatId <= 0)
 		{

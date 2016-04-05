@@ -60,47 +60,16 @@ if(isset($_REQUEST['action']) && check_bitrix_sessid())
 					$res['_domain'] = $arDomain['DOMAIN'];
 				break;
 
-				case 'keywords_feed':
-					$res = $engine->getKeywordsFeed($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
-				break;
-
-				case 'sitemaps_feed':
-					$res = $engine->getSitemapsFeed($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
-				break;
-
-				case 'crawlissues_feed':
-					$res = $engine->getCrawlIssuesFeed($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
-				break;
-
-				case 'save':
-					$fieldName = $_REQUEST['name'];
-					$fieldValue = $_REQUEST['value'];
-					switch($fieldName)
-					{
-						case 'geolocation':
-						case 'preferred-domain':
-
-							$res = $engine->setSiteInfo(
-								$arDomain['DOMAIN'],
-								$arDomain['SITE_DIR'],
-								array(
-									$fieldName => $fieldValue
-								)
-							);
-
-						break;
-					}
-				break;
-
 				case 'site_verify':
 					$res = array('error' => 'Unknown domain');
 
 					if(is_array($arDomain))
 					{
-						$siteInfo = $engine->getSiteInfo($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
-						if($siteInfo[$arDomain['DOMAIN']]['verified'] == 'false')
+						$sitesInfo = $engine->getFeeds();
+						if($sitesInfo[$arDomain['DOMAIN']]['verified'] == false)
 						{
-							$filename = $siteInfo[$arDomain['DOMAIN']]['verification-method']['file-name'];
+							$filename = $engine->verifyGetToken($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
+
 							// paranoia?
 							$filename = preg_replace("/^(.*?)\..*$/", "\\1.html", $filename);
 
@@ -119,7 +88,7 @@ if(isset($_REQUEST['action']) && check_bitrix_sessid())
 									$obFile->delete();
 								}
 
-								$obFile->putContents($siteInfo[$arDomain['DOMAIN']]['verification-method']['file-content']);
+								$obFile->putContents('google-site-verification: '.$filename);
 
 								$res = $engine->verifySite($arDomain['DOMAIN'], $arDomain['SITE_DIR']);
 							}
@@ -154,6 +123,6 @@ if(isset($_REQUEST['action']) && check_bitrix_sessid())
 	}
 
 	Header('Content-type: application/json');
-	echo CUtil::PhpToJsObject($res);
+	echo \Bitrix\Main\Web\Json::encode($res);
 }
 ?>

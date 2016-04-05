@@ -21,7 +21,7 @@ else
 	$sectionClass = $buttonClass = "blue";
 	$iconStyle = "goodicon";
 	$statusClass = "good";
-	$siteListClass = $itemsCount <= 2 ? "three" : "two";
+	$siteListClass = $itemsCount <= 2 ? "one" : "two";
 }
 
 ?>

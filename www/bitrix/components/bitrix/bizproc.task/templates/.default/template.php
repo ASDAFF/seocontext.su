@@ -130,12 +130,12 @@ if (empty($arResult['DOCUMENT_ICON']))
 			<?if (!empty($arResult["TASK"]["URL"]["VIEW"])):?>
 			<a href="<?=$arResult["TASK"]["URL"]["VIEW"]?>" <?if ($arParams['POPUP']):?>target="_blank" <?endif?>><?=GetMessage("BPAT_GOTO_DOC")?></a>
 			<?endif;?>
-			<?if (!$arResult['IsComplete'] && CModule::IncludeModule('intranet')):?>
-			<a href="#" class="bp-task-block-delegate" onclick="return BX.Bizproc.showDelegationPopup(this, <?= (int)$arResult["TASK"]["ID"] ?>, <?= (int)$arParams["USER_ID"] ?>)"><?=GetMessage('BPAT_DELEGATE_LABEL')?></a>
-			<?endif?>
 		</p>
-
 		<?
+		if ($arResult["TASK"]['IS_INLINE'] == 'Y' && !$arResult['IsComplete'] && CModule::IncludeModule('intranet')):?>
+			<a href="#" class="bp-button bp-button-transparent bp-button-first" onclick="return BX.Bizproc.showDelegationPopup(this, <?= (int)$arResult["TASK"]["ID"] ?>, <?= (int)$arParams["USER_ID"] ?>)"><span></span><?=GetMessage('BPAT_DELEGATE_LABEL')?></a>
+		<?
+		endif;
 		if ($arResult["ShowMode"] != "Success" && $arResult["TASK"]['IS_INLINE'] != 'Y'):
 			?>
 			<form method="post" name="bp_task_<?=$cmpId?>" action="<?=POST_FORM_ACTION_URI?>" enctype="multipart/form-data"
@@ -170,6 +170,10 @@ if (empty($arResult['DOCUMENT_ICON']))
 						endforeach;
 						?>
 					<?else: echo $arResult["TaskFormButtons"]; endif;?>
+
+					<?if (!$arResult['IsComplete'] && CModule::IncludeModule('intranet')):?>
+						<a href="#" class="bp-button bp-button-transparent" onclick="return BX.Bizproc.showDelegationPopup(this, <?= (int)$arResult["TASK"]["ID"] ?>, <?= (int)$arParams["USER_ID"] ?>)"><span></span><?=GetMessage('BPAT_DELEGATE_LABEL')?></a>
+					<?endif?>
 				</div>
 				<script>
 					BX.ready(function(){

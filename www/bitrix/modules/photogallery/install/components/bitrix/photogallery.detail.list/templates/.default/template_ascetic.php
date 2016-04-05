@@ -1,6 +1,5 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/template_ascetic.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 if (!function_exists("__photo_template_ascetic"))
 {
 	function __photo_template_ascetic($arItem, $arParams = array())
@@ -8,7 +7,7 @@ if (!function_exists("__photo_template_ascetic"))
 		static $bFirstOnPage = true;
 		$arParams = (is_array($arParams) ? $arParams : array());
 		$arParams["mode"] = ($arParams["mode"] == "edit" ? "edit" : "read");
-		
+
 		$arParams["percent_width"] = intval(intval($arParams["percent_width"]) > 0 ? $arParams["percent_width"] : 0);
 		$arParams["percent_width"] = $arParams["percent_width"] / 100;
 		$arParams["percent_height"] = intval(intval($arParams["percent_height"]) > 0 ? $arParams["percent_height"] : 100);
@@ -16,16 +15,16 @@ if (!function_exists("__photo_template_ascetic"))
 		$arParams["SHOW_ANCHOR"] = ($arParams["SHOW_ANCHOR"] == "Y" ? "Y" : "N");
 		$arParams["MAX_HEIGHT"] = intval($arParams["MAX_HEIGHT"] > 0 ? $arParams["MAX_HEIGHT"] : 250);
 		$arParams["MAX_WIDTH"] = intval($arParams["MAX_WIDTH"] > 0 ? $arParams["MAX_WIDTH"] : 250);
-		
+
 		$bActiveElement = ($arItem["ACTIVE"] != "Y" ? false : true);
-		
+
 		$sImage = "";
 		if (is_array($arItem["PICTURE"]))
 		{
 			$coeff = 1;
 			if ($arParams["percent_width"] <= 0 && (($arParams["MAX_HEIGHT"] * $arParams["percent_height"]) < $arItem["PICTURE"]["HEIGHT"])):
 				$coeff = $arItem["PICTURE"]["HEIGHT"]/($arParams["MAX_HEIGHT"] * $arParams["percent_height"]);
-			elseif($arItem["PICTURE"]["WIDTH"] > $arParams["MAX_WIDTH"] || $arItem["PICTURE"]["HEIGHT"] > $arParams["MAX_HEIGHT"]): 
+			elseif($arItem["PICTURE"]["WIDTH"] > $arParams["MAX_WIDTH"] || $arItem["PICTURE"]["HEIGHT"] > $arParams["MAX_HEIGHT"]):
 				$coeff = max($arItem["PICTURE"]["WIDTH"]/$arParams["MAX_WIDTH"], $arItem["PICTURE"]["HEIGHT"]/$arParams["MAX_HEIGHT"]);
 			endif;
 			if ($coeff > 1):
@@ -39,7 +38,7 @@ if (!function_exists("__photo_template_ascetic"))
 		if ($arParams["percent_width"] > 0)
 			$arParams["MAX_WIDTH"] = $arParams["percent_width"] * $arParams["MAX_WIDTH"];
 		$arParams["MAX_HEIGHT"] = $arParams["percent_height"] * $arParams["MAX_HEIGHT"];
-		
+
 		if (empty($sImage)):
 			$sImage = '<div class="photo-photo-image-empty" style="width:'.$arParams["MAX_WIDTH"].'px;height'.$arParams["MAX_HEIGHT"].':px;"></div>';
 			$arItem["PICTURE"]["WIDTH"] = $arParams["MAX_WIDTH"];
@@ -51,17 +50,17 @@ if (!function_exists("__photo_template_ascetic"))
 		else:
 			$margin_left = round((0 - intVal(($arItem["PICTURE"]["WIDTH"] - $arParams["MAX_WIDTH"])/2)) * 100 / $arParams["MAX_WIDTH"], 2);
 			$margin_top = round((0 - intVal(($arItem["PICTURE"]["HEIGHT"] - $arParams["MAX_HEIGHT"])/2)) * 100 / $arParams["MAX_HEIGHT"], 2);
-			
+
 			$arItem["PICTURE"]["WIDTH"] = $arParams["MAX_WIDTH"];
 			$arItem["PICTURE"]["HEIGHT"] = $arParams["MAX_HEIGHT"];
-			
+
 			$sImage = '<div style="margin-top:'.$margin_top.'%;margin-left:'.$margin_left.'%;text-align:left;position:static;">'.$sImage.'</div>';
 		endif;
-		
+
 ?>
 		<div class="photo-photo-item photo-photo-item-ascetic <?=($arParams["mode"] == "edit" ? " photo-photo-item-edit" : "")?><?
 			?><?=(!$bActiveElement ? " photo-photo-item-notapproved" : "")?><?
-			?><?=(in_array($arItem["ID"], $_REQUEST["items"]) ? " photo-photo-item-checked" : "")?>"><?		
+			?><?=(in_array($arItem["ID"], $_REQUEST["items"]) ? " photo-photo-item-checked" : "")?>"><?
 	if ($arParams["SHOW_ANCHOR"] == "N")
 	{
 ?>
@@ -89,11 +88,11 @@ if (!function_exists("__photo_template_ascetic"))
 					?>href="<?=$arItem["URL"]?>" id="photo_<?=$arItem["ID"]?>"><?=$sImage?>
 				</a>
 			</div>
-<?	
+<?
 	}
 ?>
 		</div>
-<?	
+<?
 	}
 }
 ?>

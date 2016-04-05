@@ -13,6 +13,7 @@ class CAllSocNetLogCounter
 				"FOR_ALL_ACCESS_ONLY" => (is_array($arParams) && $arParams["FOR_ALL_ACCESS_ONLY"]),
 				"TAG_SET" => (is_array($arParams) && !empty($arParams["TAG_SET"]) ? $arParams["TAG_SET"] : false),
 				"MULTIPLE" => (is_array($arParams) && !empty($arParams["MULTIPLE"]) && $arParams["MULTIPLE"] == "Y" ? "Y" : "N"),
+				"SET_TIMESTAMP" => (is_array($arParams) && !empty($arParams["SET_TIMESTAMP"]) && $arParams["SET_TIMESTAMP"] == "Y" ? "Y" : "N"),
 			)
 		);
 	}
@@ -41,6 +42,7 @@ class CAllSocNetLogCounter
 			$params  = (isset($arFields["PARAMS"]) ? $arFields["PARAMS"] : array());
 			$bDecrement = (isset($arFields["DECREMENT"]) ? $arFields["DECREMENT"] : false);
 			$bMultiple = (isset($arFields["MULTIPLE"]) && $arFields["MULTIPLE"] == "Y");
+			$bSetTimestamp = (isset($arFields["SET_TIMESTAMP"]) && $arFields["SET_TIMESTAMP"] == "Y");
 
 			$IsForAllAccessOnly = false;
 			if (isset($arFields["FOR_ALL_ACCESS_ONLY"]))
@@ -217,6 +219,7 @@ class CAllSocNetLogCounter
 			,".$params['CODE']." as CODE,
 			0 as SENT
 			".($tagSet ? ", '".$DB->ForSQL($tagSet)."' as TAG" : "")."
+			".($bSetTimestamp ? ", ".$DB->CurrentTimeFunction()." as TIMESTAMP_X" : "")."
 		FROM
 			b_user U 
 			INNER JOIN b_sonet_log_right SLR ON SLR.LOG_ID = ".$logId."

@@ -44,7 +44,7 @@ class OrderInfo
 			if(!$id || !$ptId)
 				continue;
 
-			$params = OrderPayment::getPaySystemParams($id, $ptId);
+			$params = OrderPayment::getPaySystemParams($id);
 
 			if(!$params)
 				continue;

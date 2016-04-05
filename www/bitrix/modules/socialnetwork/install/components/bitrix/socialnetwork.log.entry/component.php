@@ -39,6 +39,8 @@ if (empty($arParams["COMMENT_PROPERTY"]))
 	$arParams["COMMENT_PROPERTY"] = array("UF_SONET_COM_FILE");
 	if (IsModuleInstalled("webdav") || IsModuleInstalled("disk"))
 		$arParams["COMMENT_PROPERTY"][] = "UF_SONET_COM_DOC";
+
+	$arParams["COMMENT_PROPERTY"][] = "UF_SONET_COM_URL_PRV";
 }
 
 CSocNetLogComponent::processDateTimeFormatParams($arParams);
@@ -108,6 +110,25 @@ if ($arEvent)
 		{
 			$arCacheVars = $cache->GetVars();
 			$arCommentsFullList = $arCacheVars["COMMENTS_FULL_LIST"];
+
+			if (!empty($arCacheVars["Assets"]))
+			{
+				if (!empty($arCacheVars["Assets"]["CSS"]))
+				{
+					foreach($arCacheVars["Assets"]["CSS"] as $cssFile)
+					{
+						\Bitrix\Main\Page\Asset::getInstance()->addCss($cssFile, true);
+					}
+				}
+
+				if (!empty($arCacheVars["Assets"]["JS"]))
+				{
+					foreach($arCacheVars["Assets"]["JS"] as $jsFile)
+					{
+						\Bitrix\Main\Page\Asset::getInstance()->addJs($jsFile, true);
+					}
+				}
+			}
 		}
 		else
 		{
@@ -159,6 +180,11 @@ if ($arEvent)
 					: false
 			);
 
+			$arAssets = array(
+				"CSS" => array(),
+				"JS" => array()
+			);
+
 			$dbComments = CSocNetLogComments::GetList(
 				array("LOG_DATE" => "DESC"), // revert then
 				$arFilter,
@@ -185,13 +211,14 @@ if ($arEvent)
 					}
 				}
 
-				$arCommentsFullList[] = __SLEGetLogCommentRecord($arComments, $arParams, $arCurrentUserSubscribe);
+				$arCommentsFullList[] = __SLEGetLogCommentRecord($arComments, $arParams, $arAssets);
 			}
 
 			if (is_object($cache))
 			{
 				$arCacheData = Array(
-					"COMMENTS_FULL_LIST" => $arCommentsFullList
+					"COMMENTS_FULL_LIST" => $arCommentsFullList,
+					"Assets" => $arAssets
 				);
 				$cache->EndDataCache($arCacheData);
 				if(defined("BX_COMP_MANAGED_CACHE"))
@@ -267,6 +294,10 @@ if ($arEvent)
 			$arResult["RATING_COMMENTS"] = CRatings::GetRatingVoteResult($rating_entity_type, $arCommentID);
 		}
 	}
+}
+else
+{
+	return;
 }
 
 $arResult["Event"] = $arEvent;

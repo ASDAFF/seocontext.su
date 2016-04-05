@@ -6,7 +6,7 @@
 
 	window.BXMobileApp =
 	{
-		apiVersion: appVersion,
+		apiVersion: (typeof appVersion != "undefined"? appVersion : 1),
 		//platform: platform,
 		cordovaVersion: "3.6.3",
 		UI: {
@@ -15,21 +15,6 @@
 				{
 					app.flipScreen()
 				}
-			},
-			types: {
-				COMMON: 0,
-				BUTTON: 1,
-				PANEL: 2,
-				TABLE: 3,
-				MENU: 4,
-				ACTION_SHEET: 5,
-				NOTIFY_BAR: 6
-			},
-			parentTypes: {
-				TOP_BAR: 0,
-				BOTTOM_BAR: 1,
-				SLIDING_PANEL: 2,
-				UNKNOWN: 3
 			},
 			Slider: {
 				state: {
@@ -84,20 +69,14 @@
 				}
 			},
 			DatePicker: {
-				params: {
-					format: "DD.MM.YYYY",
-					type: "date",//date|time|datetime
-					callback: function ()
-					{
-					}
-				},
 				setParams: function (params)
 				{
 					if (typeof params == "object")
-						this.params = BXMobileApp.TOOLS.merge(this.params, params);
+						this.params = params;
 				},
-				show: function ()
+				show: function (params)
 				{
+					this.setParams(params);
 					app.showDatePicker(this.params);
 
 				},
@@ -139,10 +118,69 @@
 				{
 					app.setPanelPages(pages);
 				}
+			},
+			Badge:{
+				/**
+				 * Sets number fot badge
+				 * @since 14
+				 * @param {int} number value of badge
+				 */
+				setIconBadge: function(number){
+					app.exec("setBadge", number)
+				},
+				/**
+				 * Sets number fot badge
+				 * @since 14
+				 * @param {string} badgeCode identifier of badge
+				 * @param {int} number value of badge
+				 */
+				setButtonBadge: function(badgeCode, number){
+					app.exec("setButtonBadge",{
+						code:badgeCode,
+						value:number
+					})
+				}
+
+			},
+			types: {
+				COMMON: 0,
+				BUTTON: 1,
+				PANEL: 2,
+				TABLE: 3,
+				MENU: 4,
+				ACTION_SHEET: 5,
+				NOTIFY_BAR: 6
+			},
+			parentTypes: {
+				TOP_BAR: 0,
+				BOTTOM_BAR: 1,
+				SLIDING_PANEL: 2,
+				UNKNOWN: 3
 			}
 		},
 		PushManager:
 		{
+			getLastNotification:function(){
+
+				var data = {};
+				try
+				{
+					/**
+					 * @var BXMobileAppContext object
+					 */
+					data = window.BXMobileAppContext.getLastNotification();
+					if(BXMobileAppContext.getPlatform() == "android")
+					{
+						data = JSON.parse(data);
+					}
+				}
+				catch (e)
+				{
+
+				}
+
+				return data;
+			},
 			prepareParams : function (push)
 			{
 				if (typeof (push) != 'object' || typeof (push.params) == 'undefined')
@@ -163,6 +201,7 @@
 				return result;
 			}
 		},
+
 		PageManager:
 		{
 			loadPageBlank: function (params)
@@ -204,28 +243,6 @@
 				app.showModalDialog(params)
 			}
 		},
-		PushManager:
-		{
-			prepareParams : function (push)
-			{
-				if (typeof (push) != 'object' || typeof (push.params) == 'undefined')
-				{
-					return {'ACTION': 'NONE'};
-				}
-
-				var result = {};
-				try
-				{
-					result = JSON.parse(push.params);
-				}
-				catch(e)
-				{
-					result = {'ACTION': push.params};
-				}
-
-				return result;
-			}
-		},
 		TOOLS: {
 			extend: function (child, parent)
 			{
@@ -258,6 +275,14 @@
 			}
 
 		},
+		removeCustomEvent:function(eventName, func){
+			BX.removeCustomEvent(eventName,func);
+			app.exec("unsubscribeEvent",{eventName:eventName});
+		},
+		addCustomEvent:function(eventName, func){
+			BX.addCustomEvent(eventName,func);
+			app.exec("subscribeEvent",{eventName:eventName});
+		},
 		onCustomEvent: function (eventName, params)
 		{
 			app.onCustomEvent(eventName, params, false, false)
@@ -286,7 +311,6 @@
 		}
 	};
 
-
 	BXMobileApp.UI.Element.prototype.getIdentifiers = function ()
 	{
 		return {
@@ -296,7 +320,6 @@
 		};
 	};
 
-
 	BXMobileApp.UI.Element.prototype.show = function ()
 	{
 		this.isShown = true;
@@ -305,7 +328,6 @@
 			app.exec("show", {type: this.type, id: this.id});
 		}
 	};
-
 
 	BXMobileApp.UI.Element.prototype.hide = function ()
 	{
@@ -327,29 +349,22 @@
 	 */
 	BXMobileApp.UI.Button = function (id, params)
 	{
-		this.callback = params.callback;
-		this.icon = params.icon;
-		this.name = params.title;
-		this.type = BXMobileApp.UI.types.BUTTON;
+		this.params = params;
 		BXMobileApp.UI.Button.superclass.constructor.apply(this, [id, params]);
 	};
 
 	BXMobileApp.TOOLS.extend(BXMobileApp.UI.Button, BXMobileApp.UI.Element);
-
-
 	BXMobileApp.UI.Button.prototype.setBadge = function (number)
 	{
-		var params = this.getIdentifiers();
-		params["badgeText"] = number;
-
-		app.updateButtonBadge(params);
+		if(this.params.badgeCode)
+		{
+			BXMobileApp.UI.Badge.setButtonBadge(this.params.badgeCode, number);
+		}
 	};
 
 	BXMobileApp.UI.Button.prototype.remove = function ()
 	{
-		var params = this.getIdentifiers();
-
-		app.removeButtons(params);
+		app.removeButtons(this.params);
 	};
 
 	/**
@@ -379,30 +394,29 @@
 
 
 	/**
-	 *
+	 * @since 14
 	 * @param params - params object
-	 *    "message" - notification text
-	 *    "groupId" - identifier of group ("common" by default)
-	 *	  "color" - background color (alpha is supported)
-	 *    "textColor" - color of text (alpha is supported)
-	 *	  "loaderColor" - loader color (alpha is supported)
-	 *	  "bottomBorderColor" - color of bottom border (alpha is supported)
-	 *	  "indicatorHeight" - max height of indicator container (image or loader)
-	 *	  "maxLines" - max number of lines
-	 *	  "useLoader" - (false/true) loading indicator will be used
-	 *	  "imageURL" - link to the image file which will be used as indicator
-	 *	  "iconName" - name of image in application resources which will be used as indicator
-	 *	  "imageBorderRadius" - border radius of the indicator in %
-	 *	  "align" - alignment of content (indicator+text), "left"|"center"
-	 *	  "useCloseButton" - close button will be displayed at the right side of the notification
-	 *	  "autoHideTimeout" - auto close timeout (for example 2000 ms)
-	 *	  "hideOnTap" - the notification will be close if user tapped on it.
-	 *	  "onHideAfter" - the function which will be called after the notification has closed
-	 *	  "onTap" - the function which will when user has tapped on the notification
-	 *	  "extra" - custom data, it will be passed to the onTap and onHideAfter
-	 *	  "isGlobal" - global notification flag
-	 *
-	 * @param id - identifier of the notification
+	 * @config {string} [message] - text of notification
+	 * @config {string} [groupId] - identifier of group ("common" by default)
+	 * @config {string} [color] - background color (hex, alpha is supported)
+	 * @config {string} [textColor] - color of text (hex, alpha is supported)
+	 * @config {string} [loaderColor] - loader color (hex, alpha is supported)
+	 * @config {string} [bottomBorderColor] - color of bottom border (hex, alpha is supported)
+	 * @config {int} [indicatorHeight] - max height of indicator container (image or loader)
+	 * @config {int} [maxLines] - max number of lines
+	 * @config {boolean} [useLoader] - (false/true) loading indicator will be used
+	 * @config {string} [imageURL] - link to the image file which will be used as indicator
+	 * @config {string} [iconName] - name of image in application resources which will be used as indicator
+	 * @config {string} [imageBorderRadius] - border radius of the indicator in %
+	 * @config {string} [align] - alignment of content (indicator+text), "left"|"center"
+	 * @config {boolean} [useCloseButton] - close button will be displayed at the right side of the notification
+	 * @config {int} [autoHideTimeout] - auto close timeout (for example 2000 ms)
+	 * @config {boolean} [hideOnTap] - the notification will be close if user tapped on it.
+	 * @config {function} [onHideAfter] - the function which will be called after the notification has closed
+	 * @config {function} [onTap] - the function which will when user has tapped on the notification
+	 * @config {object} [extra] - custom data, it will be passed to the onTap and onHideAfter
+	 * @config {boolean} [isGlobal] - global notification flag
+	 * @param {string} id - identifier of the notification
 	 * @constructor
 	 *
 	 */
@@ -460,8 +474,23 @@
 
 	/**
 	 * ActionSheet class
-	 * @param id
-	 * @param params
+	 * @param params main parameters
+	 * @config {string} title title of action sheet
+	 * @config {object} buttons set of button
+	 *
+	 * @example
+	 * <code>
+	 * Format of button item:
+	 * {
+	 *      title: "Title"
+	 *      callback:function(){
+	 *          //do something
+	 *      }
+	 * }
+	 * </code>
+	 *
+	 * @param id unique identifier
+
 	 * @constructor
 	 */
 	BXMobileApp.UI.ActionSheet = function (params, id)
@@ -490,7 +519,6 @@
 		{
 			app.exec("showActionSheet", {"id": this.id});
 		}
-
 		this.isShown = true;
 	};
 
@@ -504,7 +532,7 @@
 	};
 
 	/**
-	 * ActionSheet class
+	 * Table class
 	 * @param id
 	 * @param params
 	 * @constructor
@@ -563,15 +591,14 @@
 
 	BXMobileApp.UI.Table.prototype.clearCache = function ()
 	{
-		return this.exec("removeTableCache", {"table_id": this.id});
+		return app.exec("removeTableCache", {"table_id": this.id});
 	};
 
 
 	/**
 	 * Page object
-	 * @type {{topBar: {show: Function, hide: Function, buttons: {}, addRightButton: Function, addLeftButton: Function, title: {show: Function, hide: Function, setImage: Function, setText: Function, setDetailText: Function}}, slidingPanel: {buttons: {}, hide: {}, show: {}, addButton: Function, removeButton: Function}, refresh: {params: {enable: boolean, callback: boolean, pulltext: string, downtext: string, loadtext: string}, setParams: Function, setEnabled: Function, start: Function, stop: Function}, bottomBar: {show: Function, hide: Function, buttons: {}, addButton: Function}, menus: {items: {}, create: Function, get: Function, update: Function}}}
+	 * @name BXMPage
 	 */
-
 	BXMobileApp.UI.Page =
 	{
 		isVisible: function (params)
@@ -602,6 +629,10 @@
 		{
 			app.setPageID(id);
 		},
+		/**
+		 *
+		 * @returns {BXMPage.TopBar.title|{params, timeout, isAboutToShow, show, hide, setImage, setText, setDetailText, setCallback, redraw, _applyParams}}
+		 */
 		getTitle:function(){
 			return this.TopBar.title;
 		},
@@ -633,24 +664,31 @@
 			{
 				app.visibleNavigationBar(false);
 			},
-			buttons: {},
-			addRightButton: function (buttonObject)
-			{
-				this.buttons[buttonObject.id] = buttonObject;
-				var id = buttonObject.id;
-				var buttons = {};
-				buttons[id] =
-				{
-					name: buttonObject.name,
-					callback: buttonObject.callback,
-					type: buttonObject.type
-				};
-
-				app.addButtons(buttons);
+			/**
+			 * @since 14
+			 * @param colors colors for the elements of top bar
+			 * @config {string} [background] color of top bar
+			 * @config {string} [titleText] color of title text
+			 * @config {string} [titleDetailText] color of  subtitle text
+			 */
+			setColors:function(colors){
+				app.exec("setTopBarColors", colors);
 			},
-			addLeftButton: function (buttonObject)
+			addRightButton: function (button)
 			{
-				//TODO
+				app.addButtons({
+					"rightButton":button
+				});
+			},
+			/**
+			 * Updates buttons
+			 * @since 14
+			 * @param {object} buttons
+			 */
+			updateButtons: function (buttons)
+			{
+				this.buttons = buttons;
+				app.addButtons(buttons);
 			},
 			title: {
 				params: {
@@ -715,6 +753,12 @@
 			{
 				app.hideButtonPanel();
 			},
+			/**
+			 * Shows additional panel under navigation bar.
+			 * @param params - params object
+			 * @config {object} buttons - object of buttons
+			 * @config {boolean} hidden_buttons_panel - (true/false) use this to control on visibility of panel while scrolling
+			 */
 			show: function (params)
 			{
 				app.showSlidingPanel(params);
@@ -781,6 +825,14 @@
 				//TODO
 			}
 		},
+		PopupLoader:{
+			show:function(text){
+				app.exec("showPopupLoader", {text: text})
+			},
+			hide:function(){
+				app.exec("hidePopupLoader");
+			}
+		},
 		LoadingScreen: {
 			show: function ()
 			{
@@ -796,15 +848,7 @@
 			}
 		},
 		TextPanel: {
-			defaultParams: {
-				placeholder: "Text here...",
-				button_name: "Send",
-				action: function (){},
-				plusAction: "",
-				callback:"-1",
-				useImageButton: false
-			},
-			params : {
+			defaultParams : {
 				placeholder: "Text here...",
 				button_name: "Send",
                 mentionDataSource: {},
@@ -812,9 +856,12 @@
                 smileButton:{},
 				plusAction: "",
 				callback:"-1",
-				useImageButton: false
+				useImageButton: true,
+				text:""
 			},
+			params:{},
 			isAboutToShow: false,
+
 			temporaryParams: {},
             timeout:0,
 			setParams: function (params)
@@ -867,10 +914,6 @@
 				if (BXMobileApp.apiVersion >= 10)
 					app.textPanelAction("focus", this.getParams());
 			},
-			blur: function()
-			{
-				app.clearInput();
-			},
 			clear: function ()
 			{
 				if (BXMobileApp.apiVersion >= 10)
@@ -904,6 +947,10 @@
 				}
 
 
+			},
+			getText: function (callback)
+			{
+				app.textPanelAction("getText", {callback: callback});
 			},
 			showLoading: function (shown)
 			{
@@ -944,6 +991,27 @@
 		}
 
 	};
+
+	 //Short aliases
+
+	/**
+	 *
+	 * @type {*|{topBar: {show: Function, hide: Function, buttons: {}, addRightButton: Function, addLeftButton: Function, title: {show: Function, hide: Function, setImage: Function, setText: Function, setDetailText: Function}}, slidingPanel: {buttons: {}, hide: {}, show: {}, addButton: Function, removeButton: Function}, refresh: {params: {enable: boolean, callback: boolean, pulltext: string, downtext: string, loadtext: string}, setParams: Function, setEnabled: Function, start: Function, stop: Function}, bottomBar: {show: Function, hide: Function, buttons: {}, addButton: Function}, menus: {items: {}, create: Function, get: Function, update: Function}}}
+	 */
+	window.BXMPage = BXMobileApp.UI.Page;
+	/**
+	 * @type {Window.BXMobileApp.UI.Slider|{state, setState, setStateEnabled}}
+	 */
+	window.BXMSlider = BXMobileApp.UI.Slider;
+	/**
+	 * @type {Window.BXMobileApp.UI|{IOS, Slider, Photo, Document, DatePicker, SelectPicker, BarCodeScanner, NotifyPanel, Badge, types, parentTypes}}
+	 */
+	window.BXMUI = BXMobileApp.UI;
+	/**
+	 * @type {Window.BXMobileApp.PageManager|{loadPageBlank, loadPageUnique, loadPageStart, loadPageModal}}
+	 */
+	window.BXMPager = BXMobileApp.PageManager;
+
 })();
 
 

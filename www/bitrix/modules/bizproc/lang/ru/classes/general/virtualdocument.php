@@ -59,4 +59,5 @@ $MESS["BPCGWTL_INVALID3N"] = "Значение поля не верно";
 $MESS["BPCGWTL_INVALID4N"] = "Значение поля не может быть интерпретировано как 'да' или 'нет'";
 $MESS["BPCGWTL_INVALID9N"] = "Не удалось загрузить файл";
 $MESS["BPVDX_FIELD_USERNAME_PROPERTY"] = " (имя)";
+$MESS["BPVDX_ENTITY_NAME"] = "Бизнес-процессы";
 ?>

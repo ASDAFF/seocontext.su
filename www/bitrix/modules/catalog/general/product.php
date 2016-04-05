@@ -1,16 +1,19 @@
 <?
-use Bitrix\Main\Localization\Loc;
-use Bitrix\Currency;
-use Bitrix\Catalog;
+use Bitrix\Main\Localization\Loc,
+	Bitrix\Main,
+	Bitrix\Currency,
+	Bitrix\Catalog;
 
 Loc::loadMessages(__FILE__);
 
 class CAllCatalogProduct
 {
-	const TYPE_PRODUCT = 1;
-	const TYPE_SET = 2;
-	const TYPE_SKU = 3;
-	const TYPE_OFFER = 4;
+	const TYPE_PRODUCT = Catalog\ProductTable::TYPE_PRODUCT;
+	const TYPE_SET = Catalog\ProductTable::TYPE_SET;
+	const TYPE_SKU = Catalog\ProductTable::TYPE_SKU;
+	const TYPE_OFFER = Catalog\ProductTable::TYPE_OFFER;
+	const TYPE_FREE_OFFER = Catalog\ProductTable::TYPE_FREE_OFFER;
+	const TYPE_EMPTY_SKU = Catalog\ProductTable::TYPE_EMPTY_SKU;
 
 	const TIME_PERIOD_HOUR = 'H';
 	const TIME_PERIOD_DAY = 'D';
@@ -120,7 +123,7 @@ class CAllCatalogProduct
 		return Catalog\ProductTable::isExistProduct($intID);
 	}
 
-	public function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $APPLICATION;
 
@@ -140,15 +143,37 @@ class CAllCatalogProduct
 			$boolResult = false;
 		}
 
-		if ($ACTION != "ADD" && array_key_exists('ID', $arFields))
-			unset($arFields["ID"]);
-		if (array_key_exists('TYPE', $arFields))
-			unset($arFields['TYPE']);
+		$clearFields = array(
+			'NEGATIVE_AMOUNT_TRACE',
+			'~NEGATIVE_AMOUNT_TRACE',
+			'~TYPE',
+			'~AVAILABLE'
+		);
+		if ($ACTION =='UPDATE')
+		{
+			$clearFields[] = 'ID';
+			$clearFields[] = '~ID';
+		}
+		if ($ACTION == 'ADD')
+		{
+			$clearFields[] = 'BUNDLE';
+			$clearFields[] = '~BUNDLE';
+		}
+
+		foreach ($clearFields as &$fieldName)
+		{
+			if (array_key_exists($fieldName, $arFields))
+				unset($arFields[$fieldName]);
+		}
+		unset($fieldName, $clearFields);
+
 		if ('ADD' == $ACTION)
 		{
 			if (!array_key_exists('SUBSCRIBE', $arFields))
 				$arFields['SUBSCRIBE'] = '';
-			$arFields['TYPE'] = self::TYPE_PRODUCT;
+			if (!isset($arFields['TYPE']))
+				$arFields['TYPE'] = self::TYPE_PRODUCT;
+			$arFields['BUNDLE'] = Catalog\ProductTable::STATUS_NO;
 		}
 
 		if (is_set($arFields, "ID") || $ACTION=="ADD")
@@ -177,8 +202,8 @@ class CAllCatalogProduct
 			$arFields["QUANTITY_TRACE"] = "D";
 		if ((is_set($arFields, "CAN_BUY_ZERO") || $ACTION=="ADD") && ($arFields["CAN_BUY_ZERO"] != "Y" && $arFields["CAN_BUY_ZERO"] != "N"))
 			$arFields["CAN_BUY_ZERO"] = "D";
-		if ((is_set($arFields, "NEGATIVE_AMOUNT_TRACE") || $ACTION=="ADD") && ($arFields["NEGATIVE_AMOUNT_TRACE"] != "Y" && $arFields["NEGATIVE_AMOUNT_TRACE"] != "N"))
-			$arFields["NEGATIVE_AMOUNT_TRACE"] = "D";
+		if (isset($arFields['CAN_BUY_ZERO']))
+			$arFields['NEGATIVE_AMOUNT_TRACE'] = $arFields['CAN_BUY_ZERO'];
 
 		if ((is_set($arFields, "PRICE_TYPE") || $ACTION=="ADD") && ($arFields["PRICE_TYPE"] != "R") && ($arFields["PRICE_TYPE"] != "T"))
 			$arFields["PRICE_TYPE"] = "S";
@@ -232,6 +257,110 @@ class CAllCatalogProduct
 			if ('Y' != $arFields['SUBSCRIBE'] && 'N' != $arFields['SUBSCRIBE'])
 				$arFields['SUBSCRIBE'] = 'D';
 		}
+		if (array_key_exists('BUNDLE', $arFields))
+			$arFields['BUNDLE'] = ($arFields['BUNDLE'] == Catalog\ProductTable::STATUS_YES ? Catalog\ProductTable::STATUS_YES : Catalog\ProductTable::STATUS_NO);
+
+		if ($boolResult)
+		{
+			$availableFieldsList = array(
+				'QUANTITY',
+				'QUANTITY_TRACE',
+				'CAN_BUY_ZERO'
+			);
+			$needCalculateAvailable = false;
+			$copyFields = $arFields;
+			if (isset($copyFields['QUANTITY_TRACE']) && $copyFields['QUANTITY_TRACE'] == 'D')
+				$copyFields['QUANTITY_TRACE'] = Main\Config\Option::get('catalog', 'default_quantity_trace');
+			if (isset($copyFields['CAN_BUY_ZERO']) && $copyFields['CAN_BUY_ZERO'] == 'D')
+				$copyFields['CAN_BUY_ZERO'] = Main\Config\Option::get('catalog', 'default_can_buy_zero');
+
+			if (!isset($arFields['AVAILABLE']))
+			{
+				if (
+					!isset($arFields['TYPE'])
+					|| $arFields['TYPE'] == Catalog\ProductTable::TYPE_PRODUCT
+					|| $arFields['TYPE'] == Catalog\ProductTable::TYPE_OFFER
+					|| $arFields['TYPE'] == Catalog\ProductTable::TYPE_FREE_OFFER
+				)
+				{
+					if ($ACTION == 'ADD' && $arFields['TYPE'] == Catalog\ProductTable::TYPE_PRODUCT && !isset($arFields['AVAILABLE']))
+					{
+						$needCalculateAvailable = true;
+					}
+					elseif ($ACTION == 'UPDATE')
+					{
+						$needFields = array();
+						foreach ($availableFieldsList as &$availableField)
+						{
+							if (isset($arFields[$availableField]))
+								$needCalculateAvailable = true;
+							else
+								$needFields[] = $availableField;
+						}
+						unset($availableField);
+						if ($needCalculateAvailable && !empty($needFields))
+						{
+							$product = $productIterator = Catalog\ProductTable::getList(array(
+								'select' => $needFields,
+								'filter' => array('=ID' => $ID)
+							))->fetch();
+							if (!empty($product) && is_array($product))
+							{
+								foreach ($availableFieldsList as &$availableField)
+								{
+									if (isset($copyFields[$availableField]))
+										continue;
+									$copyFields[$availableField] = $product[$availableField];
+								}
+								unset($availableField);
+							}
+							unset($product);
+						}
+						unset($needFields);
+					}
+				}
+				elseif (isset($arFields['TYPE']) && $arFields['TYPE'] == CCatalogProduct::TYPE_SKU)
+				{
+					$offerList = CCatalogSKU::getOffersList(array($ID), 0, array('ACTIVE' => 'Y'), array('ID'));
+					if (!empty($offerList[$ID]))
+					{
+						$skuAvailable = false;
+						$offerIterator = Catalog\ProductTable::getList(array(
+							'select' => array('ID', 'QUANTITY', 'QUANTITY_TRACE', 'CAN_BUY_ZERO'),
+							'filter' => array('@ID' => array_keys($offerList[$ID]))
+						));
+						while ($offer = $offerIterator->fetch())
+						{
+							if (Catalog\ProductTable::calculateAvailable($offer) == Catalog\ProductTable::STATUS_YES)
+								$skuAvailable = true;
+						}
+						unset($offer, $offerIterator);
+						if ($skuAvailable)
+						{
+							$arFields['AVAILABLE'] = 'Y';
+							$arFields['QUANTITY'] = '0';
+							$arFields['QUANTITY_TRACE'] = 'N';
+							$arFields['CAN_BUY'] = 'Y';
+						}
+						else
+						{
+							$arFields['AVAILABLE'] = 'N';
+							$arFields['QUANTITY'] = '0';
+							$arFields['QUANTITY_TRACE'] = 'Y';
+							$arFields['CAN_BUY'] = 'N';
+						}
+					}
+					else
+					{
+						$arFields['AVAILABLE'] = 'N';
+					}
+					unset($offerList);
+				}
+			}
+			if ($needCalculateAvailable)
+				$arFields['AVAILABLE'] = Catalog\ProductTable::calculateAvailable($copyFields);
+			unset($copyFields);
+		}
 
 		if (!$boolResult)
 		{
@@ -265,7 +394,7 @@ class CAllCatalogProduct
 		);
 	}
 
-	public function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		$ID = (int)$ID;
 		if ($ID <= 0)
@@ -305,7 +434,7 @@ class CAllCatalogProduct
 		return false;
 	}
 
-	public function GetByIDEx($ID, $boolAllValues = false)
+	public static function GetByIDEx($ID, $boolAllValues = false)
 	{
 		$boolAllValues = ($boolAllValues === true);
 		$ID = (int)$ID;
@@ -409,7 +538,7 @@ class CAllCatalogProduct
 		return false;
 	}
 
-	public function QuantityTracer($ProductID, $DeltaQuantity)
+	public static function QuantityTracer($ProductID, $DeltaQuantity)
 	{
 		global $CACHE_MANAGER;
 
@@ -478,7 +607,7 @@ class CAllCatalogProduct
 	 * @param array $arUserGroups
 	 * @return bool|float|int
 	 */
-	public function GetNearestQuantityPrice($productID, $quantity = 1, $arUserGroups = array())
+	public static function GetNearestQuantityPrice($productID, $quantity = 1, $arUserGroups = array())
 	{
 		static $eventOnGetExists = null;
 		static $eventOnResultExists = null;
@@ -591,10 +720,12 @@ class CAllCatalogProduct
 	 * @param bool|array $arDiscountCoupons
 	 * @return array|bool
 	 */
-	public function GetOptimalPrice($intProductID, $quantity = 1, $arUserGroups = array(), $renewal = "N", $arPrices = array(), $siteID = false, $arDiscountCoupons = false)
+	public static function GetOptimalPrice($intProductID, $quantity = 1, $arUserGroups = array(), $renewal = "N", $arPrices = array(), $siteID = false, $arDiscountCoupons = false)
 	{
 		static $eventOnGetExists = null;
 		static $eventOnResultExists = null;
+
+		static $priceTypeCache = array();
 
 		global $APPLICATION;
 
@@ -607,6 +738,8 @@ class CAllCatalogProduct
 				if ($mxResult !== true)
 				{
 					self::updateUserHandlerOptimalPrice($mxResult);
+					if (!empty($mxResult) && is_array($mxResult))
+						$mxResult['PRODUCT_ID'] = $intProductID;
 					return $mxResult;
 				}
 			}
@@ -636,6 +769,7 @@ class CAllCatalogProduct
 
 		if (!in_array(2, $arUserGroups))
 			$arUserGroups[] = 2;
+		Main\Type\Collection::normalizeArrayValuesByInt($arUserGroups);
 
 		$renewal = ($renewal == 'Y' ? 'Y' : 'N');
 
@@ -669,16 +803,30 @@ class CAllCatalogProduct
 
 		if (empty($arPrices))
 		{
-			$arPrices = array();
+			$cacheKey = 'U'.implode('_', $arUserGroups);
+			if (!isset($priceTypeCache[$cacheKey]))
+			{
+				$priceTypeCache[$cacheKey] = array();
+				$priceIterator = CCatalogGroup::GetGroupsList(array('@GROUP_ID' => $arUserGroups, '=BUY' => 'Y'));
+				while ($priceType = $priceIterator->Fetch())
+				{
+					$priceTypeId = (int)$priceType['CATALOG_GROUP_ID'];
+					$priceTypeCache[$cacheKey][$priceTypeId] = $priceTypeId;
+					unset($priceTypeId);
+				}
+				unset($priceType, $priceIterator);
+			}
+			if (empty($priceTypeCache[$cacheKey]))
+				return false;
+
 			$dbPriceList = CPrice::GetListEx(
 				array(),
 				array(
-						"PRODUCT_ID" => $intProductID,
-						"GROUP_GROUP_ID" => $arUserGroups,
-						"GROUP_BUY" => "Y",
-						"+<=QUANTITY_FROM" => $quantity,
-						"+>=QUANTITY_TO" => $quantity
-					),
+					"PRODUCT_ID" => $intProductID,
+					"@CATALOG_GROUP_ID" => $priceTypeCache[$cacheKey],
+					"+<=QUANTITY_FROM" => $quantity,
+					"+>=QUANTITY_TO" => $quantity
+				),
 				false,
 				false,
 				array("ID", "CATALOG_GROUP_ID", "PRICE", "CURRENCY")
@@ -689,6 +837,7 @@ class CAllCatalogProduct
 				$arPrices[] = $arPriceList;
 			}
 			unset($arPriceList, $dbPriceList);
+			unset($cacheKey);
 		}
 		else
 		{
@@ -789,14 +938,15 @@ class CAllCatalogProduct
 				'BASE_PRICE' => $basePrice,
 				'DISCOUNT_PRICE' => $minPrice,
 				'DISCOUNT' => $basePrice - $minPrice,
-				'PERCENT' => ($basePrice > 0 ? (100*($basePrice - $minPrice))/$basePrice : 0),
+				'PERCENT' => ($basePrice > 0 ? roundEx((100*($basePrice - $minPrice))/$basePrice, CATALOG_VALUE_PRECISION) : 0),
 				'CURRENCY' => $resultCurrency,
 				'VAT_RATE' => $arMinPrice['VAT_RATE'],
 				'VAT_INCLUDED' => (self::$optimalPriceWithVat ? 'Y' : 'N')
 			),
 			'DISCOUNT_PRICE' => $minPrice,
 			'DISCOUNT' => array(),
-			'DISCOUNT_LIST' => array()
+			'DISCOUNT_LIST' => array(),
+			'PRODUCT_ID' => $intProductID
 		);
 		if (!empty($arMinDiscounts))
 		{
@@ -826,7 +976,7 @@ class CAllCatalogProduct
 	 * @param array $arDiscounts
 	 * @return bool|float
 	 */
-	public function CountPriceWithDiscount($price, $currency, $arDiscounts)
+	public static function CountPriceWithDiscount($price, $currency, $arDiscounts)
 	{
 		static $eventOnGetExists = null;
 		static $eventOnResultExists = null;
@@ -952,12 +1102,12 @@ class CAllCatalogProduct
 		return $arProductSections;
 	}
 
-	public function OnIBlockElementDelete($ProductID)
+	public static function OnIBlockElementDelete($ProductID)
 	{
 		return CCatalogProduct::Delete($ProductID);
 	}
 
-	public function OnAfterIBlockElementUpdate($arFields)
+	public static function OnAfterIBlockElementUpdate($arFields)
 	{
 		if (isset($arFields["IBLOCK_SECTION"]))
 		{
@@ -1341,5 +1491,38 @@ class CAllCatalogProduct
 			}
 		}
 		return $boolResult;
+	}
+
+	protected static function getQueryBuildCurrencyScale($filter, $priceTypeId)
+	{
+		$result = array();
+		if (!isset($filter['CATALOG_CURRENCY_SCALE_'.$priceTypeId]))
+			return $result;
+		$currencId = Currency\CurrencyManager::checkCurrencyID($filter['CATALOG_CURRENCY_SCALE_'.$priceTypeId]);
+		if ($currencId === false)
+			return $result;
+
+		$currency = CCurrency::GetByID($currencId);
+		if (empty($currency))
+			return $result;
+
+		$result['CURRENCY'] = $currency['CURRENCY'];
+		$result['BASE_RATE'] = $currency['CURRENT_BASE_RATE'];
+
+		return $result;
+	}
+
+	protected static function getQueryBuildPriceScaled($prices, $scale)
+	{
+		$result = array();
+		$scale = (float)$scale;
+		if (!is_array($prices))
+			$prices = array($prices);
+		if (empty($prices) || $scale <= 0)
+			return $result;
+		foreach ($prices as &$value)
+			$result[] = (float)$value*$scale;
+		unset($value);
+		return $result;
 	}
 }

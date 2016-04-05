@@ -39,3 +39,24 @@
 .bp-interface-toolbar .bp-context-button.active {
 	background: #def9ff;
 }
+
+.bp-context-button-notice {
+	position: absolute;
+	top: 2px;
+	width: 21px;
+	height: 21px;
+	color: #fff;
+	line-height: 21px;
+	border-radius: 11px;
+	text-align: center;
+	background: #fc0000;
+}
+
+.bp-warning
+{
+	color: red;
+}
+.bp-row-warning
+{
+	background-color: #FFF1F1;
+}

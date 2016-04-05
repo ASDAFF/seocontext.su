@@ -12,44 +12,13 @@ if(CModule::IncludeModule("socialservices") && CSocServAuthManager::CheckUniqueK
 {
 	if(isset($_REQUEST["authresult"]))
 	{
-		$engine = $_REQUEST["engine"];
-
-		\Bitrix\Seo\Service::clearAuth($engine, true);
+		\Bitrix\Seo\Service::clearLocalAuth();
 ?>
 <script type="text/javascript">
 	opener.location.reload();
 	window.close();
 </script>
 <?
-	}
-	else
-	{
-		$result = array();
-
-		$state = $_REQUEST["state"];
-		if(isset($_REQUEST["code"]) && $_REQUEST["code"] <> '')
-		{
-			$engine = \Bitrix\Seo\Service::getEngine();
-			$engine->getInterface()->setCode($_REQUEST["code"]);
-
-			if($engine->getInterface()->GetAccessToken() !== false)
-			{
-				$engine->setAuthSettings($engine->getInterface()->getResult());
-
-				$result["result"] = "ok";
-			}
-			else
-			{
-				$result = $engine->getInterface()->getError();
-			}
-		}
-		else
-		{
-			$result["error"] = "Wrong request";
-		}
-
-		Header("Content-Type: application/json");
-		echo \Bitrix\Main\Web\Json::encode($result);
 	}
 }
 

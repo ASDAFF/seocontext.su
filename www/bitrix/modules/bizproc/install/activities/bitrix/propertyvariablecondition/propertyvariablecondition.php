@@ -4,6 +4,9 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 class CBPPropertyVariableCondition
 	extends CBPActivityCondition
 {
+	const CONDITION_JOINER_AND = 0;
+	const CONDITION_JOINER_OR = 1;
+
 	public $condition = null;
 
 	public function __construct($condition)
@@ -21,35 +24,43 @@ class CBPPropertyVariableCondition
 
 		$rootActivity = $ownerActivity->GetRootActivity();
 
-		$result = true;
+		$result = array(0 => true);
+		$i = 0;
 		foreach ($this->condition as $cond)
 		{
+			$r = true;
+			$joiner = empty($cond[3])? static::CONDITION_JOINER_AND : static::CONDITION_JOINER_OR;
 			if ($rootActivity->IsPropertyExists($cond[0]))
 			{
-				if (!$this->CheckCondition($rootActivity->{$cond[0]}, $cond[1], $cond[2], $rootActivity->GetPropertyBaseType($cond[0]), $rootActivity))
+				if (!$this->CheckCondition($rootActivity->{$cond[0]}, $cond[1], $cond[2], $rootActivity->GetPropertyBaseType($cond[0]), $rootActivity, $rootActivity->getTemplatePropertyType($cond[0])))
 				{
-					$result = false;
-					break;
+					$r = false;
 				}
 			}
 			elseif ($rootActivity->IsVariableExists($cond[0]))
 			{
-				if (!$this->CheckCondition($rootActivity->GetVariable($cond[0]), $cond[1], $cond[2], $rootActivity->GetVariableBaseType($cond[0]), $rootActivity))
+				if (!$this->CheckCondition($rootActivity->GetVariable($cond[0]), $cond[1], $cond[2], $rootActivity->GetVariableBaseType($cond[0]), $rootActivity, $rootActivity->getVariableType($cond[0])))
 				{
-					$result = false;
-					break;
+					$r = false;
 				}
 			}
+			if ($joiner == static::CONDITION_JOINER_OR)
+			{
+				++$i;
+				$result[$i] = $r;
+			}
+			elseif (!$r)
+				$result[$i] = false;
 		}
-
-		return $result;
+		$result = array_filter($result);
+		return sizeof($result) > 0 ? true : false;
 	}
 
-	private function CheckCondition($field, $operation, $value, $type = null, $rootActivity = null)
+	private function CheckCondition($field, $operation, $value, $type = null, $rootActivity = null, $property = null)
 	{
 		$result = false;
 
-		$value = $rootActivity->ParseValue($value, $type);
+		$value = $rootActivity->ParseValue($value, is_array($property) ? $property['Type'] : $type);
 		if ($type == "user")
 		{
 			$field = CBPHelper::ExtractUsersFromUserGroups($field, $rootActivity);
@@ -202,6 +213,7 @@ class CBPPropertyVariableCondition
 					$arCurrentValues["variable_condition_field_".$i] = $value[0];
 					$arCurrentValues["variable_condition_condition_".$i] = $value[1];
 					$arCurrentValues["variable_condition_value_".$i] = $value[2];
+					$arCurrentValues["variable_condition_joiner_".$i] = $value[3];
 
 					if (array_key_exists($value[0], $arWorkflowParameters))
 					{
@@ -326,6 +338,7 @@ class CBPPropertyVariableCondition
 				$arCurrentValues["variable_condition_field_".$i],
 				htmlspecialcharsback($arCurrentValues["variable_condition_condition_".$i]),
 				$arCurrentValues["variable_condition_value_".$i],
+				(int) $arCurrentValues["variable_condition_joiner_".$i],
 			);
 		}
 

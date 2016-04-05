@@ -57,14 +57,14 @@ $arClasses = array(
 	"bitrix\\bizproc\\workflowstatetable" => "lib/workflowstate.php",
 	"bitrix\\bizproc\\workflowtemplatetable" => "lib/workflowtemplate.php",
 	"bitrix\\bizproc\\basetype\\base" => "lib/basetype/base.php",
-	"bitrix\\bizproc\\basetype\\bool" => "lib/basetype/bool.php",
+	"bitrix\\bizproc\\basetype\\booltype" => "lib/basetype/booltype.php",
 	"bitrix\\bizproc\\basetype\\date" => "lib/basetype/date.php",
 	"bitrix\\bizproc\\basetype\\datetime" => "lib/basetype/datetime.php",
 	"bitrix\\bizproc\\basetype\\double" => "lib/basetype/double.php",
 	"bitrix\\bizproc\\basetype\\file" => "lib/basetype/file.php",
-	"bitrix\\bizproc\\basetype\\int" => "lib/basetype/int.php",
+	"bitrix\\bizproc\\basetype\\inttype" => "lib/basetype/inttype.php",
 	"bitrix\\bizproc\\basetype\\select" => "lib/basetype/select.php",
-	"bitrix\\bizproc\\basetype\\string" => "lib/basetype/string.php",
+	"bitrix\\bizproc\\basetype\\stringtype" => "lib/basetype/stringtype.php",
 	"bitrix\\bizproc\\basetype\\text" => "lib/basetype/text.php",
 	"bitrix\\bizproc\\basetype\\user" => "lib/basetype/user.php",
 	"bitrix\\bizproc\\basetype\\internalselect" => "lib/basetype/internalselect.php",
@@ -72,4 +72,10 @@ $arClasses = array(
 CModule::AddAutoloadClasses("bizproc", $arClasses);
 /*patchlimitationmutatormark1*/
 include_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/bizproc/classes/general/interface.php");
-?>
+
+CJSCore::RegisterExt('bp_selector', array(
+	'js' => '/bitrix/js/bizproc/bp_selector.js',
+	'css' => '/bitrix/js/bizproc/css/bp_selector.css',
+	'lang' => '/bitrix/modules/bizproc/lang/'.LANGUAGE_ID.'/install/js/bp_selector.php',
+	'rel' => array('core', 'popup', 'translit'),
+));

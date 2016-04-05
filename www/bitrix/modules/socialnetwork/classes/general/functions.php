@@ -1317,83 +1317,8 @@ class CSocNetTools
 
 			if($GLOBALS["USER"]->IsAuthorized())
 			{
-				$ttl = (defined("BX_COMP_MANAGED_CACHE") ? 2592000 : 600);
-				$cache_id = 'sonet_ex_gr_'.$SITE_ID;
-				$obCache = new CPHPCache;
-				$cache_dir = '/bitrix/sonet_log_sg';
-
-				if($obCache->InitCache($ttl, $cache_id, $cache_dir))
-				{
-					$tmpVal = $obCache->GetVars();
-					$GLOBALS["arExtranetGroupID"] = $tmpVal['EX_GROUP_ID'];
-					$GLOBALS["arExtranetUserID"] = $tmpVal['EX_USER_ID'];
-					unset($tmpVal);
-				}
-				elseif (CModule::IncludeModule("extranet"))
-				{
-					global $CACHE_MANAGER;
-					if (defined("BX_COMP_MANAGED_CACHE"))
-					{
-						$CACHE_MANAGER->StartTagCache($cache_dir);
-					}
-
-					if (!CExtranet::IsExtranetSite())
-					{
-						$dbGroupTmp = CSocNetGroup::GetList(
-							array(),
-							array(
-								"SITE_ID" => CExtranet::GetExtranetSiteID()
-							),
-							false,
-							false,
-							array("ID")
-						);
-						while($arGroupTmp = $dbGroupTmp->Fetch())
-						{
-							$GLOBALS["arExtranetGroupID"][] = $arGroupTmp["ID"];
-							if (defined("BX_COMP_MANAGED_CACHE"))
-							{
-								$CACHE_MANAGER->RegisterTag('sonet_group_'.$arGroupTmp["ID"]);
-							}
-						}
-
-						if (defined("BX_COMP_MANAGED_CACHE"))
-						{
-							$CACHE_MANAGER->RegisterTag('sonet_group');
-						}
-					}
-
-					$rsUsers = CUser::GetList(
-						($by="ID"),
-						($order="asc"),
-						array(
-							"GROUPS_ID" => array(CExtranet::GetExtranetUserGroupID()),
-							"UF_DEPARTMENT" => false
-						),
-						array("FIELDS" => array("ID"))
-					);
-					while($arUser = $rsUsers->Fetch())
-					{
-						$GLOBALS["arExtranetUserID"][] = $arUser["ID"];
-						if (defined("BX_COMP_MANAGED_CACHE"))
-						{
-							$CACHE_MANAGER->RegisterTag('sonet_user2group');
-						}
-					}
-
-					if (defined("BX_COMP_MANAGED_CACHE"))
-					{
-						$CACHE_MANAGER->EndTagCache();
-					}
-
-					if($obCache->StartDataCache())
-					{
-						$obCache->EndDataCache(array(
-							'EX_GROUP_ID' => $GLOBALS["arExtranetGroupID"],
-							'EX_USER_ID' => $GLOBALS["arExtranetUserID"]
-						));
-					}
-				}
+				$GLOBALS["arExtranetGroupID"] = \Bitrix\Socialnetwork\ComponentHelper::getExtranetSonetGroupIdList();
+				$GLOBALS["arExtranetUserID"] = \Bitrix\Socialnetwork\ComponentHelper::getExtranetUserIdList();
 			}
 		}
 	}

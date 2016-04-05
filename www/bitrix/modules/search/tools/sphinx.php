@@ -180,6 +180,8 @@ class CSearchSphinx extends CSearchFullText
 		if($DATE_CHANGE > 0)
 			$DATE_CHANGE -= CTimeZone::GetOffset();
 
+		$BODY = CSearch::KillEntities($arFields["BODY"])."\r\n".$arFields["TAGS"];
+
 		$sql = "
 			REPLACE INTO ".$this->indexName." (
 				id
@@ -204,7 +206,7 @@ class CSearchSphinx extends CSearchFullText
 			) VALUES (
 				$ID
 				,'".$this->Escape($arFields["TITLE"])."'
-				,'".$this->Escape($arFields["BODY"]."\r\n".$arFields["TAGS"])."'
+				,'".$this->Escape($BODY)."'
 				,".sprintf("%u", crc32($arFields["MODULE_ID"]))."
 				,'".$this->Escape($arFields["MODULE_ID"])."'
 				,".sprintf("%u", crc32($arFields["ITEM_ID"]))."
@@ -516,6 +518,13 @@ class CSearchSphinx extends CSearchFullText
 			$arParams[] = $aParamsEx;
 		}
 
+		$limit = 0;
+		if (is_array($aParamsEx) && isset($aParamsEx["LIMIT"]))
+		{
+			$limit = intval($aParamsEx["LIMIT"]);
+			unset($aParamsEx["LIMIT"]);
+		}
+
 		$this->SITE_ID = $arParams["SITE_ID"];
 
 		$arWhere = array();
@@ -537,9 +546,15 @@ class CSearchSphinx extends CSearchFullText
 
 		if ($strQuery || $this->tags || $bTagsCloud)
 		{
-			$limit = intval(COption::GetOptionInt("search", "max_result_size"));
-			if($limit < 1)
+			if ($limit <= 0)
+			{
+				$limit = intval(COption::GetOptionInt("search", "max_result_size"));
+			}
+
+			if ($limit <= 0)
+			{
 				$limit = 500;
+			}
 
 			$ts = time()-CTimeZone::GetOffset();
 			if ($bTagsCloud)

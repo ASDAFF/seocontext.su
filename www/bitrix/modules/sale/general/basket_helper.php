@@ -226,4 +226,22 @@ class CSaleBasketHelper
 		return $price;
 	}
 
+	/**
+	 * @param $quantity
+	 *
+	 * @return float
+	 * @throws \Bitrix\Main\ArgumentNullException
+	 */
+	public static function formatQuantity($quantity)
+	{
+		$isOrderConverted = \Bitrix\Main\Config\Option::get("main", "~sale_converted_15", 'N');
+
+		if ($isOrderConverted == "Y")
+		{
+			return \Bitrix\Sale\BasketItem::formatQuantity($quantity);
+		}
+
+		return roundEx($quantity, SALE_VALUE_PRECISION);
+	}
+
 }

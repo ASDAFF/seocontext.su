@@ -84,6 +84,7 @@ MobileWebrtc.prototype.callInvite = function (userId, video, repeat)
 	var callVideo = !(typeof video != "undefined" && video === false);
 	var isRepeatCall = (repeat === true);
 	this.callInit = true;
+	this.video = callVideo;
 	this.ajaxCall("CALL_INVITE", {
 			'COMMAND': 'invite',
 			'CHAT_ID': userId,
@@ -197,6 +198,7 @@ MobileWebrtc.prototype.resetState = function ()
 	this.connected = {};
 	this.initiator = false;
 	this.callInit = false;
+	this.video = false;
 	this.callActive = false;
 	this.callChatId = 0;
 	this.callUserId = 0;
@@ -597,6 +599,10 @@ BX.addCustomEvent("onPullEvent-im", BX.proxy(function (command, params)
 				webrtc.UI.show(
 					webrtc.UI.state.CONVERSATION
 				);
+				if( typeof params.video == "undefined")
+				{
+					params.video = this.video;
+				}
 				webrtc.getUserMedia({video: params.video});
 			}
 

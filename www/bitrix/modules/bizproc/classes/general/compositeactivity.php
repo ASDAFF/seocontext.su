@@ -8,7 +8,11 @@ abstract class CBPCompositeActivity
 	{
 		parent::SetWorkflow($workflow);
 		foreach ($this->arActivities as $activity)
+		{
+			if (!method_exists($activity, 'SetWorkflow'))
+				throw new Exception('ActivitySetWorkflow');
 			$activity->SetWorkflow($workflow);
+		}
 	}
 
 	protected function ReInitialize()

@@ -92,6 +92,21 @@ class CIMEvent
 					&& array_key_exists("METHOD_FORMAT", $arEventTmp)
 				)
 				{
+					$arComment["MESSAGE"] = preg_replace(
+						array(
+							'|\[DISK\sFILE\sID=[n]*\d+\]|',
+							'|\[DOCUMENT\sID=[n]*\d+\]|'
+						),
+						'',
+						$arComment["MESSAGE"]
+					);
+
+					$arComment["MESSAGE"] = preg_replace(
+						'|\[QUOTE\](.+?)\[\/QUOTE\]|is'.BX_UTF_PCRE_MODIFIER,
+						'&quot;\\1&quot;',
+						$arComment["MESSAGE"]
+					);
+
 					$arFIELDS_FORMATTED = call_user_func(array($arEventTmp["CLASS_FORMAT"], $arEventTmp["METHOD_FORMAT"]), $arComment, array("IM" => "Y"));
 
 					$CCTP = new CTextParser();
@@ -163,6 +178,7 @@ class CIMEvent
 							"NOTIFY_MESSAGE" => self::GetMessageRatingVote($arParams),
 							"NOTIFY_MESSAGE_OUT" => self::GetMessageRatingVote($arParams, true)
 						);
+
 						CIMNotify::Add($arMessageFields);
 					}
 				}
@@ -750,7 +766,69 @@ class CIMEvent
 		}
 
 		return $url;
-	}	
+	}
+
+	public static function OnAfterUserAdd($arParams)
+	{
+		if($arParams["ID"] <= 0)
+			return false;
+
+		if ($arParams['ACTIVE'] == 'N')
+			return false;
+
+		if (!CIMContactList::IsExtranet($arParams))
+		{
+			$commonChatId = CIMChat::GetGeneralChatId();
+			if ($commonChatId <= 0)
+				return true;
+
+			if (!CIMChat::CanJoinGeneralChatId($arParams["ID"]))
+				return true;
+
+			$CIMChat = new CIMChat(0);
+			$CIMChat->AddUser($commonChatId, Array($arParams["ID"]));
+		}
+
+		return true;
+	}
+
+	public static function OnAfterUserUpdate($arParams)
+	{
+		$commonChatId = CIMChat::GetGeneralChatId();
+		if ($commonChatId > 0 && (isset($arParams['ACTIVE']) || isset($arParams['UF_DEPARTMENT'])))
+		{
+			if ($arParams['ACTIVE'] == 'N')
+			{
+				CIMMessage::SetReadMessageAll($arParams['ID']);
+
+				if ($commonChatId && CIMChat::GetRelationById($commonChatId, $arParams["ID"]))
+				{
+					$CIMChat = new CIMChat($arParams["ID"]);
+					$CIMChat->DeleteUser($commonChatId, $arParams["ID"]);
+				}
+			}
+			else
+			{
+				$commonChatId = CIMChat::GetGeneralChatId();
+				if ($commonChatId)
+				{
+					$userInChat = CIMChat::GetRelationById($commonChatId, $arParams["ID"]);
+					$userCanJoin = CIMChat::CanJoinGeneralChatId($arParams["ID"]);
+
+					if ($userInChat && !$userCanJoin)
+					{
+						$CIMChat = new CIMChat($arParams["ID"]);
+						$CIMChat->DeleteUser($commonChatId, $arParams["ID"]);
+					}
+					else if (!$userInChat && $userCanJoin)
+					{
+						$CIMChat = new CIMChat(0);
+						$CIMChat->AddUser($commonChatId, Array($arParams["ID"]));
+					}
+				}
+			}
+		}
+	}
 
 	public static function OnUserDelete($ID)
 	{
@@ -795,12 +873,6 @@ class CIMEvent
 		$obCache->CleanDir('/bx/imc/recent');
 
 		return true;
-	}
-
-	public static function OnAfterUserUpdate($arParams)
-	{
-		if ($arParams['ACTIVE'] == 'N')
-			CIMMessage::SetReadMessageAll($arParams['ID']);
 	}
 
 	public static function OnGetDependentModule()

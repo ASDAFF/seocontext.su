@@ -74,6 +74,28 @@ function socialnetworkBlogPostCommentMobile(
 			array(
 				"pathToUser" => "/mobile/users/?user_id=#user_id#"
 			));
+
+		if (
+			!empty($comment["COMMENT_PROPERTIES"])
+			&& !empty($comment["COMMENT_PROPERTIES"]["HIDDEN_DATA"])
+			&& !empty($comment["COMMENT_PROPERTIES"]["HIDDEN_DATA"]["UF_BLOG_COMM_URL_PRV"])
+			&& !empty($comment["COMMENT_PROPERTIES"]["HIDDEN_DATA"]["UF_BLOG_COMM_URL_PRV"]["VALUE"])
+		)
+		{
+			$arUF = $comment["COMMENT_PROPERTIES"]["HIDDEN_DATA"]["UF_BLOG_COMM_URL_PRV"];
+
+			$urlPreviewText = \Bitrix\Socialnetwork\ComponentHelper::getUrlPreviewContent($arUF, array(
+				"LAZYLOAD" => $arParams["LAZYLOAD"],
+				"MOBILE" => "Y",
+				"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"],
+				"PATH_TO_USER" => $arParams["~PATH_TO_USER"]
+			));
+
+			if (!empty($urlPreviewText))
+			{
+				$text .= $urlPreviewText;
+			}
+		}
 	}
 
 	$res = array(
@@ -90,7 +112,8 @@ function socialnetworkBlogPostCommentMobile(
 			"NAME" => $arUser["~NAME"],
 			"LAST_NAME" => $arUser["~LAST_NAME"],
 			"SECOND_NAME" => $arUser["~SECOND_NAME"],
-			"AVATAR" => array_key_exists($avatarKey, $arUser) ? $arUser[$avatarKey]["src"] : ''
+			"AVATAR" => array_key_exists($avatarKey, $arUser) ? $arUser[$avatarKey]["src"] : '',
+			"EXTERNAL_AUTH_ID" => (isset($arUser["EXTERNAL_AUTH_ID"]) ? $arUser["EXTERNAL_AUTH_ID"] : false)
 		),
 		"FILES" => false,
 		"UF" => false,
@@ -136,5 +159,6 @@ function socialnetworkBlogPostCommentMobile(
 			}
 		}
 	}
+
 	return $res;
 }

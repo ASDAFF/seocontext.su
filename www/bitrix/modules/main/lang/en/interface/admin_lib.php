@@ -220,4 +220,6 @@ $MESS["admin_lib_calend_direct_title"] = "Refine period";
 $MESS["admin_lib_filter_goto_dfilter"] = "Revert to default filter";
 $MESS["admin_lib_required"] = "Required fields";
 $MESS["admin_lib_menu_marketing"] = "Marketing";
+$MESS["admin_lib_sso_auth"] = "Authentication";
+$MESS["admin_lib_sso_auth_title"] = "To view available sites, please sign in using your Bitrix24 account and enable site list access.";
 ?>

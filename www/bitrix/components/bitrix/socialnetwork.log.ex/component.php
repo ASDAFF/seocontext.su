@@ -209,6 +209,8 @@ $arParams["COMMENT_PROPERTY"] = array("UF_SONET_COM_FILE");
 if (IsModuleInstalled("webdav") || IsModuleInstalled("disk"))
 	$arParams["COMMENT_PROPERTY"][] = "UF_SONET_COM_DOC";
 
+$arParams["COMMENT_PROPERTY"][] = "UF_SONET_COM_URL_PRV";
+
 $arResult["SHOW_UNREAD"] = $arParams["SHOW_UNREAD"] = ($arParams["SET_LOG_COUNTER"] == "Y" ? "Y" : "N");
 if (!$GLOBALS["USER"]->IsAuthorized())
 	$arResultPresetFilters = false;
@@ -1624,20 +1626,11 @@ $arResult["bGetComments"] = $bGetComments;
 $arResult["GET_COMMENTS"] = ($bGetComments ? "Y" : "N");
 $arResult["CURRENT_PAGE_DATE"] = $current_page_date;
 
-$arResult["Smiles"] = array();
-
 if (!isset($arResult["FatalError"]))
 {
 	if (CModule::IncludeModule("forum"))
 	{
-		$arResult["Smiles"] = CForumSmile::GetByType("S", LANGUAGE_ID);
-		foreach($arResult["Smiles"] as $i => $arSmile)
-		{
-			list($type) = explode(" ", $arSmile["TYPING"]);
-			$arResult["Smiles"][$i]["TYPE"] = str_replace("'", "\'", $type);
-			$arResult["Smiles"][$i]["TYPE"] = str_replace("\\", "\\\\", $arResult["Smiles"][$i]["TYPE"]);
-			$arResult["Smiles"][$i]["IMAGE"] = "/bitrix/images/forum/smile/".$arSmile["IMAGE"];
-		}
+		$arResult["Smiles"] = COption::GetOptionInt("forum", "smile_gallery_id", 0);
 	}
 	else
 	{

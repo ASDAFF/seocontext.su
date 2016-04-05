@@ -1,8 +1,12 @@
 <?
+/** @global CMain $APPLICATION */
+/** @global CUser $USER */
+/** @global CDatabase $DB */
+/** @global CUserTypeManager $USER_FIELD_MANAGER */
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/catalog/prolog.php");
 
-global $APPLICATION, $USER, $DB;
+global $APPLICATION, $USER, $DB, $USER_FIELD_MANAGER;
 
 if (!$USER->CanDoOperation('catalog_read') && !$USER->CanDoOperation('catalog_view'))
 	$APPLICATION->AuthForm(GetMessage("ACCESS_DENIED"));
@@ -111,6 +115,8 @@ if($entity_id)
 	$USER_FIELD_MANAGER->AdminListAddFilter($entity_id, $arFilter);
 
 if($find_section_section == "")
+	unset($arFilter["SECTION_ID"]);
+if (isset($arFilter['ID']) && $arFilter['ID'] > 0)
 	unset($arFilter["SECTION_ID"]);
 
 if($IBLOCK_ID > 0)
@@ -442,7 +448,7 @@ function SelAll()
 		<td><?echo CalendarPeriod("find_section_timestamp_1", htmlspecialcharsbx($find_section_timestamp_1), "find_section_timestamp_2", htmlspecialcharsbx($find_section_timestamp_2), "find_section_form","Y")?></td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_MODIFIED_BY")?>:</td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_MODIFIED_BY")?>:</td>
 		<td><input type="text" name="find_section_modified_user_id" value="<?echo htmlspecialcharsex($find_section_modified_by)?>" size="3">&nbsp;<?
 		$gr_res = CIBlock::GetGroupPermissions($IBLOCK_ID);
 		$res = Array(1);
@@ -458,11 +464,11 @@ function SelAll()
 		</td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_DATE_CREATE").":"?></td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_DATE_CREATE").":"?></td>
 		<td><?echo CalendarPeriod("find_section_date_create_1", htmlspecialcharsex($find_section_date_create_1), "find_section_date_create_2", htmlspecialcharsex($find_section_date_create_2), "find_section_form")?></td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_CREATED_BY")?>:</td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_CREATED_BY")?>:</td>
 		<td><input type="text" name="find_section_created_user_id" value="<?echo htmlspecialcharsex($find_section_created_by)?>" size="3">&nbsp;<?
 		$gr_res = CIBlock::GetGroupPermissions($IBLOCK_ID);
 		$res = Array(1);
@@ -478,15 +484,15 @@ function SelAll()
 		</td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_CODE")?>:</td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_CODE")?>:</td>
 		<td><input type="text" name="find_section_code" size="47" value="<?echo htmlspecialcharsbx($find_section_code)?>"></td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_XML_ID")?>:</td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_XML_ID")?>:</td>
 		<td><input type="text" name="find_section_external_id" size="47" value="<?echo htmlspecialcharsbx($find_section_external_id)?>"></td>
 	</tr>
 	<tr>
-		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_ACTIVE")?>:</td>
+		<td><?echo GetMessage("BX_MOD_CATALOG_ADMIN_CSS_HEAD_ACTIVE")?>:</td>
 		<td>
 			<select name="find_section_active" >
 				<option value=""><?=htmlspecialcharsex(GetMessage('IBLOCK_ALL'))?></option>

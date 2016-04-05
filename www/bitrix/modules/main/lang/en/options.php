@@ -130,6 +130,7 @@ $MESS["MAIN_EVENT_LOG_GROUP_POLICY"] = "User group security policy updates";
 $MESS["MAIN_EVENT_LOG_MODULE_ACCESS"] = "Changes in module access permissions";
 $MESS["MAIN_EVENT_LOG_FILE_ACCESS"] = "Changes in file access permissions";
 $MESS["MAIN_EVENT_LOG_TASK"] = "Changes of access permission level";
+$MESS["MAIN_EVENT_LOG_MARKETPLACE"] = "Log Marketplace solution install and uninstall";
 $MESS["MAIN_OPTION_CONTROLLER_PROXY_SECTION"] = "Proxy settings (if applicable) ";
 $MESS["MAIN_OPTION_CONTROLLER_PROXY_ADDR"] = "Server address:";
 $MESS["MAIN_OPTION_CONTROLLER_PROXY_PORT"] = "Port:";
@@ -202,5 +203,8 @@ $MESS["MAIN_OPTION_ATTACH_IMAGES"] = "Send images as attachments";
 $MESS["MAIN_OPTION_MAX_FILE_SIZE"] = "Max. attached file size, bytes (0 means no limit):";
 $MESS["MAIN_OPTION_SESS_AUTH"] = "Extend session for logged in users only:";
 $MESS["MAIN_OPTIONS_AUTH_TEMPLATE"] = "System authentication component template (system.auth.*):";
-$MESS["MAIN_EVENT_LOG_MARKETPLACE"] = "Log Marketplace solution install and uninstall";
+$MESS["MAIN_OPTIONS_URL_PREVIEW"] = "Rich media links";
+$MESS["MAIN_OPTION_URL_PREVIEW_ENABLE"] = "Enable rich media links:";
+$MESS["MAIN_OPTION_URL_PREVIEW_SAVE_IMAGES"] = "Store images locally:";
+$MESS["main_sett_public_panel_hide"] = "Never show the toolbar to users:";
 ?>

@@ -73,7 +73,7 @@ class CIMHistory
 					M.CHAT_ID = '".$arRelation['CHAT_ID']."'
 				AND M.MESSAGE like '%".$DB->ForSql($searchText)."%'
 					".$limitById."
-				ORDER BY DATE_CREATE DESC, ID DESC
+				ORDER BY M.DATE_CREATE DESC, M.ID DESC
 			";
 			if (!$bTimeZone)
 				CTimeZone::Enable();
@@ -125,8 +125,11 @@ class CIMHistory
 						$arFiles[$fileId] = $fileId;
 					}
 				}
+				if (isset($arMessages[$messageId]['params']['URL_ID']))
+					unset($arMessages[$messageId]['params']['URL_ID']);
 			}
 			$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+			$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 		}
 
 		return Array('chatId' => $chatId, 'message' => $arMessages, 'unreadMessage' => $arUnreadMessage, 'usersMessage' => $arUsers, 'files' => $arMessageFiles);
@@ -196,7 +199,7 @@ class CIMHistory
 					M.CHAT_ID = ".$arRelation['CHAT_ID']."
 				AND M.DATE_CREATE >= ".$sqlDateStart." AND M.DATE_CREATE <=  ".$sqlDateEnd."
 					".$limitById."
-				ORDER BY DATE_CREATE DESC, ID DESC
+				ORDER BY M.DATE_CREATE DESC, M.ID DESC
 			";
 			if (!$bTimeZone)
 				CTimeZone::Enable();
@@ -239,8 +242,11 @@ class CIMHistory
 						$arFiles[$fileId] = $fileId;
 					}
 				}
+				if (isset($arMessages[$messageId]['params']['URL_ID']))
+					unset($arMessages[$messageId]['params']['URL_ID']);
 			}
 			$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+			$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 		}
 
 		return Array('chatId' => $chatId, 'message' => $arMessages, 'unreadMessage' => $arUnreadMessage, 'usersMessage' => $arUsers, 'files' => $arMessageFiles);
@@ -358,8 +364,11 @@ class CIMHistory
 							$arFiles[$fileId] = $fileId;
 						}
 					}
+					if (isset($arMessages[$messageId]['params']['URL_ID']))
+						unset($arMessages[$messageId]['params']['URL_ID']);
 				}
 				$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+				$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 			}
 		}
 
@@ -540,8 +549,11 @@ class CIMHistory
 					$arFiles[$fileId] = $fileId;
 				}
 			}
+			if (isset($arMessages[$messageId]['params']['URL_ID']))
+				unset($arMessages[$messageId]['params']['URL_ID']);
 		}
 		$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+		$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 
 		return Array('chatId' => $chatId, 'message' => $arMessages, 'unreadMessage' => $arUnreadMessage, 'usersMessage' => $usersMessage, 'files' => $arMessageFiles);
 	}
@@ -631,12 +643,21 @@ class CIMHistory
 					$arFiles[$fileId] = $fileId;
 				}
 			}
+			if (isset($arMessages[$messageId]['params']['URL_ID']))
+				unset($arMessages[$messageId]['params']['URL_ID']);
 		}
 		$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+		$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 
 		return Array('chatId' => $chatId, 'message' => $arMessages, 'unreadMessage' => $arUnreadMessage, 'usersMessage' => $usersMessage, 'files' => $arMessageFiles);
 	}
 
+	/**
+	 * @param $pageId
+	 * @param $chatId
+	 * @param bool $bTimeZone
+	 * @return array
+	 */
 	function GetMoreChatMessage($pageId, $chatId, $bTimeZone = true)
 	{
 		global $DB;
@@ -720,8 +741,11 @@ class CIMHistory
 						$arFiles[$fileId] = $fileId;
 					}
 				}
+				if (isset($arMessages[$messageId]['params']['URL_ID']))
+					unset($arMessages[$messageId]['params']['URL_ID']);
 			}
 			$arMessageFiles = CIMDisk::GetFiles($chatId, $arFiles);
+			$arMessages = CIMMessageLink::prepareShow($arMessages, $params);
 		}
 
 		return Array('chatId' => $chatId, 'message' => $arMessages, 'usersMessage' => $usersMessage, 'files' => $arMessageFiles);

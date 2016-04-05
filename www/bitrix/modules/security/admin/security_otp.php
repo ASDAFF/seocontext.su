@@ -250,7 +250,7 @@ $tabControl->Buttons(
 $tabControl->End();
 ?>
 </form>
-	<script id="settings" type="application/json"><?=CSecurityJsonHelper::encode(array(
+	<script id="settings" type="application/json"><?=\Bitrix\Main\Web\Json::encode(array(
 			'rights' => array_flip($targetRights)
 		))?></script>
 <?

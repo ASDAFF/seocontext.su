@@ -18,33 +18,70 @@ $addWidthStyle = IsAmPmMode() ? ' ampm-width' : '';
 <!-- Event From/To, Reminder, Location-->
 <div class="feed-event-grey-cont">
 	<div class="feed-event-from-to-reminder" id="feed-cal-from-to-cont<?=$id?>">
-		<input id="event-from-ts<?=$id?>" type="hidden" value="" name="EVENT_FROM_TS"/>
-		<input id="event-to-ts<?=$id?>" type="hidden" value="" name="EVENT_TO_TS"/>
-		<div class="feed-event-from-to-reminder-inner">
+		<span class="feed-event-from-to-reminder-inner">
 			<span class="feed-event-date">
 				<label class="feed-event-date-label" for="<?=$id?>edev-from"><?=GetMessage('ECLF_EVENT_FROM_DATE_TIME')?></label>
 				<label class="feed-event-date-label-full-day" for="<?=$id?>edev-from"><?=GetMessage('EC_EDEV_DATE_FROM')?></label>
-				<input id="feed-cal-event-from<?=$id?>" type="text" class="calendar-inp calendar-inp-cal"/>
+				<input id="feed-cal-event-from<?=$id?>" name="DATE_FROM" type="text" class="calendar-inp calendar-inp-cal"/>
 			</span>
-			<span class="feed-event-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => 'feed_cal_event_from_time'.$id, 'inputTitle' => GetMessage('ECLF_TIME_FROM'), 'showIcon' => false));?></span>
+			<span class="feed-event-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => 'feed_cal_event_from_time'.$id, 'inputName' => 'TIME_FROM', 'inputTitle' => GetMessage('ECLF_TIME_FROM'), 'showIcon' => false));?></span>
 			<span class="feed-event-mdash">&mdash;</span>
 			<span class="feed-event-date">
 				<label class="feed-event-date-label" for="<?=$id?>edev-from"><?=GetMessage('ECLF_EVENT_TO_DATE_TIME')?></label>
 				<label class="feed-event-date-label-full-day" for="<?=$id?>edev-from"><?=GetMessage('EC_EDEV_DATE_TO')?></label>
-				<input id="feed-cal-event-to<?=$id?>" type="text" class="calendar-inp calendar-inp-cal"/>
+				<input id="feed-cal-event-to<?=$id?>" name="DATE_TO" type="text" class="calendar-inp calendar-inp-cal"/>
 			</span>
-			<span class="feed-event-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => 'feed_cal_event_to_time'.$id, 'inputTitle' => GetMessage('ECLF_TIME_TO'), 'showIcon' => false));?></span>
-		</div>
-
-		<div  class="feed-event-full-day">
+			<span class="feed-event-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => 'feed_cal_event_to_time'.$id, 'inputName' => 'TIME_TO', 'inputTitle' => GetMessage('ECLF_TIME_TO'), 'showIcon' => false));?></span>
+		</span>
+		<span class="feed-event-full-day">
 			<input type="checkbox" id="event-full-day<?=$id?>" value="Y" name="EVENT_FULL_DAY"/>
 			<label style="display: inline-block;" for="event-full-day<?=$id?>"><?= GetMessage('ECLF_EVENT_ALL_DAY')?></label>
+		</span>
+		<div id="feed-cal-tz-cont-outer<?=$id?>" class="feed-ev-timezone-outer-wrap bxec-tz-wrap">
+					<span class="feed-ev-timezone-link bxec-tz-wrap" id="feed-cal-tz-switch<?=$id?>">
+						<span class="feed-ev-tz-open"><?= GetMessage('EC_EVENT_TZ_BUT_OPEN')?></span>
+						<span class="feed-ev-tz-close"><?= GetMessage('EC_EVENT_TZ_BUT_CLOSE')?></span>
+					</span>
+			<div id="feed-cal-tz-cont<?=$id?>" class="feed-ev-timezone-hidden-wrap bxec-tz-wrap">
+				<div id="feed-cal-tz-inner-cont<?=$id?>" class="feed-ev-timezone-hidden">
+					<div class="feed-ev-timezone-hidden-item">
+						<select id="feed-cal-tz-from<?=$id?>" class="calendar-select feed-ev-tz-select" name="TZ_FROM">
+							<option value=""> - </option>
+							<?foreach($arResult['TIMEZONE_LIST'] as $tz):?>
+								<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+							<?endforeach;?>
+						</select>
+						<span class="feed-event-mdash">&mdash;</span>
+						<select id="feed-cal-tz-to<?=$id?>" class="calendar-select feed-ev-tz-select" name="TZ_TO">
+							<option value=""> - </option>
+							<?foreach($arResult['TIMEZONE_LIST'] as $tz):?>
+								<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+							<?endforeach;?>
+						</select>
+						<span id="feed-cal-tz-tip<?=$id?>" class="feed-event-tip-btn"></span>
+					</div>
+				</div>
+			</div>
 		</div>
+	</div>
 
-		<div class="feed-event-reminder-collapsed" id="feed-cal-reminder-cont<?=$id?>">
-			<input class="feed-event-rem-ch" type="checkbox" id="event-reminder<?=$id?>" value="Y" name="EVENT_REMIND"/>
-			<label class="feed-event-rem-lbl" for="event-reminder<?=$id?>"><?= GetMessage('ECLF_EVENT_REMIND')?></label>
-			<label class="feed-event-rem-lbl-for" for="event-reminder<?=$id?>"><?= GetMessage('ECLF_EVENT_REMIND_FOR')?></label>
+	<div id="feed-cal-tz-def-wrap<?=$id?>" class="feed-event-timezone bxec-tz-wrap" style="display: none;">
+		<span class="bxec-field-label-edev">
+			<label><?= GetMessage('EC_EVENT_ASK_TZ')?></label>
+		</span>
+		<select id="feed-cal-tz-def<?=$id?>" class="calendar-select feed-ev-tz-select" name="DEFAULT_TZ" style="width: 280px;">
+			<option value=""> - </option>
+			<?foreach($arResult['TIMEZONE_LIST'] as $tz):?>
+				<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+			<?endforeach;?>
+		</select>
+		<span id="feed-cal-tz-def-tip<?=$id?>" class="feed-event-tip-btn"></span>
+	</div>
+
+	<div class="feed-event-reminder-collapsed" id="feed-cal-reminder-cont<?=$id?>">
+		<input class="feed-event-rem-ch" type="checkbox" id="event-reminder<?=$id?>" value="Y" name="EVENT_REMIND"/>
+		<label class="feed-event-rem-lbl" for="event-reminder<?=$id?>"><?= GetMessage('ECLF_EVENT_REMIND')?></label>
+		<label class="feed-event-rem-lbl-for" for="event-reminder<?=$id?>"><?= GetMessage('ECLF_EVENT_REMIND_FOR')?></label>
 
 			<span class="feed-event-rem-value">
 				<input class="calendar-inp" id="event-remind_count<?=$id?>" type="text" style="width: 30px" size="2" name="EVENT_REMIND_COUNT">
@@ -55,11 +92,12 @@ $addWidthStyle = IsAmPmMode() ? ' ampm-width' : '';
 				</select>
 				<?=GetMessage('ECLF_REM_DE_VORHER')?>
 			</span>
-		</div>
 	</div>
+
 	<div  class="feed-event-location">
 		<label style="display: inline-block;" for="event-location<?=$id?>"><?= GetMessage('ECLF_EVENT_LOCATION')?></label>
-		<input type="text" id="event-location<?=$id?>" value="" class="calendar-inp" name="EVENT_LOCATION"/>
+		<input type="text" id="event-location<?=$id?>" value="" class="calendar-inp calendar-inp-loc" name="EVENT_LOCATION"/>
+		<input id="event-location-new<?=$id?>" type="hidden" value=""/>
 	</div>
 </div>
 
@@ -151,7 +189,7 @@ $APPLICATION->IncludeComponent(
 					groups : <?=($arParams["DESTINATION"]["EXTRANET_USER"] == 'Y'? '{}': "{'UA' : {'id':'UA','name': '".(!empty($arParams["DESTINATION"]['DEPARTMENT']) ? GetMessageJS("MPF_DESTINATION_3"): GetMessageJS("MPF_DESTINATION_4"))."'}}")?>,
 					sonetgroups : <?=(empty($arParams["DESTINATION"]['SONETGROUPS'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['SONETGROUPS']))?>,
 					department : <?=(empty($arParams["DESTINATION"]['DEPARTMENT'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['DEPARTMENT']))?>,
-					departmentRelation : departmentRelation
+					departmentRelation : (typeof departmentRelation != 'undefined' ? departmentRelation : {})
 				},
 				itemsLast : {
 					users : <?=(empty($arParams["DESTINATION"]['LAST']['USERS'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['LAST']['USERS']))?>,
@@ -159,7 +197,8 @@ $APPLICATION->IncludeComponent(
 					department : <?=(empty($arParams["DESTINATION"]['LAST']['DEPARTMENT'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['LAST']['DEPARTMENT']))?>,
 					groups : <?=($arParams["DESTINATION"]["EXTRANET_USER"] == 'Y'? '{}': "{'UA':true}")?>
 				},
-				itemsSelected : <?=(empty($arParams["DESTINATION"]['SELECTED'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['SELECTED']))?>
+				itemsSelected : <?=(empty($arParams["DESTINATION"]['SELECTED'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['SELECTED']))?>,
+				destSort : <?=CUtil::PhpToJSObject(isset($arParams["DESTINATION"]['DEST_SORT']) ? $arParams["DESTINATION"]['DEST_SORT'] : array())?>
 			});
 			BX.bind(BX('feed-event-dest-input'), 'keyup', BXEvDestSearch);
 			BX.bind(BX('feed-event-dest-input'), 'keydown', BXEvDestSearchBefore);
@@ -307,8 +346,17 @@ window.oEditEventManager = new window.EditEventManager(<?=CUtil::PhpToJSObject(
 		'editorId' => $arParams["JS_OBJECT_NAME"],
 		'arEvent' => $arParams['EVENT'],
 		'bAMPM' => IsAmPmMode(),
+		'userTimezoneName' => $arParams["USER_TIMEZONE_NAME"],
+		'userTimezoneDefault' => $arParams["USER_TIMEZONE_DEFAULT"],
+		'meetingRooms' => $arParams["MEETING_ROOMS"],
 		'message' => array(
-			'NoLimits' => GetMessageJS('EC_T_DIALOG_NEVER')
+			'NoLimits' => GetMessageJS('EC_T_DIALOG_NEVER'),
+			'eventTzHint' => GetMessageJS('EC_EVENT_TZ_HINT'),
+			'eventTzDefHint' => GetMessageJS('EC_EVENT_TZ_DEF_HINT'),
+			'SelectMR' => GetMessageJS('EC_PL_SEL_MEET_ROOM'),
+			'OpenMRPage' => GetMessageJS('EC_PL_OPEN_MR_PAGE'),
+			'MRNotReservedErr' => GetMessageJS('EC_MR_RESERVE_ERR_BUSY'),
+			'MRReserveErr' => GetMessageJS('EC_MR_RESERVE_ERR')
 		)
 	));?>
 );

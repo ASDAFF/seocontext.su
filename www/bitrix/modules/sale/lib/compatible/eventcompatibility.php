@@ -11,8 +11,6 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 {
 	// Events old kernel, which will be called in a new kernel
 	const EVENT_COMPATIBILITY_ON_ORDER_PAID = "OnSalePayOrder";
-	const EVENT_COMPATIBILITY_ON_ORDER_PAID_SEND_EMAIL = "OnOrderPaySendEmail";
-	const EVENT_COMPATIBILITY_ON_ORDER_CANCEL_SEND_EMAIL = "OnOrderCancelSendEmail";
 	const EVENT_COMPATIBILITY_ON_BEFORE_ORDER_DELETE = "OnBeforeOrderDelete";
 	const EVENT_COMPATIBILITY_ON_ORDER_DELETED = "OnOrderDelete";
 	const EVENT_COMPATIBILITY_ON_SHIPMENT_DELIVER = "OnSaleDeliveryOrder";
@@ -43,9 +41,24 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 	const EVENT_COMPATIBILITY_ORDER_STATUS_EMAIL = "OnSaleStatusEMail";
 	const EVENT_COMPATIBILITY_MOBILE_PUSH_ORDER_STATUS_CHANGE = "ORDER_STATUS_CHANGED";
 
+	const EVENT_COMPATIBILITY_ON_ORDER_NEW_SEND_EMAIL = "OnOrderNewSendEmail";
+	const EVENT_COMPATIBILITY_ORDER_NEW_SEND_EMAIL_EVENT_NAME = "SALE_NEW_ORDER";
+
+	const EVENT_COMPATIBILITY_ON_ORDER_DELIVER_SEND_EMAIL = "OnOrderDeliverSendEmail";
+	const EVENT_COMPATIBILITY_ORDER_DELIVER_SEND_EMAIL_EVENT_NAME = "SALE_ORDER_DELIVERY";
+
+	const EVENT_COMPATIBILITY_ON_ORDER_PAID_SEND_EMAIL = "OnOrderPaySendEmail";
+
+	const EVENT_COMPATIBILITY_ON_ORDER_CANCEL_SEND_EMAIL = "OnOrderCancelSendEmail";
+	const EVENT_COMPATIBILITY_ORDER_CANCEL_SEND_EMAIL_EVENT_NAME = "SALE_ORDER_CANCEL";
+
+	const EVENT_COMPATIBILITY_ON_BEFORE_BASKET_DELETE = "OnBeforeBasketDelete";
+	const EVENT_COMPATIBILITY_ON_BASKET_DELETED = "OnBasketDelete";
 
 //	const EVENT_COMPATIBILITY_ON_BASKET_ = "OnSaleCancelOrder";
 
+
+	protected static $disableMailSend = false;
 
 
 	/**
@@ -72,7 +85,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_PAY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_PAY_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_PAY_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -86,23 +99,6 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 
 		if ($value == "Y")
 		{
-			$orderFields = null;
-
-			/** @var Sale\Result $r */
-			$r = OrderCompatibility::getOrderFields($order);
-			if ($r->isSuccess())
-			{
-				if ($resultOrderFieldsData = $r->getData())
-				{
-					if (!empty($resultOrderFieldsData['ORDER_FIELDS']) && is_array($resultOrderFieldsData['ORDER_FIELDS']))
-					{
-						$orderFields = $resultOrderFieldsData['ORDER_FIELDS'];
-					}
-				}
-			}
-
-			\CSaleMobileOrderPush::send("ORDER_PAYED", array("ORDER" => $orderFields));
-
 			if (Main\Loader::includeModule("statistic"))
 			{
 				\CStatEvent::AddByEvents("eStore", "order_paid", $id, "", $order->getField("STAT_GID"), $order->getPrice(), $order->getCurrency());
@@ -134,55 +130,16 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_PAY_SEND_EMAIL_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_PAY_SEND_EMAIL_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_PAY_SEND_EMAIL_WRONG_ORDER'),
 				'sale'
 			);
 		}
 
-		$id = $order->getId();
 		$value = $order->getField('PAYED');
 
 		if ($value == "Y")
 		{
-			$userEmail = "";
-			/** @var Sale\PropertyValueCollection $propertyCollection */
-			if ($propertyCollection = $order->getPropertyCollection())
-			{
-				if ($propUserEmail = $propertyCollection->getUserEmail())
-					$userEmail = $propUserEmail->getValue();
-			}
-
-			if(strval($userEmail) == '')
-			{
-				$resUser = \CUser::GetByID($order->getUserId());
-				if($userData = $resUser->Fetch())
-					$userEmail = $userData["EMAIL"];
-			}
-
-			$fields = Array(
-				"ORDER_ID" => $order->getField("ACCOUNT_NUMBER"),
-				"ORDER_DATE" => $order->getDateInsert()->toString(),
-				"EMAIL" => $userEmail,
-				"SALE_EMAIL" => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER["SERVER_NAME"])
-			);
-
-			$eventName = "SALE_ORDER_PAID";
-			$send = true;
-
-			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_ORDER_PAID_SEND_EMAIL, true) as $oldEvent)
-			{
-				if (ExecuteModuleEventEx($oldEvent, array($id, &$eventName, &$fields)) === false)
-				{
-					$send = false;
-				}
-			}
-
-			if($send)
-			{
-				$event = new \CEvent;
-				$event->Send($eventName, $order->getField('LID'), $fields, "N");
-			}
-
+			Sale\Notify::sendOrderPaid($order);
 		}
 		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
 	}
@@ -194,6 +151,11 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 	 */
 	public static function onSaleOrderCancelSendEmail(Main\Event $event)
 	{
+		if (static::$disableMailSend === true)
+		{
+			return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+		}
+
 		$parameters = $event->getParameters();
 
 		/** @var Sale\Order $order */
@@ -202,83 +164,71 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_CANCEL_SEND_EMAIL_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_CANCEL_SEND_EMAIL_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_CANCEL_SEND_EMAIL_WRONG_ORDER'),
 				'sale'
 			);
 		}
 
 		$id = $order->getId();
 		$value = $order->getField('CANCELED');
-		$description = $order->getField('REASON_CANCELED');
 
 		if ($value == "Y")
 		{
-			$userEmail = "";
-			/** @var Sale\PropertyValueCollection $propertyCollection */
-			if ($propertyCollection = $order->getPropertyCollection())
-			{
-				if ($propUserEmail = $propertyCollection->getUserEmail())
-					$userEmail = $propUserEmail->getValue();
-			}
-
-			if(strval($userEmail) == '')
-			{
-				$resUser = \CUser::GetByID($order->getUserId());
-				if($userData = $resUser->Fetch())
-					$userEmail = $userData["EMAIL"];
-			}
-
-			$fields = Array(
-				"ORDER_ID" => $order->getField("ACCOUNT_NUMBER"),
-				"ORDER_DATE" => $order->getDateInsert()->toString(),
-				"EMAIL" => $userEmail,
-				"ORDER_CANCEL_DESCRIPTION" => $description,
-				"SALE_EMAIL" => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER["SERVER_NAME"])
-			);
-
-			$eventName = "SALE_ORDER_CANCEL";
-			$send = true;
-
-			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_ORDER_CANCEL_SEND_EMAIL, true) as $oldEvent)
-			{
-				if (ExecuteModuleEventEx($oldEvent, array($id, &$eventName, &$fields)) === false)
-				{
-					$send = false;
-				}
-			}
-
-			if($send)
-			{
-				$event = new \CEvent;
-				$event->Send($eventName, $order->getField('LID'), $fields, "N");
-			}
-
-
-			$orderFields = null;
-
-			/** @var Sale\Result $r */
-			$r = OrderCompatibility::getOrderFields($order);
-			if ($r->isSuccess())
-			{
-				if ($resultOrderFieldsData = $r->getData())
-				{
-					if (!empty($resultOrderFieldsData['ORDER_FIELDS']) && is_array($resultOrderFieldsData['ORDER_FIELDS']))
-					{
-						$orderFields = $resultOrderFieldsData['ORDER_FIELDS'];
-					}
-				}
-			}
-
-			\CSaleMobileOrderPush::send("ORDER_CANCELED", array("ORDER" => $orderFields));
+			Sale\Notify::sendOrderCancel($order);
 
 			if (Main\Loader::includeModule("statistic"))
 			{
 				\CStatEvent::AddByEvents("eStore", "order_cancel", $id, "", $order->getField("STAT_GID"));
 			}
 
+			$GLOBALS['SALE_ORDER_CANCEL_SEND'][$id] = true;
+
 		}
 		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
 	}
+
+
+	/**
+	 * @param Main\Event $event
+	 *
+	 * @return Main\EventResult
+	 */
+	public static function onOrderNewSendEmail(Main\Event $event)
+	{
+		if (static::$disableMailSend === true)
+		{
+			return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+		}
+
+		$parameters = $event->getParameters();
+
+		/** @var Sale\Order $order */
+		$order = $parameters['ENTITY'];
+		$isNew = $parameters['IS_NEW'];
+
+		if (!$order instanceof Sale\Order)
+		{
+			return new Main\EventResult(
+				Main\EventResult::ERROR,
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_NEW_SEND_EMAIL_WRONG_ORDER'),
+				'sale'
+			);
+		}
+
+		$id = $order->getId();
+
+		if (!$isNew)
+		{
+			return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+		}
+
+		Sale\Notify::sendOrderNew($order);
+
+		$GLOBALS['SALE_NEW_ORDER_SEND'][$id] = true;
+
+		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
+
 
 
 	/**
@@ -295,7 +245,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_DELETE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_DELETE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_DELETE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -308,7 +258,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 			{
 				return new Main\EventResult(
 					Main\EventResult::SUCCESS,
-					array('RETURN' => false),
+					false,
 					'sale');
 			}
 		}
@@ -331,7 +281,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage(''), 'SALE_EVENT_COMPATIBILITY_ORDER_DELETE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_DELETE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -339,7 +289,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		$deleted = $parameters['VALUE'];
 		$id = $order->getId();
 
-		foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BEFORE_ORDER_DELETE, true) as $oldEvent)
+		foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_ORDER_DELETED, true) as $oldEvent)
 		{
 			ExecuteModuleEventEx($oldEvent, array($id, $deleted));
 		}
@@ -363,7 +313,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_DELIVER_ORDER_WRONG_SHIPMENT'), 'SALE_EVENT_COMPATIBILITY_DELIVER_ORDER_WRONG_SHIPMENT'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_SHIPMENT'), 'SALE_EVENT_COMPATIBILITY_DELIVER_ORDER_WRONG_SHIPMENT'),
 				'sale'
 			);
 		}
@@ -406,7 +356,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_SAVE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_SAVE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_SAVE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -467,7 +417,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_SAVE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_SAVE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_SAVED_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -523,7 +473,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_ADD_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_ADD_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_ADD_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -559,6 +509,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 	 */
 	public static function onOrderBeforeSaved(Main\Event $event)
 	{
+		global $APPLICATION;
 		$parameters = $event->getParameters();
 
 		/** @var Sale\Order $order */
@@ -568,7 +519,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_BEFORE_SAVED_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_BEFORE_SAVED_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_BEFORE_SAVED_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -591,18 +542,54 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 			}
 		}
 
+		$currentOrderFields = $orderFields;
+
 		if ($order->isNew())
 		{
 			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BEFORE_ORDER_ADD, true) as $oldEvent)
 			{
-				ExecuteModuleEventEx($oldEvent, array($orderFields));
+				if (ExecuteModuleEventEx($oldEvent, array(&$orderFields)) === false)
+				{
+					if ($ex = $APPLICATION->GetException())
+					{
+						return new Main\EventResult(
+							Main\EventResult::ERROR,
+							new Sale\ResultError($ex->GetString(), $ex->GetID()),
+							'sale'
+						);
+					}
+
+				}
+			}
+
+			$allowFields = OrderCompatibility::getAvailableFields();
+
+			foreach ($orderFields as $orderFieldName => $orderFieldValue)
+			{
+				if (in_array($orderFieldName, $allowFields)
+					&& (array_key_exists($orderFieldName, $currentOrderFields) && $orderFieldValue != $currentOrderFields[$orderFieldName]))
+				{
+					/** @var Sale\Result $r */
+					$order->setFieldNoDemand($orderFieldName, $orderFieldValue);
+				}
 			}
 		}
 		else
 		{
 			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BEFORE_ORDER_UPDATE, true) as $oldEvent)
 			{
-				ExecuteModuleEventEx($oldEvent, array($id, $orderFields));
+				if (ExecuteModuleEventEx($oldEvent, array($id, $orderFields)) === false)
+				{
+					if ($ex = $APPLICATION->GetException())
+					{
+
+						return new Main\EventResult(
+							Main\EventResult::ERROR,
+							new Sale\ResultError($ex->GetString(), $ex->GetID()),
+							'sale'
+						);
+					}
+				}
 			}
 		}
 
@@ -624,7 +611,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage(''), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_DELETE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_DELETE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -638,7 +625,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 			{
 				return new Main\EventResult(
 					Main\EventResult::SUCCESS,
-					array('RETURN' => false),
+					false,
 					'sale');
 			}
 		}
@@ -661,7 +648,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage(''), 'SALE_EVENT_COMPATIBILITY_ORDER_DELETE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_DELETE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -683,6 +670,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 	 * @param Main\Event $event
 	 *
 	 * @return Main\EventResult
+	 * @throws Main\ObjectNotFoundException
 	 */
 	public static function onBasketItemBeforeChange(Main\Event $event)
 	{
@@ -697,7 +685,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_BASKET_ITEM_BEFORE_CHANGE_WRONG_BASKET'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_BEFORE_CHANGE_WRONG_BASKET'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_BASKET'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_BEFORE_CHANGE_WRONG_BASKET'),
 				'sale'
 			);
 		}
@@ -706,27 +694,38 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 
 		$basketFields = array();
 
-
-		if (!empty($oldValues) && is_array($oldValues))
+		if ($isNew)
 		{
-			foreach ($oldValues as $oldValueKey => $oldValueData)
+			$basketFields = $currentBasketFields;
+		}
+		else
+		{
+			if (!empty($oldValues) && is_array($oldValues))
 			{
-				if (array_key_exists($oldValueKey, $currentBasketFields))
+				foreach ($oldValues as $oldValueKey => $oldValueData)
 				{
-					$basketFields[$oldValueKey] = $currentBasketFields[$oldValueKey];
+					if (array_key_exists($oldValueKey, $currentBasketFields))
+					{
+						$basketFields[$oldValueKey] = $currentBasketFields[$oldValueKey];
+					}
 				}
 			}
 		}
 
 		if (array_key_exists('QUANTITY', $oldValues) && ($currentBasketFields['QUANTITY'] - $oldValues['QUANTITY']) > 0)
 		{
+			if (empty($basketFields['ID']) && !empty($currentBasketFields['ID']))
+			{
+				$basketFields['ID'] = $currentBasketFields['ID'];
+			}
+
 			$basketFields['QUANTITY'] = $currentBasketFields['QUANTITY'] - $oldValues['QUANTITY'];
 			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BEFORE_BASKET_ITEM_ADD, true) as $oldEvent)
 			{
-				ExecuteModuleEventEx($oldEvent, Array($basketFields));
+				ExecuteModuleEventEx($oldEvent, array(&$basketFields));
 			}
 
-			$basketFields['QUANTITY'] = $currentBasketFields['QUANTITY'];
+			$basketFields['QUANTITY'] = $oldValues['QUANTITY'] + $basketFields['QUANTITY'];
 		}
 
 		if (empty($basketFields) && !empty($oldValues) && is_array($oldValues))
@@ -751,9 +750,64 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 
 		foreach ($currentBasketFields as $key => $value)
 		{
-			if (isset($basketFields[$key]) && $basketFields[$key] != $value)
+			if (isset($basketFields[$key]) && !is_array($value) && $basketFields[$key] != $value)
 			{
 				$basketItem->setFieldNoDemand($key, $basketFields[$key]);
+			}
+		}
+
+		if (!empty($basketFields['PROPS']) && is_array($basketFields['PROPS']))
+		{
+			$propIndexList = array();
+			/** @var Sale\BasketPropertiesCollection $basketPropertyCollection */
+			if (!$basketPropertyCollection = $basketItem->getPropertyCollection())
+			{
+				throw new Main\ObjectNotFoundException('Entity "BasketPropertiesCollection" not found');
+			}
+
+			$propDiffByName = false;
+
+			if (!empty($currentBasketFields['PROPS']) && is_array($currentBasketFields['PROPS']))
+			{
+				foreach ($currentBasketFields['PROPS'] as $propData)
+				{
+					$propCode = $propData["CODE"];
+					if (empty($propData["CODE"]))
+					{
+						$propCode = $propData["NAME"];
+						$propDiffByName = true;
+					}
+
+					$propIndexList[$propCode] = $propData;
+				}
+			}
+
+			foreach ($basketFields['PROPS'] as $propData)
+			{
+				$propCode = $propData["CODE"];
+				if (empty($propData["CODE"]) || $propDiffByName)
+					$propCode = $propData["NAME"];
+
+				if (isset($propIndexList[$propCode]))
+				{
+					$propOldData = $propIndexList[$propCode];
+					if ($propData['SORT'] != $propOldData['SORT'] || $propData['VALUE'] != $propOldData['VALUE'])
+					{
+						/** @var Sale\BasketPropertyItem $basketPropertyItem */
+						if ($basketPropertyItem = $basketPropertyCollection->getPropertyItemByValue($propIndexList[$propCode]))
+						{
+							$basketPropertyItem->setFieldsNoDemand($propData);
+						}
+					}
+				}
+				else
+				{
+					if ($basketPropertyItem = $basketPropertyCollection->createItem())
+					{
+						$basketPropertyItem->setFieldsNoDemand($propData);
+					}
+				}
+
 			}
 		}
 
@@ -779,7 +833,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_BASKET_ITEM_CHANGE_WRONG_BASKET'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_CHANGE_WRONG_BASKET'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_BASKET'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_CHANGE_WRONG_BASKET'),
 				'sale'
 			);
 		}
@@ -822,7 +876,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_SHIPMENT_TRACKING_NUMBER_CHANGE_WRONG_BASKET'), 'SALE_EVENT_COMPATIBILITY_SHIPMENT_TRACKING_NUMBER_CHANGE_WRONG_BASKET'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_SHIPMENT'), 'SALE_EVENT_COMPATIBILITY_SHIPMENT_TRACKING_NUMBER_CHANGE_WRONG_SHIPMENT'),
 				'sale'
 			);
 		}
@@ -847,38 +901,50 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		if (array_key_exists('TRACKING_NUMBER', $oldValues) && strval($shipment->getField('TRACKING_NUMBER')) != ''
 			&& $oldValues["TRACKING_NUMBER"] != $shipment->getField('TRACKING_NUMBER'))
 		{
-			$accountNumber = $order->getField("ACCOUNT_NUMBER");
-			$userId =  $order->getField("USER_ID");
+			Sale\Notify::sendShipmentTrackingNumberChange($shipment);
+		}
 
-			$payerName = "";
-			$payerEMail = '';
-			$userRes = \CUser::getByID($userId);
+		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
 
-			if ($userData = $userRes->fetch())
-			{
-				if (strval($payerName) == '')
-				{
-					$payerName = $userData["NAME"].((strval($userData["NAME"]) == '' || strval($userData["LAST_NAME"]) == '') ? "" : " ").$userData["LAST_NAME"];
-				}
+	/**
+	 * @param Main\Event $event
+	 *
+	 * @return Main\EventResult
+	 * @throws Main\ObjectNotFoundException
+	 */
+	public static function onShipmentAllowDelivery(Main\Event $event)
+	{
+		$parameters = $event->getParameters();
 
-				if (strval($payerEMail) == '')
-				{
-					$payerEMail = $userData["EMAIL"];
-				}
-			}
-
-			$emailFields = Array(
-				"ORDER_ID" => $accountNumber,
-				"ORDER_DATE" => $order->getDateInsert()->toString(),
-				"ORDER_USER" => $payerName,
-				"ORDER_TRACKING_NUMBER" => $shipment->getField('TRACKING_NUMBER'),
-				"BCC" => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER['SERVER_NAME']),
-				"EMAIL" => $payerEMail,
-				"SALE_EMAIL" => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER['SERVER_NAME'])
+		/** @var Sale\Shipment $shipment */
+		$shipment = $parameters['ENTITY'];
+		$oldValues = $parameters['VALUES'];
+		if (!$shipment instanceof Sale\Shipment)
+		{
+			return new Main\EventResult(
+				Main\EventResult::ERROR,
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_SHIPMENT'), 'SALE_EVENT_COMPATIBILITY_SHIPMENT_ALLOW_DELIVERY_WRONG_SHIPMENT'),
+				'sale'
 			);
+		}
 
-			$event = new \CEvent;
-			$event->send("SALE_ORDER_TRACKING_NUMBER", $order->getField("LID"), $emailFields, "N");
+		/** @var Sale\ShipmentCollection $shipmentCollection */
+		if (!$shipmentCollection = $shipment->getCollection())
+		{
+			throw new Main\ObjectNotFoundException('Entity "ShipmentCollection" not found');
+		}
+
+		/** @var Sale\Order $order */
+		if (!$order = $shipmentCollection->getOrder())
+		{
+			throw new Main\ObjectNotFoundException('Entity "Order" not found');
+		}
+
+		if ($shipmentCollection->isAllowDelivery() && array_key_exists('ALLOW_DELIVERY', $oldValues) && strval($shipment->getField('ALLOW_DELIVERY')) != ''
+			&& $oldValues["ALLOW_DELIVERY"] != $shipment->getField('ALLOW_DELIVERY'))
+		{
+			Sale\Notify::sendShipmentAllowDelivery($shipment);
 		}
 
 		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
@@ -902,7 +968,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -933,110 +999,48 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_ORDER_STATUS_CHANGE_SEND_EMAIL_WRONG_ORDER'),
 				'sale'
 			);
 		}
 
-		$orderFields = array();
-
-		/** @var Sale\Result $resultOrderFields */
-		$resultOrderFields = OrderCompatibility::getOrderFields($order);
-		if ($resultOrderFields->isSuccess())
-		{
-			if ($orderFieldsResultData = $resultOrderFields->getData())
-			{
-				if (!empty($orderFieldsResultData['ORDER_FIELDS']) && is_array($orderFieldsResultData['ORDER_FIELDS']))
-				{
-					$orderFields = $orderFieldsResultData['ORDER_FIELDS'];
-				}
-			}
-		}
-
-		\CSaleMobileOrderPush::send(static::EVENT_COMPATIBILITY_MOBILE_PUSH_ORDER_STATUS_CHANGE, array("ORDER" => $orderFields));
-
-
-		$propertyCollection = $order->getPropertyCollection();
-
-		$userEmail = "";
-
-		/** @var Sale\PropertyValue $userEmailProperty */
-		if ($userEmailProperty = $propertyCollection->getUserEmail())
-		{
-			$userEmail = $userEmailProperty->getValue();
-		}
-
-		if(strval(trim($userEmail)) == '')
-		{
-			$userRes = \CUser::GetByID($order->getUserId());
-			if($userData = $userRes->fetch())
-				$userEmail = $userData["EMAIL"];
-		}
-
-		static $cacheSiteData = array();
-
-		if (!isset($cacheSiteData[$order->getSiteId()]))
-		{
-			$siteRes = \CSite::GetByID($order->getSiteId());
-			$siteData = $siteRes->Fetch();
-		}
-		else
-		{
-			$siteData = $cacheSiteData[$order->getSiteId()];
-		}
-
-		if (($statusData = \CSaleStatus::GetByID($order->getField("STATUS_ID"), $siteData['LANGUAGE_ID'])) && $statusData['NOTIFY'] == "Y")
-		{
-			$fields = Array(
-				"ORDER_ID" => $order->getField("ACCOUNT_NUMBER"),
-				"ORDER_DATE" => $order->getField("DATE_INSERT")->toString(),
-				"ORDER_STATUS" => $statusData["NAME"],
-				"EMAIL" => $userEmail,
-				"ORDER_DESCRIPTION" => $statusData["DESCRIPTION"],
-				"TEXT" => "",
-				"SALE_EMAIL" => Main\Config\Option::get("sale", "order_email", "order@".$_SERVER["SERVER_NAME"])
-			);
-
-			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ORDER_STATUS_EMAIL, true) as $oldEvent)
-			{
-				$fields["TEXT"] = ExecuteModuleEventEx($oldEvent, array($order->getId(), $statusData["ID"]));
-			}
-
-			$eventName = "SALE_STATUS_CHANGED_".$order->getField("STATUS_ID");
-
-
-			$isSend = true;
-			foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ORDER_STATUS_SEND_EMAIL, true) as $oldEvent)
-			{
-				if (ExecuteModuleEventEx($oldEvent, Array($order->getId(), &$eventName, &$fields, $order->getField("STATUS_ID")))===false)
-				{
-					$isSend = false;
-				}
-			}
-
-			if($isSend)
-			{
-				$b = '';
-				$o = '';
-				$eventMessage = new \CEventMessage;
-				$eventMessageRes = $eventMessage->GetList(
-					$b,
-					$o,
-					array(
-						"EVENT_NAME" => $eventName,
-						"SITE_ID" => $order->getSiteId(),
-						'ACTIVE' => 'Y'
-					)
-				);
-				if (!($eventMessageData = $eventMessageRes->Fetch()))
-					$eventName = "SALE_STATUS_CHANGED";
-				unset($o, $b);
-				$event = new \CEvent;
-				$event->Send($eventName, $order->getSiteId(), $fields, "N");
-			}
-		}
+		Sale\Notify::sendOrderStatusChange($order);
 
 		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
+
+	/**
+	 * @param $id
+	 * @param $eventName
+	 * @param $fields
+	 *
+	 * @return bool
+	 */
+	public static function onCallOrderNewSendEmail($id, $eventName, $fields)
+	{
+		if (!empty($GLOBALS['SALE_NEW_ORDER_SEND'][$id]))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * @param $id
+	 * @param $eventName
+	 * @param $fields
+	 *
+	 * @return bool
+	 */
+	public static function onCallOrderCancelSendEmail($id, $eventName, $fields)
+	{
+		if (!empty($GLOBALS['SALE_ORDER_CANCEL_SEND'][$id]))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -1057,7 +1061,7 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		{
 			return new Main\EventResult(
 				Main\EventResult::ERROR,
-				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_STATUS_CHANGE_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_STATUS_CHANGE_WRONG_ORDER'),
+				new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ORDER'), 'SALE_EVENT_COMPATIBILITY_BEFORE_ORDER_STATUS_CHANGE_WRONG_ORDER'),
 				'sale'
 			);
 		}
@@ -1068,6 +1072,87 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		}
 
 		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
+
+
+	/**
+	 * @param Main\Event $event
+	 * @return Main\EventResult
+	 */
+	public static function onBeforeBasketDelete(Main\Event $event)
+	{
+		$parameters = $event->getParameters();
+
+		/** @var Sale\BasketItem $basketItem */
+		$basketItem = $parameters['ENTITY'];
+		if (!$basketItem instanceof Sale\BasketItem)
+		{
+			return new Main\EventResult(
+					Main\EventResult::ERROR,
+					new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_BASKET_ITEM'), 'SALE_EVENT_COMPATIBILITY_BEFORE_BASKET_ITEM_DELETE_WRONG_BASKET_ITEM'),
+					'sale'
+			);
+		}
+
+		$id = $basketItem->getId();
+		foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BEFORE_BASKET_DELETE, true) as $oldEvent)
+		{
+			if (ExecuteModuleEventEx($oldEvent, array($id)) === false)
+			{
+				return new Main\EventResult(
+						Main\EventResult::SUCCESS,
+						false,
+						'sale');
+			}
+		}
+
+		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
+
+
+	/**
+	 * @param Main\Event $event
+	 * @return Main\EventResult
+	 */
+	public static function onBasketDelete(Main\Event $event)
+	{
+		$parameters = $event->getParameters();
+
+		/** @var Sale\BasketItem $basketItem */
+		$values = $parameters['VALUES'];
+		if (empty($values) || !is_array($values))
+		{
+			return new Main\EventResult(
+					Main\EventResult::ERROR,
+					new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_VALUES'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_DELETE_WRONG_VALUES'),
+					'sale'
+			);
+		}
+
+		if (empty($values['ID']))
+		{
+			return new Main\EventResult(
+					Main\EventResult::ERROR,
+					new Sale\ResultError(Main\Localization\Loc::getMessage('SALE_EVENT_COMPATIBILITY_WRONG_ID'), 'SALE_EVENT_COMPATIBILITY_BASKET_ITEM_DELETE_WRONG_ID'),
+					'sale'
+			);
+		}
+
+		$id = $values['ID'];
+		foreach(GetModuleEvents("sale", static::EVENT_COMPATIBILITY_ON_BASKET_DELETED, true) as $oldEvent)
+		{
+			ExecuteModuleEventEx($oldEvent, array($id));
+		}
+
+		return new Main\EventResult( Main\EventResult::SUCCESS, null, 'sale');
+	}
+
+	/**
+	 * @param $value
+	 */
+	public static function setDisableMailSend($value)
+	{
+		static::$disableMailSend = ($value == "Y");
 	}
 
 	/**
@@ -1111,6 +1196,17 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 
 		$eventManager->registerEventHandler('sale', 'OnSaleOrderStatusChangeSendEmail', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onSaleOrderStatusChangeSendEmail');
 
+		$eventManager->registerEventHandler('sale', 'OnSaleOrderSaved', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onOrderNewSendEmail');
+
+		RegisterModuleDependences("sale", "OnOrderNewSendEmail", "sale", "\\Bitrix\\Sale\\Compatible\\EventCompatibility", "onCallOrderNewSendEmail");
+
+		$eventManager->registerEventHandler('sale', 'OnBeforeSaleBasketItemEntityDeleted', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'OnBeforeBasketDelete');
+
+		$eventManager->registerEventHandler('sale', 'OnSaleBasketItemDeleted', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'OnBasketDelete');
+
+		$eventManager->registerEventHandler('sale', 'OnShipmentAllowDelivery', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onShipmentAllowDelivery');
+
+		RegisterModuleDependences("sale", "OnOrderCancelSendEmail", "sale", "\\Bitrix\\Sale\\Compatible\\EventCompatibility", "onCallOrderCancelSendEmail");
 	}
 
 	/**
@@ -1153,6 +1249,18 @@ class EventCompatibility extends Sale\Compatible\Internals\EntityCompatibility
 		$eventManager->unRegisterEventHandler('sale', 'OnSaleStatusOrderChange', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onSaleStatusOrderChange');
 
 		$eventManager->unRegisterEventHandler('sale', 'OnSaleOrderStatusChangeSendEmail', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onSaleOrderStatusChangeSendEmail');
+
+		$eventManager->unRegisterEventHandler('sale', 'OnSaleOrderSaved', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onOrderNewSendEmail');
+
+		UnRegisterModuleDependences("sale", "OnOrderNewSendEmail", "sale", "\\Bitrix\\Sale\\Compatible\\EventCompatibility", "onCallOrderNewSendEmail");
+
+		$eventManager->unRegisterEventHandler('sale', 'OnBeforeSaleBasketItemEntityDeleted', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'OnBeforeBasketDelete');
+
+		$eventManager->unRegisterEventHandler('sale', 'OnSaleBasketItemDeleted', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'OnBasketDelete');
+
+		$eventManager->unRegisterEventHandler('sale', 'OnShipmentAllowDelivery', 'sale', '\Bitrix\Sale\Compatible\EventCompatibility', 'onShipmentAllowDelivery');
+
+		UnRegisterModuleDependences("sale", "OnOrderCancelSendEmail", "sale", "\\Bitrix\\Sale\\Compatible\\EventCompatibility", "onCallOrderCancelSendEmail");
 	}
 
 }

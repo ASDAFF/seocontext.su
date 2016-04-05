@@ -272,7 +272,7 @@ $arDefaultValues = array(
 );
 $arDefCoupons = array(
 	'COUPON_ADD' => 'N',
-	'COUPON_TYPE' => Catalog\DiscountCouponTable::TYPE_ONE_ROW,
+	'COUPON_TYPE' => Catalog\DiscountCouponTable::TYPE_ONE_ORDER,
 	'COUPON_COUNT' => '',
 );
 
@@ -696,7 +696,7 @@ $tabControl->BeginNextFormTab();
 		<tr id="tr_COUPON_TYPE" class="adm-detail-required-field" style="display: <? echo ('Y' == $arCoupons['COUPON_ADD'] ? 'table-row' : 'none'); ?>;">
 			<td width="40%"><? echo GetMessage('BT_CAT_DISCOUNT_EDIT_FIELDS_COUPON_TYPE'); ?>:</td>
 			<td width="60%">
-				<select name="COUPON_TYPE"><?
+				<select name="COUPON_TYPE" size="3"><?
 				foreach ($arCouponTypeList as $strType => $strName)
 				{
 					?><option value="<? echo htmlspecialcharsbx($strType); ?>" <? echo ($strType == $arCoupons['COUPON_TYPE'] ? 'selected' : ''); ?>><? echo htmlspecialcharsex($strName); ?></option><?

@@ -167,6 +167,69 @@ if (isset($_REQUEST["UCID"]) && $_REQUEST["UCID"] == $arParams["~UNIQUE_COMPONEN
 
 $arParams["COMMENTS_COUNT"] = $arParams["COMMENTS_COUNT"] > 0 ? $arParams["COMMENTS_COUNT"] : 5;
 $arParams["USE_COMMENTS"] = $arParams["USE_COMMENTS"] == "N" ? "N" : "Y";
+
+if (
+	$arParams["COMMENTS_TYPE"] == "FORUM"
+	&& $arParams["IS_SOCNET"] == "Y"
+)
+{
+	$cache = new CPHPCache;
+	$cache_id = serialize(
+		array(
+			"TYPE" => $arParams["COMMENTS_TYPE"],
+			"ELEMENT_ID" => $arParams["CURRENT_ELEMENT_ID"],
+			"USER_ALIAS" => $arParams["USER_ALIAS"]
+		)
+	);
+
+	if (
+		$arParams["CACHE_TIME"] > 0
+		&& $cache->InitCache(3600*24, $cache_id, $cache_path)
+	)
+	{
+		$res = $cache->GetVars();
+		if (intval($res["FORUM_ID"]) > 0)
+		{
+			$arParams["FORUM_ID"] = $res["FORUM_ID"];
+		}
+	}
+	elseif (CModule::IncludeModule("iblock"))
+	{
+		//SELECT
+		$arSelect = array(
+			"ID",
+			"IBLOCK_ID",
+			"PROPERTY_FORUM_TOPIC_ID",
+		);
+
+		//WHERE
+		$arFilter = array(
+			"ID" => $arParams["CURRENT_ELEMENT_ID"],
+			"IBLOCK_ID" => $arParams["IBLOCK_ID"],
+		);
+
+		//EXECUTE
+		$rsElement = CIBlockElement::GetList(array(), $arFilter, false, false, $arSelect);
+		if ($obElement = $rsElement->GetNextElement())
+		{
+			$arElement = $obElement->GetFields();
+			if (
+				intval($arElement["PROPERTY_FORUM_TOPIC_ID_VALUE"]) > 0
+				&& CModule::IncludeModule("forum")
+			)
+			{
+				if ($arForumTopic = CForumTopic::GetByID($arElement["PROPERTY_FORUM_TOPIC_ID_VALUE"]))
+				{
+					$arParams["FORUM_ID"] = $arForumTopic["FORUM_ID"];
+				}
+			}
+		}
+
+		$cache->StartDataCache(3600*24, $cache_id, $cache_path);
+		$cache->EndDataCache(array("FORUM_ID" => $arParams["FORUM_ID"]));
+	}
+}
+
 if ($arParams["USE_COMMENTS"] == "Y" && $arParams["COMMENTS_TYPE"] == "FORUM" && !$arParams["FORUM_ID"])
 {
 	$arParams["USE_COMMENTS"] = "N";
@@ -417,7 +480,8 @@ if (!empty($arParams["ELEMENT_SORT_FIELD"]))
 	$arSort[$arParams["ELEMENT_SORT_FIELD"]] = $arParams["ELEMENT_SORT_ORDER"];
 	$arParams["ELEMENT_SELECT_FIELDS"][] = $arParams["ELEMENT_SORT_FIELD"];
 }
-if (!empty($arParams["ELEMENT_SORT_FIELD1"]))
+
+if (!empty($arParams["ELEMENT_SORT_FIELD1"]) && !array_key_exists($arParams["ELEMENT_SORT_FIELD1"], $arSort))
 {
 	$arSort[$arParams["ELEMENT_SORT_FIELD1"]] = $arParams["ELEMENT_SORT_ORDER1"];
 	$arParams["ELEMENT_SELECT_FIELDS"][] = $arParams["ELEMENT_SORT_FIELD1"];
@@ -840,6 +904,12 @@ if (!is_array($arResult["ELEMENTS_LIST"]) || empty($arResult["ELEMENTS_LIST"]))
 			{
 				$fileId = $obFile['ID'];
 				$obFile["SRC"] = CFile::GetFileSRC($obFile);
+
+				$io = CBXVirtualIo::GetInstance();
+				$fName = $io->ExtractNameFromPath($obFile["SRC"]);
+				$fPath = $io->ExtractPathFromPath($obFile["SRC"]);
+				$obFile["SRC"] = $fPath.'/'.strtr($fName, array('%' => '%25', '#' => '%23', '?' => '%3F'));
+
 				if($ind = $arThumbsIndex[$fileId])
 				{
 					$arElements[$ind]["PREVIEW_PICTURE"] = array(

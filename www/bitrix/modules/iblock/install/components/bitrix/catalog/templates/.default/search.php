@@ -61,7 +61,7 @@ else
 		"SECTION_URL" => $arParams["SECTION_URL"],
 		"DETAIL_URL" => $arParams["DETAIL_URL"],
 		"BASKET_URL" => $arParams["BASKET_URL"],
-		"ACTION_VARIABLE" => $arParams["ACTION_VARIABLE"],
+		"ACTION_VARIABLE" => (!empty($arParams["ACTION_VARIABLE"]) ? $arParams["ACTION_VARIABLE"] : "action")."_cscs",
 		"PRODUCT_ID_VARIABLE" => $arParams["PRODUCT_ID_VARIABLE"],
 		"PRODUCT_QUANTITY_VARIABLE" => $arParams["PRODUCT_QUANTITY_VARIABLE"],
 		"PRODUCT_PROPS_VARIABLE" => $arParams["PRODUCT_PROPS_VARIABLE"],
@@ -132,4 +132,3 @@ else
 	array("HIDE_ICONS" => "Y")
 );
 unset($basketAction);
-?>

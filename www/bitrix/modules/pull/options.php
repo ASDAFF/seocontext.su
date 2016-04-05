@@ -133,6 +133,17 @@ if(strlen($_POST['Update'].$_GET['RestoreDefaults'])>0 && check_bitrix_sessid() 
 				CPullOptions::SetPushStatus('N');
 		}
 
+		if (isset($_POST['guest']))
+		{
+			if (!CPullOptions::GetGuestStatus())
+				CPullOptions::SetGuestStatus('Y');
+		}
+		else
+		{
+			if (CPullOptions::GetGuestStatus())
+				CPullOptions::SetGuestStatus('N');
+		}
+
 		if (isset($_POST['exclude_sites']))
 		{
 			$arSites = Array();
@@ -206,6 +217,10 @@ $arExcludeSites = CPullOptions::GetExcludeSites();
 	<tr>
 		<td align="right" width="50%"><?=GetMessage("PULL_OPTIONS_PUSH")?>:</td>
 		<td><input type="checkbox" size="40" value="Y" <?=(CPullOptions::GetPushStatus()?' checked':'')?> name="push"></td>
+	</tr>
+	<tr>
+		<td align="right" width="50%" valign="top"><?=GetMessage("PULL_OPTIONS_GUEST")?>:</td>
+		<td><input type="checkbox" size="40" value="Y" <?=(CPullOptions::GetGuestStatus()?' checked':'')?> <?=(IsModuleInstalled('statistic')?'':' disabled="true')?> name="guest" title="<?=htmlspecialcharsEx(GetMessage("PULL_OPTIONS_GUEST_DESC"))?>"></td>
 	</tr>
 	<tr>
 		<td width="40%"></td>

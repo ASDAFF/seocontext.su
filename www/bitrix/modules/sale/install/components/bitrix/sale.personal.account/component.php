@@ -12,7 +12,7 @@ if (!CBXFeatures::IsFeatureEnabled('SaleAccounts'))
 
 if (!$USER->IsAuthorized())
 {
-	$APPLICATION->AuthForm(GetMessage("SALE_ACCESS_DENIED"));
+	$APPLICATION->AuthForm(GetMessage("SALE_ACCESS_DENIED"), false, false, 'N', false);
 }
 
 $arParams["SET_TITLE"] = ($arParams["SET_TITLE"] == "N" ? "N" : "Y" );

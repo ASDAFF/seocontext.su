@@ -3,7 +3,6 @@ if (!defined('PULL_AJAX_INIT'))
 {
 	define("PULL_AJAX_INIT", true);
 	define("PUBLIC_AJAX_MODE", true);
-	define("NO_KEEP_STATISTIC", "Y");
 	define("NO_AGENT_STATISTIC","Y");
 	define("NO_AGENT_CHECK", true);
 	define("NOT_CHECK_PERMISSIONS", true);
@@ -15,7 +14,6 @@ header('Content-Type: application/x-javascript; charset='.LANG_CHARSET);
 // NOTICE
 // Before execute next code, execute file /module/pull/ajax_hit.php
 // for skip onProlog events
-
 if (!CModule::IncludeModule("pull"))
 {
 	echo CUtil::PhpToJsObject(Array('ERROR' => 'PULL_MODULE_IS_NOT_INSTALLED'));
@@ -23,8 +21,15 @@ if (!CModule::IncludeModule("pull"))
 	die();
 }
 
-
-if (!defined('PULL_USER_ID'))
+if (defined('PULL_USER_ID'))
+{
+	$userId = PULL_USER_ID;
+}
+else if (!$USER->IsAuthorized() && IsModuleInstalled('statistic') && intval($_SESSION["SESS_SEARCHER_ID"]) <= 0 && intval($_SESSION["SESS_GUEST_ID"]) > 0 && COption::GetOptionString("pull", "guest") == 'Y')
+{
+	$userId = intval($_SESSION["SESS_GUEST_ID"])*-1;
+}
+else
 {
 	if(!$USER->IsAuthorized())
 	{
@@ -47,10 +52,6 @@ if (!defined('PULL_USER_ID'))
 		die();
 	}
 }
-else
-{
-	$userId = PULL_USER_ID;
-}
 
 if (check_bitrix_sessid())
 {
@@ -70,10 +71,13 @@ if (check_bitrix_sessid())
 	}
 	elseif ($_POST['PULL_UPDATE_WATCH'] == 'Y')
 	{
+		$arResult = Array();
 		foreach ($_POST['WATCH'] as $tag)
-			CPullWatch::Extend($userId, $tag);
+		{
+			$arResult[$tag] = CPullWatch::Extend($userId, $tag);
+		}
 
-		echo CUtil::PhpToJsObject(Array('ERROR' => ''));
+		echo CUtil::PhpToJsObject(Array('RESULT' => $arResult, 'ERROR' => ''));
 	}
 	elseif ($_POST['PULL_UPDATE_STATE'] == 'Y')
 	{

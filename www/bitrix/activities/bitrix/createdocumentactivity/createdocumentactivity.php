@@ -17,9 +17,28 @@ class CBPCreateDocumentActivity
 	{
 		$rootActivity = $this->GetRootActivity();
 		$documentId = $rootActivity->GetDocumentId();
+		$fieldValue = $this->Fields;
 
 		$documentService = $this->workflow->GetService("DocumentService");
-		$documentService->CreateDocument($documentId, $this->Fields);
+
+		$documentFields = $documentService->GetDocumentFields($documentService->GetDocumentType($documentId));
+		$documentFieldsAliasesMap = CBPDocument::getDocumentFieldsAliasesMap($documentFields);
+		if ($documentFieldsAliasesMap)
+		{
+			$fixedFields = array();
+			foreach ($fieldValue as $key => $value)
+			{
+				if (!isset($documentFields[$key]) && isset($documentFieldsAliasesMap[$key]))
+				{
+					$fixedFields[$documentFieldsAliasesMap[$key]] = $value;
+					continue;
+				}
+				$fixedFields[$key] = $value;
+			}
+			$fieldValue = $fixedFields;
+		}
+
+		$documentService->CreateDocument($documentId, $fieldValue);
 
 		return CBPActivityExecutionStatus::Closed;
 	}
@@ -35,6 +54,7 @@ class CBPCreateDocumentActivity
 
 		$documentService = $runtime->GetService("DocumentService");
 		$arDocumentFieldsTmp = $documentService->GetDocumentFields($documentType);
+		$documentFieldsAliasesMap = CBPDocument::getDocumentFieldsAliasesMap($arDocumentFieldsTmp);
 
 		$arFieldTypes = $documentService->GetDocumentFieldTypes($documentType);
 
@@ -49,6 +69,9 @@ class CBPCreateDocumentActivity
 			{
 				foreach ($arCurrentActivity["Properties"]["Fields"] as $k => $v)
 				{
+					if (!isset($arDocumentFieldsTmp[$k]) && isset($documentFieldsAliasesMap[$k]))
+						$k = $documentFieldsAliasesMap[$k];
+
 					$arCurrentValues[$k] = $v;
 
 					if ($arDocumentFieldsTmp[$k]["BaseType"] == "user")

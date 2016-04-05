@@ -233,7 +233,7 @@ class CatalogViewedProductTable extends Main\Entity\DataManager
 		$excludeProductId = (int)$excludeProductId;
 		$limit = (int)$limit;
 		$depth = (int)$depth;
-		if ($depth <= 0 || $fuserId <= 0)
+		if ($depth < 0 || $fuserId <= 0)
 			return $map;
 
 		if (empty($siteId))
@@ -248,7 +248,7 @@ class CatalogViewedProductTable extends Main\Entity\DataManager
 		$sqlHelper = $con->getSqlHelper();
 
 		$subSections = array();
-
+		//TODO: change sql to api
 		if ($depth > 0)
 		{
 			$strSql = "SELECT BSprS.ID AS ID
@@ -268,7 +268,21 @@ class CatalogViewedProductTable extends Main\Entity\DataManager
 		if (!empty($subSections))
 			$subSections[] = 0;
 
-		$strSql = "SELECT CVP.PRODUCT_ID AS PRODUCT_ID, CVP.ELEMENT_ID AS ELEMENT_ID
+		if (empty($subSections) && $sectionId <= 0)
+		{
+			$strSql = "SELECT CVP.PRODUCT_ID AS PRODUCT_ID, CVP.ELEMENT_ID AS ELEMENT_ID
+					FROM b_catalog_viewed_product CVP
+						INNER JOIN b_iblock_element BE ON BE.ID = CVP.ELEMENT_ID
+					WHERE CVP.FUSER_ID = ".$fuserId."
+						AND CVP.SITE_ID = '".$sqlHelper->forSql($siteId)."'
+						AND BE.ID <> ".$excludeProductId."
+						AND BE.IBLOCK_ID = ".$iblockId."
+						AND (BE.WF_STATUS_ID = 1 AND BE.WF_PARENT_ELEMENT_ID IS NULL)
+					ORDER BY CVP.DATE_VISIT DESC";
+		}
+		else
+		{
+			$strSql = "SELECT CVP.PRODUCT_ID AS PRODUCT_ID, CVP.ELEMENT_ID AS ELEMENT_ID
 					FROM b_catalog_viewed_product CVP
 						INNER JOIN b_iblock_element BE ON BE.ID = CVP.ELEMENT_ID
 						INNER JOIN (
@@ -278,8 +292,8 @@ class CatalogViewedProductTable extends Main\Entity\DataManager
 								INNER JOIN b_iblock_section BS ON (BSubS.IBLOCK_ID = BS.IBLOCK_ID
 									AND BSubS.LEFT_MARGIN >= BS.LEFT_MARGIN
 									AND BSubS.RIGHT_MARGIN <= BS.RIGHT_MARGIN)
-							WHERE ".( !empty($subSections) ? "BS.ID IN (".implode(', ', $subSections).") OR " : "").
-							"BS.ID = ".$sectionId."
+							WHERE ".(!empty($subSections) ? "BS.ID IN (".implode(', ', $subSections).") OR " : "").
+								"BS.ID = ".$sectionId."
 						) BES ON BES.IBLOCK_ELEMENT_ID = BE.ID
 
 					WHERE CVP.FUSER_ID = ".$fuserId."
@@ -288,7 +302,7 @@ class CatalogViewedProductTable extends Main\Entity\DataManager
 						AND BE.IBLOCK_ID = ".$iblockId."
 						AND (BE.WF_STATUS_ID = 1 AND BE.WF_PARENT_ELEMENT_ID IS NULL)
 					ORDER BY CVP.DATE_VISIT DESC";
-
+		}
 		$result = $con->query($strSql, null, 0, $limit);
 
 		while($item = $result->fetch())

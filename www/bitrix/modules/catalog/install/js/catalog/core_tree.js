@@ -867,6 +867,246 @@ BX.TreeCondCtrlDialog.prototype.Delete = function()
 	}
 };
 
+BX.TreeMultiCondCtrlDialog = function(parentContainer, state, arParams)
+{
+	this.defaultLabel = null;
+	var data;
+
+	if (BX.TreeMultiCondCtrlDialog.superclass.constructor.apply(this, arguments))
+	{
+		this.popup_params.event = 'onTreeCondDialogSave';
+
+		data = this.prepareData(this.popup_params);
+		if (data.length > 0)
+		{
+			this.popup_url += (this.popup_url.indexOf('?') !== -1 ? "&" : "?") + data;
+		}
+		this.dialog = null;
+	}
+
+	return this.boolResult;
+};
+BX.extend(BX.TreeMultiCondCtrlDialog, BX.TreeCondCtrlPopup);
+
+BX.TreeMultiCondCtrlDialog.prototype.AppendItemNode = function(value, label)
+{
+	this.link.insertBefore(BX.create(
+			'SPAN',
+			{
+				props: {
+					className: 'condition-item'
+				},
+				style: {display: ''},
+				children: [
+					BX.create('SPAN', {
+						props: {
+							className: 'condition-item-text'
+						},
+						html: this.ViewFormat(value, label)
+					}),
+					BX.create('SPAN', {
+						props: {
+							className: 'condition-item-del'
+						},
+						attrs: {
+							'bx-data-value': value
+						},
+						events: {
+							click: BX.proxy(this.DeleteItem, this)
+						}
+					})
+				]
+			}
+	), this.defaultLabel);
+};
+BX.TreeMultiCondCtrlDialog.prototype.AppendInputNode = function(id, name, value)
+{
+	this.inputs.push(this.parentContainer.appendChild(BX.create(
+		'INPUT',
+		{
+			props: {
+				type: 'hidden',
+				id: id,
+				name: name,
+				value: value
+			},
+			style: {display: 'none'},
+			events: {
+				change: BX.proxy(this.onChange, this)
+			}
+		}
+	)));
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.Init = function()
+{
+	this.inputs = [];
+	if(this.valuesContainer[this.id] === "")
+	{
+		this.valuesContainer[this.id] = [];
+	}
+	if (this.boolResult && BX.TreeMultiCondCtrlDialog.superclass.Init.apply(this, arguments))
+	{
+		if (this.input)
+		{
+			BX.unbindAll(this.input);
+			this.input = BX.remove(this.input);
+		}
+
+		if (this.popup_param_id)
+		{
+			this.popup_params[this.popup_param_id] = this.parentContainer.id+'_'+this.id;
+		}
+		if(!this.IsValue())
+		{
+			this.AppendInputNode(this.parentContainer.id+'_'+this.id, this.name+'[]', '');
+		}
+		else
+		{
+			for(var i in this.valuesContainer[this.id])
+			{
+				if(!this.valuesContainer[this.id].hasOwnProperty(i))
+					continue;
+
+				var value = this.valuesContainer[this.id][i];
+				this.AppendInputNode(this.parentContainer.id+'_'+this.id, this.name+'[]', value);
+			}
+		}
+		this.boolResult = !!this.inputs;
+	}
+	return this.boolResult;
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.CreateLink = function()
+{
+	if (this.boolResult)
+	{
+		this.defaultLabel = BX.create('SPAN', {
+			text: this.defaultText,
+			style: {cursor: 'pointer'},
+			props: {
+				className: 'condition-dots'
+			}
+		});
+		this.link = this.parentContainer.appendChild(BX.create(
+			'SPAN',
+			{
+				props: {
+					id: this.parentContainer.id+'_'+this.id+'_link',
+					className: 'condition-list-wrap'
+				},
+				style: { display: '' },
+				events: {
+					click: BX.proxy(this.DialogShow, this)
+				},
+				children: [
+					this.defaultLabel
+				]
+			}
+		));
+
+		for(var i in this.valuesContainer[this.id])
+		{
+			if(!this.valuesContainer[this.id].hasOwnProperty(i))
+				continue;
+
+			var value = this.valuesContainer[this.id][i];
+			this.AppendItemNode(value, this.label[i]);
+		}
+
+		this.boolResult = !!this.link;
+	}
+	return this.boolResult;
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.onChange = function()
+{
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.DialogShow = function()
+{
+	if (this.dialog !== null)
+		this.dialog = null;
+	this.dialog = new BX.CAdminDialog({
+		content_url: this.popup_url,
+		height: Math.max(500, window.innerHeight-400),
+		width: Math.max(800, window.innerWidth-400),
+		draggable: true,
+		resizable: true,
+		min_height: 500,
+		min_width: 800
+	});
+	if (!!this.dialog)
+	{
+		BX.addCustomEvent('onTreeCondDialogSave', BX.proxy(this.onSave, this));
+
+		BX.addCustomEvent(this.dialog, 'onWindowClose', BX.delegate(function(){
+			BX.removeCustomEvent('onTreeCondDialogSave', BX.proxy(this.onSave, this));
+		}, this));
+
+		this.dialog.Show();
+	}
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.onSave = function(params)
+{
+	if (typeof params === 'object')
+	{
+		this.AppendInputNode(this.parentContainer.id+'_'+this.id, this.name+'[]', params.id);
+		this.AppendItemNode(params.id, params.name);
+
+		this.valuesContainer[this.id].push(params.id);
+	}
+};
+
+BX.TreeMultiCondCtrlDialog.prototype.DeleteItem = function(e)
+{
+	var srcElement = e.target || e.srcElement;
+	if(!srcElement)
+	{
+		BX.PreventDefault(e);
+		return;
+	}
+
+	var itemContainer = BX.findParent(srcElement, {className: 'condition-item', tagName: 'span'}, 3);
+	if(!itemContainer)
+	{
+		BX.PreventDefault(e);
+		return;
+	}
+
+	BX.remove(BX.findParent(srcElement, {className: 'condition-item', tagName: 'span'}, 3));
+	BX.remove(BX.findChild(this.parentContainer, {tagName: 'input', attribute: {name: this.name+'[]', value: srcElement.getAttribute('bx-data-value')}}, 3));
+
+	BX.PreventDefault(e);
+};
+BX.TreeMultiCondCtrlDialog.prototype.Delete = function()
+{
+	BX.TreeMultiCondCtrlDialog.superclass.Delete.apply(this, arguments);
+	if (this.input)
+	{
+		BX.unbindAll(this.input);
+		this.input = BX.remove(this.input);
+	}
+	if (this.inputs)
+	{
+		for(var i in this.inputs)
+		{
+			if(!this.inputs.hasOwnProperty(i))
+				continue;
+			BX.unbindAll(this.inputs[i]);
+			BX.remove((this.inputs[i]));
+			delete (this.inputs[i]);
+		}
+		this.inputs = [];
+	}
+
+	if (!!this.dialog)
+	{
+		this.dialog = null;
+	}
+};
+
 BX.TreeCondCtrlDateTime = function(parentContainer, state, arParams)
 {
 	if (BX.TreeCondCtrlDateTime.superclass.constructor.apply(this, arguments))
@@ -1091,7 +1331,8 @@ BX.TreeConditions = function(arParams, obTree, obControls)
 		'select': BX.TreeCondCtrlSelect,
 		'popup': BX.TreeCondCtrlPopup,
 		'datetime': BX.TreeCondCtrlDateTime,
-		'dialog': BX.TreeCondCtrlDialog
+		'dialog': BX.TreeCondCtrlDialog,
+		'multiDialog': BX.TreeMultiCondCtrlDialog
 	};
 
 	if (!!arParams.atomtypes && typeof(arParams.atomtypes) === 'object')
@@ -1418,7 +1659,15 @@ BX.TreeConditions.prototype.RenderLevel = function(parentContainer, obParent, ob
 					}
 				));
 
-				this.RenderCreateBtn(obTreeLevel, CurControl);
+				if(!!CurControl.containsOneAction)
+				{
+					this.RenderCreateOneActionBtn(obTreeLevel, CurControl);
+				}
+				else
+				{
+					this.RenderCreateBtn(obTreeLevel, CurControl);
+				}
+
 				if (!!obTreeLevel.children && !!obTreeLevel.children.length && obTreeLevel.children.length > 0)
 				{
 					if (!!obTreeLevel.visual && typeof (obTreeLevel.visual) === 'object')
@@ -1646,6 +1895,7 @@ BX.TreeConditions.prototype.DeleteLevel = function(obTreeLevel, obParent)
 			this.DeleteLogic(obParent.children[arDel.indexPrev]);
 		}
 		BX.onCustomEvent('onAdminTabsChange');
+		BX.onCustomEvent('onAdminTabsDeleteLevel', [obTreeLevel, obParent]);
 	}
 };
 
@@ -1836,6 +2086,52 @@ BX.TreeConditions.prototype.RenderCreateBtn = function(obTreeLevel, CurControl)
 			this.boolResult = false;
 		}
 	}
+	return this.boolResult;
+};
+
+BX.TreeConditions.prototype.RenderCreateOneActionBtn = function(obTreeLevel, CurControl)
+{
+	if(this.RenderCreateBtn(obTreeLevel, CurControl))
+	{
+		BX.bind(obTreeLevel.addBtn.select, 'change', function(){
+			BX.hide(obTreeLevel.addBtn);
+		});
+		BX.adjust(obTreeLevel.addBtn, {attrs: {'bx-data-create-one-action-btn': true}});
+
+		var addBtnId = BX.clone(obTreeLevel.addBtn.id, true);
+		BX.addCustomEvent('onAdminTabsDeleteLevel', function(obTreeLevel, obParent){
+			if(
+					obParent &&
+					obParent.addBtn &&
+					obParent.addBtn.getAttribute('bx-data-create-one-action-btn') &&
+					obParent.addBtn.id === addBtnId
+			)
+			{
+				BX.show(obParent.addBtn, 'block');
+			}
+		});
+
+		var isEmptyObject = function(obj)
+		{
+			if (obj == null) return true;
+			if (obj.length && obj.length > 0)
+				return false;
+			if (obj.length === 0)
+				return true;
+
+			for (var key in obj) {
+				if (hasOwnProperty.call(obj, key))
+					return false;
+			}
+
+			return true;
+		}
+		if(obTreeLevel.children && !isEmptyObject(obTreeLevel.children))
+		{
+			BX.hide(obTreeLevel.addBtn);
+		}
+	}
+
 	return this.boolResult;
 };
 

@@ -48,6 +48,7 @@ window.BXPhotoSlider = function(Params)
 	this.useRatings = Params.useRatings == 'Y';
 	this.bShowSourceLink = Params.showSourceLink != 'N';
 	this.bShowEditControls = this.perm.edit;
+	this.showViewsCont = Params.showViewsCont !== 'N';
 	this.Mode = this.userSettings.view_mode == "auto" ? "auto" : "fixed";
 
 	this.moderation  = Params.moderation == 'Y';
@@ -632,7 +633,8 @@ window.BXPhotoSlider.prototype = {
 		this.pAuthorLink.innerHTML = oItem.author_name;
 
 		// Views
-		this.pViews.innerHTML = oItem.shows;
+		if (this.pViews)
+			this.pViews.innerHTML = oItem.shows;
 
 		// Tags
 		this.pTags.innerHTML = ""; // clean all
@@ -836,14 +838,17 @@ window.BXPhotoSlider.prototype = {
 			pRightCont = this.pExtendDescCont.appendChild(BX.create("DIV", {props:{className: "photo-comments-right"}})),
 			pInfo = pRightCont.appendChild(BX.create("DIV", {props:{className: "photo-comments-right-info"}})),
 			pAlbumCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-album"}, children: [BX.create("SPAN", {props:{className: "photo-comments-right-grey"}, text: this.MESS.album + ': '})]})),
-			pAuthorCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}, children: [BX.create("SPAN", {props:{className: "photo-comments-right-grey"}, text: this.MESS.author + ': '})]})),
-			pViewsCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}, children: [BX.create("SPAN", {props:{className: "photo-comments-right-grey"}, text: this.MESS.views + ': '})]})),
-			pTagsCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}}));
+			pAuthorCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}, children: [BX.create("SPAN", {props:{className: "photo-comments-right-grey"}, text: this.MESS.author + ': '})]}));
+
+		if (this.showViewsCont)
+		{
+			var pViewsCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}, children: [BX.create("SPAN", {props:{className: "photo-comments-right-grey"}, text: this.MESS.views + ': '})]}));
+			this.pViews = pViewsCont.appendChild(BX.create("SPAN", {props:{className: "photo-comments-right-grey"}}));
+		}
+		var pTagsCont = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-author"}}));
 
 		this.pAlbumLink = pAlbumCont.appendChild(BX.create("A", {props:{href: "#"}, html: "album"}));
 		this.pAuthorLink = pAuthorCont.appendChild(BX.create("A", {props:{href: '#'}, html: 'author'}));
-
-		this.pViews = pViewsCont.appendChild(BX.create("SPAN", {props:{className: "photo-comments-right-grey"}}));
 
 		this.pDate = pInfo.appendChild(BX.create("DIV", {props:{className: "photo-comments-add_date"}}));
 		this.pTags = pTagsCont.appendChild(BX.create("SPAN", {props:{className: "photo-comments-right-grey"}}));
@@ -1059,7 +1064,8 @@ window.BXPhotoSlider.prototype = {
 
 		for (var i = 0, l = arNodes.length; i < l; i++)
 		{
-			BX.setUnselectable(arNodes[i]);
+			if (!BX.browser.IsIE8())
+				BX.setUnselectable(arNodes[i]);
 			arNodes[i].ondragstart = function (e){return BX.PreventDefault(e);};
 		}
 	},
@@ -2960,7 +2966,7 @@ BXTopSlider.prototype = {
 				if (!_this.bSliderMoved)
 					_this.pObj.ShowItem(parseInt(this.id.substr('bxphoto_t_'.length)), false, false, true /*bAffectTopSlider*/);
 			};
-			this.pObj.SetUnselectable(pLink, pLink.firstChild);
+			this.pObj.SetUnselectable([pLink, pLink.firstChild]);
 		}
 	},
 

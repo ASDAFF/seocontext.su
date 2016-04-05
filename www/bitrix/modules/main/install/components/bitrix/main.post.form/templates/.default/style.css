@@ -749,14 +749,17 @@
 	background-color: #cbccd0;
 }
 
-.feed-add-post-destination-extranet {
+.feed-add-post-destination.feed-add-post-destination-extranet,
+.feed-add-post-destination.feed-add-post-destination-email {
 	background-color: #ffec91;
 	color: #a26b00;
 	padding-left: 32px;
 }
 
-.feed-add-post-destination.feed-add-post-destination-extranet:before {
-	background: url("images/sprite_mpf_5.png") no-repeat 0 -92px;
+
+.feed-add-post-destination.feed-add-post-destination-extranet:before,
+.feed-add-post-destination.feed-add-post-destination-email:before {
+	background: url("images/sprite_mpf_5.png?1") no-repeat 0 -92px;
 	content: "";
 	height: 13px;
 	position: absolute;
@@ -765,11 +768,18 @@
 	top: 8px;
 }
 
-.feed-add-post-destination.feed-add-post-destination-extranet .feed-add-post-del-but {
+
+.feed-add-post-destination.feed-add-post-destination-email:before {
+	background-position: -30px -91px;
+}
+
+.feed-add-post-destination.feed-add-post-destination-extranet .feed-add-post-del-but,
+.feed-add-post-destination.feed-add-post-destination-email .feed-add-post-del-but {
 	background-position: -113px -61px;
 }
 
-.feed-add-post-destination-hover.feed-add-post-destination-extranet {
+.feed-add-post-destination-hover.feed-add-post-destination-extranet,
+.feed-add-post-destination-hover.feed-add-post-destination-email {
 	background-color: #ffe25a;
 }
 
@@ -1371,4 +1381,38 @@ div.lhe-list-item-cont[title="xx-large"] span.lhe-list-font-span {
 }
 .feed-add-post-dnd-over .bxu-file-input-over .diskuf-extended-overlay {
 	display: none;
+}
+
+.feed-add-urpreview-wrap {
+	margin-left: 18px;
+}
+
+.feed-add-post-destination.feed-add-post-destination-email::before {
+	background-position: -33px -92px;
+
+}
+
+.bx-feed-email-popup {
+	font-size: 0;
+	padding: 0 6px 13px 6px;
+}
+
+.bx-feed-email-title {
+	color: #525c68;
+	font-size: 14px;
+	font-weight: bold;
+	margin: 7px 0 12px;
+}
+
+.bx-feed-email-input {
+	background-color: #fff;
+	border: 1px solid #e4e4e4;
+	height: 37px;
+	margin-right: 11px;
+	vertical-align: top;
+	padding: 0 10px;
+}
+
+.bx-feed-email-popup .webform-small-button-blue {
+	margin-right: 0;
 }

@@ -316,10 +316,11 @@ $params = array_merge($arParams["bxu"]->params, array(
 				</div>
 			</div>
 			<div class="bxu-start-block-btn">
-				<a class="webform-button">
-					<span class="webform-button-left"></span><span class="webform-button-text"><?=GetMessage("MFU_UPLOAD")?><?
+				<a class="webform-button webform-button-blue"><?
+					?><span class="webform-button-text"><?
+						?><?=GetMessage("MFU_UPLOAD")?><?
 						?><input type="file" id="bxuUploaderStart<?=$arParams["id"]?>" class="bxu-file-input" multiple="multiple" /><?
-					?></span><span class="webform-button-right"></span>
+					?></span>
 				</a>
 			</div>
 		</div>
@@ -330,12 +331,12 @@ $params = array_merge($arParams["bxu"]->params, array(
 			</div>
 			<div class="bxu-bottom-block-btns">
 				<a class="webform-button webform-button-accept" id="bxuStartUploading<?=$arParams["id"]?>">
-					<span class="webform-button-left"></span><span class="webform-button-text"><?=GetMessage("MFU_UPLOAD")?></span><span class="webform-button-right"></span>
+					<span class="webform-button-text"><?=GetMessage("MFU_UPLOAD")?></span>
 				</a>
 				<a class="webform-button webform-button-add">
-					<span class="webform-button-left"></span><span class="webform-button-text"><?=GetMessage("MFU_ADD")?>
+					<span class="webform-button-text"><?=GetMessage("MFU_ADD")?>
 						<input type="file" id="bxuUploader<?=$arParams["id"]?>" name="FILE" class="bxu-file-input" multiple="multiple" />
-					</span><span class="webform-button-right"></span>
+					</span>
 				</a>
 			</div>
 			<div class="bxu-bottom-block-text"><?=GetMessage("MFU_COUNT")?>: <span id="bxuImagesCount<?=$arParams["id"]?>">0</span></div>

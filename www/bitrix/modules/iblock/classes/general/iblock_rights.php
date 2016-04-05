@@ -455,6 +455,7 @@ class CIBlockRights
 			$ID = intval($RIGHT_ID);
 			$GROUP_CODE = $arRightSet["GROUP_CODE"];
 			$bInherit = true;//$arRightSet["DO_INHERIT"] == "Y";
+			$bChildrenSet = false;
 
 			if(strlen($GROUP_CODE) <= 0 || is_array($arRightSet["TASK_ID"]))
 				continue;
@@ -469,6 +470,7 @@ class CIBlockRights
 			)
 			{
 				$obStorage->DeleteChildrenSet($GROUP_CODE, CIBlockRights::GROUP_CODE);
+				$bChildrenSet = true;
 				$bCleanUp = true;
 			}
 
@@ -497,10 +499,9 @@ class CIBlockRights
 			)
 			{
 				$this->_update($ID, $GROUP_CODE, $bInherit, $arRightSet["TASK_ID"]);
-				//This not possible to change group code in _update
-				//$obStorage->DeleteChildrenSet($ID, CIBlockRights::RIGHT_ID);
-				//if($bInherit)
-				//	$obStorage->AddChildrenSet($ID, $GROUP_CODE, /*$bInherited=*/true);
+
+				if($bInherit && $bChildrenSet)
+					$obStorage->AddChildrenSet($ID, $GROUP_CODE, /*$bInherited=*/true);
 
 				unset($arDBRights[$ID]);
 			}
@@ -1937,7 +1938,4 @@ class CIBlockRightsStorage
 		");
 	}
 }
-//d m p(array($this, __CLASS__, __METHOD__, func_get_args()));
-//d m p(array_shift(debug_backtrace()));
-//if(CModule::IncludeModule('perfmon')) CPerfomanceSQL::_console_explain($strSql.$strSqlOrder);
 ?>

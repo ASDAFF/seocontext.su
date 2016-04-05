@@ -90,21 +90,26 @@ class StartWritingHandler extends \Bitrix\Replica\Client\BaseHandler
 			}
 			elseif (substr($dialogId, 0, 4) == 'chat')
 			{
-				$arRelation = \CIMChat::GetRelationById(substr($dialogId, 4));
-				foreach ($arRelation as $rel)
-				{
-					if ($rel['USER_ID'] == $userId)
-						continue;
+				$chatId = substr($dialogId, 4);
+				$arRelation = \CIMChat::GetRelationById($chatId);
+				unset($arRelation[$userId]);
 
-					\CPullStack::AddByUser($rel['USER_ID'], Array(
-						'module_id' => 'im',
-						'command' => 'startWriting',
-						'expiry' => 60,
-						'params' => Array(
-							'senderId' => $userId,
-							'dialogId' => $dialogId
-						),
-					));
+				$pullMessage = Array(
+					'module_id' => 'im',
+					'command' => 'startWriting',
+					'expiry' => 60,
+					'params' => Array(
+						'senderId' => $userId,
+						'dialogId' => $dialogId
+					),
+				);
+				\CPullStack::AddByUsers(array_keys($arRelation), $pullMessage);
+
+				$orm = \Bitrix\Im\ChatTable::getById($chatId);
+				$chat = $orm->fetch();
+				if ($chat['TYPE'] == IM_MESSAGE_OPEN)
+				{
+					\CPullWatch::AddToStack('IM_PUBLIC_'.$chatId, $pullMessage);
 				}
 			}
 		}

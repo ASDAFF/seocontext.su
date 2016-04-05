@@ -397,7 +397,11 @@ class SitemapIblock
 
 			$sitemapFile = new SitemapFile($fileName, $sitemap);
 			$sitemapFile->removeEntry($data['URL']);
-			$sitemapFile->appendIblockEntry($rule['url'], $rule['lastmod']);
+
+			if($newFields["ACTIVE"] !== "N")
+			{
+				$sitemapFile->appendIblockEntry($rule['url'], $rule['lastmod']);
+			}
 
 			$sitemapIndex = new SitemapIndex($sitemap['SITEMAP_FILE'], $sitemap);
 			$sitemapIndex->appendIndexEntry($sitemapFile);

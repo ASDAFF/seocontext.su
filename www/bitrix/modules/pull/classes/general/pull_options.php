@@ -129,12 +129,12 @@ class CPullOptions
 		COption::SetOptionString("pull", "nginx_headers", $flag=='Y'?'Y':'N');
 		return true;
 	}
+
 	public static function GetPushStatus()
 	{
 		$result = COption::GetOptionString("pull", "push");
 		return $result == 'N'? false: true;
 	}
-
 	public static function SetPushStatus($flag = "N")
 	{
 		COption::SetOptionString("pull", "push", $flag=='Y'?'Y':'N');
@@ -142,6 +142,17 @@ class CPullOptions
 			CAgent::AddAgent("CPushManager::SendAgent();", "pull", "N", 30);
 		else
 			CAgent::RemoveAgent("CPushManager::SendAgent();", "pull");
+
+		return true;
+	}
+
+	public static function GetGuestStatus()
+	{
+		return IsModuleInstalled('statistic') && COption::GetOptionString("pull", "guest") == 'Y';
+	}
+	public static function SetGuestStatus($flag = "N")
+	{
+		COption::SetOptionString("pull", "guest", IsModuleInstalled('statistic') && $flag=='Y'?'Y':'N');
 
 		return true;
 	}
@@ -389,6 +400,10 @@ class CPullOptions
 		else if ($GLOBALS['USER'] && intval($GLOBALS['USER']->GetID()) > 0)
 		{
 			$userId = intval($GLOBALS['USER']->GetID());
+		}
+		else if (IsModuleInstalled('statistic') && intval($_SESSION["SESS_SEARCHER_ID"]) <= 0 && intval($_SESSION["SESS_GUEST_ID"]) > 0 && COption::GetOptionString("pull", "guest") == 'Y')
+		{
+			$userId = intval($_SESSION["SESS_GUEST_ID"])*-1;
 		}
 
 		if (!defined('BX_PULL_SKIP_INIT') && !(isset($_REQUEST['AJAX_CALL']) && $_REQUEST['AJAX_CALL'] == 'Y') && $userId != 0 && CModule::IncludeModule('pull'))

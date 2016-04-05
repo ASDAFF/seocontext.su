@@ -60,7 +60,7 @@ if ($moduleAccessLevel >= 'R')
 		}
 		if (isset($_POST['procedures']) && $_POST['procedures'] === 'Y' && isset($_POST['action']) && $_POST['action'] == 'recalc')
 		{
-			CCurrency::updateAllCurrencyBaseRate();
+			Currency\CurrencyManager::updateBaseRates();
 			LocalRedirect($APPLICATION->GetCurPage().'?lang='.LANGUAGE_ID.'&mid='.$module_id.'&'.$systemTabControl->ActiveTabParam());
 		}
 		if (isset($_POST['agents']) && $_POST['agents'] == 'Y' && isset($_POST['action']) && !empty($_POST['action']))
@@ -72,7 +72,7 @@ if ($moduleAccessLevel >= 'R')
 				case 'deactivate':
 					$agentIterator = CAgent::GetList(
 						array(),
-						array('MODULE_ID' => 'currency','=NAME' => '\Bitrix\Currency\CurrencyTable::currencyBaseRateAgent();')
+						array('MODULE_ID' => 'currency','=NAME' => '\Bitrix\Currency\CurrencyManager::currencyBaseRateAgent();')
 					);
 					if ($currencyAgent = $agentIterator->Fetch())
 					{
@@ -82,7 +82,7 @@ if ($moduleAccessLevel >= 'R')
 					break;
 				case 'create':
 					$checkDate = DateTime::createFromTimestamp(strtotime('tomorrow 00:01:00'));;
-					CAgent::AddAgent('\Bitrix\Currency\CurrencyTable::currencyBaseRateAgent();', 'currency', 'Y', 86400, '', 'Y', $checkDate->toString(), 100, false, true);
+					CAgent::AddAgent('\Bitrix\Currency\CurrencyManager::currencyBaseRateAgent();', 'currency', 'Y', 86400, '', 'Y', $checkDate->toString(), 100, false, true);
 					break;
 			}
 			LocalRedirect($APPLICATION->GetCurPage().'?lang='.LANGUAGE_ID.'&mid='.$module_id.'&'.$systemTabControl->ActiveTabParam());
@@ -151,7 +151,7 @@ function RestoreDefaults()
 	$currencyAgent = false;
 	$agentIterator = CAgent::GetList(
 		array(),
-		array('MODULE_ID' => 'currency','=NAME' => '\Bitrix\Currency\CurrencyTable::currencyBaseRateAgent();')
+		array('MODULE_ID' => 'currency','=NAME' => '\Bitrix\Currency\CurrencyManager::currencyBaseRateAgent();')
 	);
 	if ($agentIterator)
 		$currencyAgent = $agentIterator->Fetch();

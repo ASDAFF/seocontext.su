@@ -4,7 +4,7 @@ class CIBlockSection extends CAllIBlockSection
 	///////////////////////////////////////////////////////////////////
 	// List of sections
 	///////////////////////////////////////////////////////////////////
-	function GetList($arOrder=Array("SORT"=>"ASC"), $arFilter=Array(), $bIncCnt = false, $arSelect = array(), $arNavStartParams=false)
+	public static function GetList($arOrder=Array("SORT"=>"ASC"), $arFilter=Array(), $bIncCnt = false, $arSelect = array(), $arNavStartParams=false)
 	{
 		global $DB, $USER, $USER_FIELD_MANAGER;
 
@@ -264,7 +264,9 @@ class CIBlockSection extends CAllIBlockSection
 				:
 					"	AND BSTEMP.IBLOCK_ID = BS.IBLOCK_ID
 						AND BSTEMP.LEFT_MARGIN >= BS.LEFT_MARGIN
-						AND BSTEMP.RIGHT_MARGIN <= BS.RIGHT_MARGIN "
+						AND BSTEMP.RIGHT_MARGIN <= BS.RIGHT_MARGIN
+						".($arFilter["CNT_ACTIVE"]=="Y"? "AND BSTEMP.GLOBAL_ACTIVE = 'Y'": "")."
+					"
 				)."
 				".$strSqlSearch."
 			";

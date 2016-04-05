@@ -69,7 +69,6 @@ if ($arParams["INIT"] == 'Y')
 		}
 	}
 }
-
 // Message & Notify
 if ($arParams["INIT"] == 'Y')
 {
@@ -78,6 +77,42 @@ if ($arParams["INIT"] == 'Y')
 		'chat' => Array(),
 		'userInChat' => Array(),
 	);
+
+	$arResult['ONLINE_COUNT'] = 0;
+	if ($arParams['RECENT'] == 'Y')
+	{
+		$arRecent = CIMContactList::GetRecentList(Array(
+			'LOAD_LAST_MESSAGE' => 'Y',
+			'USE_TIME_ZONE' => 'N',
+			'USE_SMILES' => 'N'
+		));
+		$arResult['RECENT'] = Array();
+
+		$arSmile = CIMMessenger::PrepareSmiles();
+		$arResult['SMILE'] = $arSmile['SMILE'];
+		$arResult['SMILE_SET'] = $arSmile['SMILE_SET'];
+
+		$onlineCount = 0;
+		$arOnline = CIMStatus::GetOnline();
+
+		foreach ($arRecent as $userId => $value)
+		{
+			if ($value['TYPE'] != IM_MESSAGE_PRIVATE)
+				continue;
+
+			$arOnline['users'][$userId]['status'] = $value['USER']['status'];
+		}
+
+		foreach ($arOnline['users'] as $userId => $onlineData)
+		{
+			if ($onlineData['status'] != 'offline')
+			{
+				$onlineCount++;
+			}
+		}
+
+		$arResult['ONLINE_COUNT'] = $onlineCount <= 0? 1: $onlineCount;
+	}
 
 	if ($arParams['DESKTOP'] == 'Y')
 	{
@@ -90,26 +125,27 @@ if ($arParams["INIT"] == 'Y')
 			$arResult['CHAT']['chat'][$key] = $value;
 		}
 
-		$arRecent = CIMContactList::GetRecentList(Array(
-			'LOAD_LAST_MESSAGE' => 'Y',
-			'USE_TIME_ZONE' => 'N',
-			'USE_SMILES' => 'N'
-		));
-		$arResult['RECENT'] = Array();
+		if ($arParams['RECENT'] != 'Y')
+		{
+			$arRecent = CIMContactList::GetRecentList(Array(
+				'LOAD_LAST_MESSAGE' => 'Y',
+				'USE_TIME_ZONE' => 'N',
+				'USE_SMILES' => 'N'
+			));
+			$arResult['RECENT'] = Array();
 
-		$arSmile = CIMMessenger::PrepareSmiles();
-		
+			$arSmile = CIMMessenger::PrepareSmiles();
+			$arResult['SMILE'] = $arSmile['SMILE'];
+			$arResult['SMILE_SET'] = $arSmile['SMILE_SET'];
+			$arResult['SETTINGS_NOTIFY_BLOCKED'] = CIMSettings::GetSimpleNotifyBlocked();
+		}
+
 		$arResult['PATH_TO_IM'] = '/desktop_app/im.ajax.php';
 		$arResult['PATH_TO_CALL'] = '/desktop_app/call.ajax.php';
 		$arResult['PATH_TO_FILE'] = '/desktop_app/file.ajax.php';
-
-		$arResult['SMILE'] = $arSmile['SMILE'];
-		$arResult['SMILE_SET'] = $arSmile['SMILE_SET'];
-		$arResult['SETTINGS_NOTIFY_BLOCKED'] = CIMSettings::GetSimpleNotifyBlocked();
 	}
 	else
 	{
-		$arResult['RECENT'] = false;
 		$arResult['CONTACT_LIST'] = Array(
 			'users' => Array(),
 			'groups' => Array(),
@@ -117,9 +153,13 @@ if ($arParams["INIT"] == 'Y')
 			'woGroups' => Array(),
 			'woUserInGroup' => Array()
 		);
-		$arResult['SMILE'] = false;
-		$arResult['SMILE_SET'] = false;
-		$arResult['SETTINGS_NOTIFY_BLOCKED'] = Array();
+		if ($arParams['RECENT'] != 'Y')
+		{
+			$arResult['RECENT'] = false;
+			$arResult['SMILE'] = false;
+			$arResult['SMILE_SET'] = false;
+			$arResult['SETTINGS_NOTIFY_BLOCKED'] = Array();
+		}
 	}
 
 	$CIMNotify = new CIMNotify();
@@ -196,7 +236,16 @@ if ($arParams["INIT"] == 'Y')
 		else
 		{
 			if ($arParams['DESKTOP'] == 'N')
+			{
 				$arResult['CONTACT_LIST']['users'][$value['USER']['id']] = $value['USER'];
+			}
+			else
+			{
+				if (!isset($arResult['CONTACT_LIST']['users'][$value['USER']['id']]))
+				{
+					$arResult['CONTACT_LIST']['users'][$value['USER']['id']] = $value['USER'];
+				}
+			}
 			$value['MESSAGE']['userId'] = $userId;
 			$value['MESSAGE']['recipientId'] = $userId;
 		}
@@ -264,6 +313,7 @@ else
 }
 $arResult['DESKTOP'] = $arParams['DESKTOP'] == 'Y'? 'true': 'false';
 $arResult["INIT"] = $arParams['INIT'];
+$arResult['PHONE_ENABLED'] = CIMMessenger::CheckPhoneStatus();
 $arResult['DESKTOP_LINK_OPEN'] = $arParams['DESKTOP_LINK_OPEN'] == 'Y'? 'true': 'false';
 $arResult['PATH_TO_USER_PROFILE_TEMPLATE'] = CIMContactList::GetUserPath();
 $arResult['PATH_TO_USER_PROFILE'] = CIMContactList::GetUserPath($USER->GetId());

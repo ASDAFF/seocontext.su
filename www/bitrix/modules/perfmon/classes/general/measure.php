@@ -146,18 +146,27 @@ class CPerfomanceMeasure
 
 	public static function GetAccelerator()
 	{
-		if (function_exists('accelerator_reset'))
-			return new CPerfAccelZend;
-		elseif (extension_loaded('apc') && !extension_loaded('apcu'))
-			return new CPerfAccelAPC;
-		elseif (extension_loaded('xcache'))
-			return new CPerfAccelXCache;
-		elseif (extension_loaded('wincache'))
-			return new CPerfAccelWinCache;
-		elseif (extension_loaded('Zend OPcache'))
-			return new CPerfAccelZendOpCache;
+		$accelerators = self::GetAllAccelerators();
+		if ($accelerators)
+			return $accelerators[0];
 		else
 			return false;
+	}
+	
+	public static function GetAllAccelerators()
+	{
+		$result = array();
+		if (function_exists('accelerator_reset'))
+			$result[] = new CPerfAccelZend;
+		if (extension_loaded('apc') && !extension_loaded('apcu'))
+			$result[] = new CPerfAccelAPC;
+		if (extension_loaded('xcache'))
+			$result[] = new CPerfAccelXCache;
+		if (extension_loaded('wincache'))
+			$result[] = new CPerfAccelWinCache;
+		if (extension_loaded('Zend OPcache'))
+			$result[] = new CPerfAccelZendOpCache;
+		return $result;
 	}
 }
 
@@ -599,6 +608,44 @@ class CPerfAccelZendOpCache extends CPerfAccel
 			$memory["memoryAllocated"],
 			-1
 		);
+	}
+
+	function GetRecommendations()
+	{
+		$arResult = parent::GetRecommendations();
+
+		if (extension_loaded('Zend OPcache'))
+		{
+			$max_accelerated_files = intval(ini_get('opcache.max_accelerated_files'));
+			$rec_accelerated_files = 100000;
+			$is_ok = ($max_accelerated_files >= $rec_accelerated_files);
+
+			array_unshift($arResult, array(
+				"PARAMETER" => "opcache.max_accelerated_files",
+				"IS_OK" => $is_ok,
+				"VALUE" => $max_accelerated_files,
+				"RECOMMENDATION" => GetMessage("PERFMON_MEASURE_EQUAL_OR_GREATER_THAN_REC", array("#value#" => $rec_accelerated_files)),
+			));
+			
+			if (function_exists('opcache_get_status'))
+			{
+				$cacheStatus = opcache_get_status(false);
+				$cachedKeys = intval($cacheStatus['opcache_statistics']['num_cached_keys']);
+				$maxKeys = intval($cacheStatus['opcache_statistics']['max_cached_keys']);
+				$is_ok = ($cachedKeys <= 0) || ($maxKeys <= 0) || ($cachedKeys < $maxKeys);
+				if (!$is_ok)
+				{
+					array_unshift($arResult, array(
+						"PARAMETER" => "opcache.max_accelerated_files",
+						"IS_OK" => $is_ok,
+						"VALUE" => $maxKeys,
+						"RECOMMENDATION" => GetMessage("PERFMON_MEASURE_EQUAL_OR_GREATER_THAN_REC", array("#value#" => $cachedKeys)),
+					));
+				}
+			}
+		}
+
+		return $arResult;
 	}
 
 	function GetParams()

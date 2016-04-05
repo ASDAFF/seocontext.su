@@ -127,7 +127,7 @@ $iUnsorted = 0;
 while($arElement = $rsElement->GetNext())
 	$iUnsorted++; */
 
-$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+$arParams['ELEMENT_NAME'] = rawurldecode($arParams['ELEMENT_NAME']);
 
 $arFilter = Array();
 $arFilter['IBLOCK_ID'] = $arParams['IBLOCK_ID'];
@@ -142,7 +142,7 @@ if (CWikiSocnet::IsSocNet())
 	$arFilter['<RIGHT_BORDER'] = CWikiSocnet::$iCatRightBorder;
 }
 if (!empty($sCategoryName))
-	$arFilter['NAME'] = $sCategoryName;
+	$arFilter['%NAME'] = $sCategoryName;
 
 $dbList = CIBlockSection::GetList(Array('NAME'=>'ASC'), $arFilter, true);
 
@@ -187,7 +187,8 @@ $catParams->iItemsCount = $noCatCount;
 $catParams->bIsRed = 'N';
 $catParams->createLinkFromTemplate();
 
-$categories->addItem($catParams);
+if($noCatCount > 0)
+	$categories->addItem($catParams);
 
 $arElementFilter["INCLUDE_SUBSECTIONS"] = "Y";
 

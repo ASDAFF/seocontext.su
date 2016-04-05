@@ -127,10 +127,17 @@ unset($bCrmViewTarget);
 
 <? endif; ?>
 
-<?php $this->SetViewTarget("pagetitle", 100);?>
+<?
+
+if (!defined("REPORT_LIST_CREATE_BUTTON")):
+define("REPORT_LIST_CREATE_BUTTON", true);
+$this->SetViewTarget("pagetitle", 100);?>
 <div class="reports-title-buttons">
-	<a class="reports-title-button" href="<?=CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_REPORT_CONSTRUCT"], array("report_id" => 0, 'action' => 'create'));?>">
-		<i class="reports-title-button-create-icon"></i><span class="reports-link"><?=GetMessage('REPORT_ADD')?></span>
+	<a class="webform-small-button webform-small-button-blue task-list-toolbar-create"
+		href="<?=CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_REPORT_CONSTRUCT"], array("report_id" => 0, 'action' => 'create'));?>"><span class="webform-small-button-left"></span><span class="webform-small-button-icon"></span><span class="webform-small-button-text"><?=GetMessage('REPORT_ADD')?></span><span class="webform-small-button-right"></span>
 	</a>
-</div>
-<?php $this->EndViewTarget();?>
+</div><?
+
+$this->EndViewTarget();
+endif;
+

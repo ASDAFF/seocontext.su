@@ -33,8 +33,13 @@ foreach ($arVariableConditionCount as $i)
 		$arCurrentValues["variable_condition_count"] .= ",";
 		?>
 		<tr id="bwfvc_deleterow_tr_<?= $i ?>">
-			<td align="right" width="40%"><?= GetMessage("BPFC_PD_AND") ?></td>
-			<td align="right" width="60%"><a href="#" onclick="BWFVCDeleteCondition(<?= $i ?>); return false;"><?= GetMessage("BPFC_PD_DELETE") ?></a></td>
+			<td align="right" width="40%" class="adm-detail-content-cell-l">
+				<select name="variable_condition_joiner_<?=$i?>">
+					<option value="0"><?= GetMessage("BPFC_PD_AND") ?></option>
+					<option value="1" <?if($arCurrentValues["variable_condition_joiner_".$i]==1) echo 'selected'?>><?= GetMessage("BPFC_PD_OR") ?></option>
+				</select>
+			</td>
+			<td align="right" width="60%" class="adm-detail-content-cell-r"><a href="#" onclick="BWFVCDeleteCondition(<?= $i ?>); return false;"><?= GetMessage("BPFC_PD_DELETE") ?></a></td>
 		</tr>
 		<?
 	}
@@ -43,9 +48,9 @@ foreach ($arVariableConditionCount as $i)
 		$bwfvcCounter = $i;
 	?>
 	<tr>
-		<td align="right" width="40%"><?= GetMessage("BPFC_PD_FIELD") ?>:</td>
-		<td width="60%">
-			<select name="variable_condition_field_<?= $i ?>" onchange="BWFVCChangeFieldType(<?= $i ?>, this.options[this.selectedIndex].value, null)">
+		<td align="right" width="40%" class="adm-detail-content-cell-l"><?= GetMessage("BPFC_PD_FIELD") ?>:</td>
+		<td width="60%" class="adm-detail-content-cell-r">
+			<select name="variable_condition_field_<?= $i ?>" data-old="<?=htmlspecialcharsbx($arCurrentValues["variable_condition_field_".$i])?>" onchange="BWFVCSetAndChangeFieldType(<?= $i ?>, this)">
 				<?
 				foreach ($arProperties as $key => $value)
 				{
@@ -64,8 +69,8 @@ foreach ($arVariableConditionCount as $i)
 		</td>
 	</tr>
 	<tr>
-		<td align="right" width="40%"><?= GetMessage("BPFC_PD_CONDITION") ?>:</td>
-		<td width="60%">
+		<td align="right" width="40%" class="adm-detail-content-cell-l"><?= GetMessage("BPFC_PD_CONDITION") ?>:</td>
+		<td width="60%" class="adm-detail-content-cell-r">
 			<select name="variable_condition_condition_<?= $i ?>">
 				<?
 				foreach ($arC as $key => $value)
@@ -77,8 +82,8 @@ foreach ($arVariableConditionCount as $i)
 		</td>
 	</tr>
 	<tr>
-		<td align="right" width="40%"><?= GetMessage("BPFC_PD_VALUE") ?>:</td>
-		<td width="60%" id="id_td_variable_condition_value_<?= $i ?>">
+		<td align="right" width="40%" class="adm-detail-content-cell-l"><?= GetMessage("BPFC_PD_VALUE") ?>:</td>
+		<td width="60%" id="id_td_variable_condition_value_<?= $i ?>" class="adm-detail-content-cell-r">
 			<input type="text" name="variable_condition_value_<?= $i ?>" value="<?= htmlspecialcharsbx((string)$arCurrentValues["variable_condition_value_".$i]) ?>">
 		</td>
 	</tr>
@@ -86,7 +91,8 @@ foreach ($arVariableConditionCount as $i)
 }
 ?>
 <tr id="bwfvc_addrow_tr">
-	<td align="center" colspan="2">
+	<td class="adm-detail-content-cell-l"></td>
+	<td class="adm-detail-content-cell-r">
 		<?= CAdminCalendar::ShowScript() ?>
 		<script language="JavaScript">
 		var bwfvc_arFieldTypes = {<?
@@ -108,6 +114,7 @@ foreach ($arVariableConditionCount as $i)
 		?>};
 
 		var bwfvc_counter = <?= $bwfvcCounter + 1 ?>;
+		BX.namespace('BX.Bizproc');
 
 		function BWFVCChangeFieldType(ind, field, value)
 		{
@@ -120,9 +127,38 @@ foreach ($arVariableConditionCount as $i)
 				{'Field':"variable_condition_value_" + ind, 'Form':'<?= $formName ?>'},
 				function(v){
 					valueTd.innerHTML = v;
+
+					if (typeof BX.Bizproc.Selector !== 'undefined')
+						BX.Bizproc.Selector.initSelectors(valueTd);
+
 					BX.closeWait();
 				},
 				true
+			);
+		}
+
+		function BWFVCSetAndChangeFieldType(ind, select)
+		{
+			BX.showWait();
+
+			var field = select.value;
+			var oldField = select.getAttribute('data-old');
+
+			if (!oldField)
+				oldField = select.options[0].value;
+
+			objFieldsPVC.GetFieldInputValue(
+					objFieldsPVC.arDocumentFields[oldField],
+					{'Field':"variable_condition_value_" + ind, 'Form':'<?= $formName ?>'},
+					function(value)
+					{
+						if (typeof value == "object")
+							value = value[0];
+
+						select.setAttribute('data-old', field);
+						BWFVCChangeFieldType(ind, field, value);
+						BX.closeWait();
+					}
 			);
 		}
 
@@ -141,23 +177,32 @@ foreach ($arVariableConditionCount as $i)
 				newRow.id = "bwfvc_deleterow_tr_" + bwfvc_counter;
 				var newCell = newRow.insertCell(-1);
 				newCell.width="40%";
+				newCell.className="adm-detail-content-cell-l";
 				newCell.align="right";
-				newCell.innerHTML = "<?= GetMessage("BPFC_PD_AND") ?>";
+				var newSelect = document.createElement("select");
+				newSelect.name = "variable_condition_joiner_" + bwfvc_counter;
+				newSelect.options[0] = new Option("<?= GetMessage("BPFC_PD_AND") ?>", "0");
+				newSelect.options[1] = new Option("<?= GetMessage("BPFC_PD_OR") ?>", "1");
+				newCell.appendChild(newSelect);
+
 				var newCell = newRow.insertCell(-1);
 				newCell.width="60%";
+				newCell.className="adm-detail-content-cell-r";
 				newCell.align="right";
 				newCell.innerHTML = '<a href="#" onclick="BWFVCDeleteCondition(' + bwfvc_counter + '); return false;"><?= GetMessage("BPFC_PD_DELETE") ?></a>';
 
 				var newRow = parentAddrowTr.insertRow(i + 1);
 				var newCell = newRow.insertCell(-1);
 				newCell.width="40%";
+				newCell.className="adm-detail-content-cell-l";
 				newCell.align="right";
 				newCell.innerHTML = "<?= GetMessage("BPFC_PD_FIELD") ?>:";
 				var newCell = newRow.insertCell(-1);
 				newCell.width="60%";
+				newCell.className="adm-detail-content-cell-r";
 				var newSelect = document.createElement("select");
 				newSelect.setAttribute('bwfvc_counter', bwfvc_counter);
-				newSelect.onchange = function(){BWFVCChangeFieldType(this.getAttribute("bwfvc_counter"), this.options[this.selectedIndex].value, null), 2};
+				newSelect.onchange = function(){BWFVCSetAndChangeFieldType(this.getAttribute("bwfvc_counter"), this)};
 				newSelect.name = "variable_condition_field_" + bwfvc_counter;
 				<?
 				$i = -1;
@@ -179,10 +224,12 @@ foreach ($arVariableConditionCount as $i)
 				var newRow = parentAddrowTr.insertRow(i + 2);
 				var newCell = newRow.insertCell(-1);
 				newCell.width="40%";
+				newCell.className="adm-detail-content-cell-l";
 				newCell.align="right";
 				newCell.innerHTML = "<?= GetMessage("BPFC_PD_CONDITION") ?>:";
 				var newCell = newRow.insertCell(-1);
 				newCell.width="60%";
+				newCell.className="adm-detail-content-cell-r";
 				var newSelect = document.createElement("select");
 				newSelect.name = "variable_condition_condition_" + bwfvc_counter;
 				<?
@@ -199,10 +246,12 @@ foreach ($arVariableConditionCount as $i)
 				var newRow = parentAddrowTr.insertRow(i + 3);
 				var newCell = newRow.insertCell(-1);
 				newCell.width="40%";
+				newCell.className="adm-detail-content-cell-l";
 				newCell.align="right";
 				newCell.innerHTML = "<?= GetMessage("BPFC_PD_VALUE") ?>:";
 				var newCell = newRow.insertCell(-1);
 				newCell.width="60%";
+				newCell.className="adm-detail-content-cell-r";
 				newCell.id="id_td_variable_condition_value_" + bwfvc_counter;
 				var newSelect = document.createElement("input");
 				newSelect.type = "text";

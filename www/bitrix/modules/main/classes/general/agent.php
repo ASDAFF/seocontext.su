@@ -11,7 +11,7 @@ Loc::loadMessages(__FILE__);
 
 class CAllAgent
 {
-	function AddAgent(
+	public static function AddAgent(
 		$name, // PHP function name
 		$module = "", // module
 		$period = "N", // check for agent execution count in period of time
@@ -69,7 +69,7 @@ class CAllAgent
 		}
 	}
 
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB, $CACHE_MANAGER;
 
@@ -92,7 +92,7 @@ class CAllAgent
 		return false;
 	}
 
-	function RemoveAgent($name, $module = "", $user_id = false)
+	public static function RemoveAgent($name, $module = "", $user_id = false)
 	{
 		global $DB;
 
@@ -110,7 +110,7 @@ class CAllAgent
 		$DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 	}
 
-	function Delete($id)
+	public static function Delete($id)
 	{
 		global $DB;
 		$id = intval($id);
@@ -123,7 +123,7 @@ class CAllAgent
 		return true;
 	}
 
-	function RemoveModuleAgents($module)
+	public static function RemoveModuleAgents($module)
 	{
 		global $DB;
 
@@ -134,7 +134,7 @@ class CAllAgent
 		}
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB, $CACHE_MANAGER;
 		$ign_name = false;
@@ -162,12 +162,12 @@ class CAllAgent
 		return false;
 	}
 
-	function GetById($ID)
+	public static function GetById($ID)
 	{
 		return CAgent::GetList(Array(), Array("ID"=>IntVal($ID)));
 	}
 
-	function GetList($arOrder = Array("ID" => "DESC"), $arFilter = array())
+	public static function GetList($arOrder = Array("ID" => "DESC"), $arFilter = array())
 	{
 		global $DB;
 		$err_mess = "FILE: ".__FILE__."<br>LINE: ";
@@ -274,7 +274,7 @@ class CAllAgent
 		return $res;
 	}
 
-	function CheckFields(&$arFields, $ign_name = false)
+	public static function CheckFields(&$arFields, $ign_name = false)
 	{
 		global $DB, $APPLICATION;
 

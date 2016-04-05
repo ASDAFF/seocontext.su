@@ -367,7 +367,7 @@ $aContext = array(
 				$POST_RIGHT>="W"
 				?
 				array(
-					"TEXT" => GetMessage("SENDER_CONTACT_LIST_BUTTON_ADD_PULL"),
+					"TEXT" => GetMessage("SENDER_CONTACT_LIST_BUTTON_ADD_PULL1"),
 					"ACTION" => $lAdmin->ActionRedirect("sender_contact_admin.php?action=pull&lang=".LANGUAGE_ID),
 				)
 				: null

@@ -309,7 +309,11 @@ class CSocNetLog extends CAllSocNetLog
 
 		if (isset($USER) && is_object($USER))
 		{
-			$arFields["RATING_USER_VOTE_VALUE"] = Array("FIELD" => $DB->IsNull('RV.VALUE', '0'), "TYPE" => "double", "FROM" => "LEFT JOIN b_rating_vote RV ON L.RATING_TYPE_ID = RV.ENTITY_TYPE_ID AND L.RATING_ENTITY_ID = RV.ENTITY_ID AND RV.USER_ID = ".intval($USER->GetID()));
+			$arFields["RATING_USER_VOTE_VALUE"] = array(
+				"FIELD" => $DB->IsNull('RV.VALUE', '0'),
+				"TYPE" => "double",
+				"FROM" => "LEFT JOIN b_rating_vote RV ON L.RATING_TYPE_ID = RV.ENTITY_TYPE_ID AND L.RATING_ENTITY_ID = RV.ENTITY_ID AND RV.USER_ID = ".intval($USER->GetID())
+			);
 
 			if (
 				!isset($arParams["USE_FAVORITES"])
@@ -320,12 +324,14 @@ class CSocNetLog extends CAllSocNetLog
 				$field_value = $DB->IsNull("SLF.USER_ID", "0");
 
 				foreach($arFilter as $key => $value)
+				{
 					if (strpos($key, "FAVORITES_USER_ID") !== false)
 					{
 						$join_type = "INNER";
 						$field_value = "SLF.USER_ID";
 						break;
 					}
+				}
 
 				$arFields["FAVORITES_USER_ID"] = Array("FIELD" => $field_value, "TYPE" => "double", "FROM" => $join_type." JOIN b_sonet_log_favorites SLF ON L.ID = SLF.LOG_ID AND SLF.USER_ID = ".intval($USER->GetID()));
 			}
@@ -492,6 +498,15 @@ class CSocNetLog extends CAllSocNetLog
 		if (array_key_exists("USER_ID|COMMENT_USER_ID", $arFilter))
 		{
 			$strDistinct = " DISTINCT ";
+		}
+
+		if (
+			isset($arFilter["TMP_ID"])
+			&& !isset($arFilter["ID"])
+		)
+		{
+			$arFilter["ID"] = $arFilter["TMP_ID"];
+			unset($arFilter["TMP_ID"]);
 		}
 
 		if($arParams["IS_CRM"] == "Y")

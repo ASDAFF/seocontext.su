@@ -37,6 +37,8 @@ Loc::loadMessages(__FILE__);
  * <li> HEIGHT double optional
  * <li> MEASURE int optional
  * <li> TYPE int optional
+ * <li> AVAILABLE string(1) optional
+ * <li> BUNDLE string(1) optional
  * <li> IBLOCK_ELEMENT reference to {@link \Bitrix\Iblock\ElementTable}
  * </ul>
  *
@@ -48,6 +50,13 @@ class ProductTable extends Main\Entity\DataManager
 	const STATUS_YES = 'Y';
 	const STATUS_NO = 'N';
 	const STATUS_DEFAULT = 'D';
+
+	const TYPE_PRODUCT = 1;
+	const TYPE_SET = 2;
+	const TYPE_SKU = 3;
+	const TYPE_OFFER = 4;
+	const TYPE_FREE_OFFER = 5;
+	const TYPE_EMPTY_SKU = 6;
 
 	protected static $defaultProductSettings = array();
 
@@ -90,8 +99,7 @@ class ProductTable extends Main\Entity\DataManager
 				'%s',
 				'QUANTITY_TRACE',
 				array(
-					'data_type' => 'string',
-					'title' => Loc::getMessage('PRODUCT_ENTITY_QUANTITY_TRACE_ORIG_FIELD')
+					'data_type' => 'string'
 				)
 			),
 			'WEIGHT' => new Main\Entity\FloatField('WEIGHT', array(
@@ -127,8 +135,7 @@ class ProductTable extends Main\Entity\DataManager
 			),
 			'SELECT_BEST_PRICE' => array(
 				'data_type' => 'boolean',
-				'values' => array('N', 'Y'),
-				'title' => Loc::getMessage('PRODUCT_ENTITY_SELECT_BEST_PRICE_FIELD'),
+				'values' => array('N', 'Y')
 			),
 			'VAT_ID' => new Main\Entity\IntegerField('VAT_ID', array(
 				'default_value' => 0,
@@ -150,8 +157,7 @@ class ProductTable extends Main\Entity\DataManager
 				'%s',
 				'CAN_BUY_ZERO',
 				array(
-					'data_type' => 'string',
-					'title' => Loc::getMessage('PRODUCT_ENTITY_CAN_BUY_ZERO_ORIG_FIELD')
+					'data_type' => 'string'
 				)
 			),
 			'NEGATIVE_AMOUNT_TRACE' => new Main\Entity\EnumField('NEGATIVE_AMOUNT_TRACE', array(
@@ -165,33 +171,28 @@ class ProductTable extends Main\Entity\DataManager
 				'%s',
 				'NEGATIVE_AMOUNT_TRACE',
 				array(
-					'data_type' => 'string',
-					'title' => Loc::getMessage('PRODUCT_ENTITY_NEGATIVE_AMOUNT_TRACE_ORIG_FIELD')
+					'data_type' => 'string'
 				)
 			),
-			'TMP_ID' => array(
-				'data_type' => 'string',
+			'TMP_ID' => New Main\Entity\StringField('TMP_ID' ,array(
 				'validation' => array(__CLASS__, 'validateTmpId'),
-				'title' => Loc::getMessage('PRODUCT_ENTITY_TMP_ID_FIELD'),
-			),
-			'PURCHASING_PRICE' => array(
-				'data_type' => 'float',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_PURCHASING_PRICE_FIELD'),
-			),
-			'PURCHASING_CURRENCY' => array(
-				'data_type' => 'string',
+				'title' => Loc::getMessage('PRODUCT_ENTITY_TMP_ID_FIELD')
+			)),
+			'PURCHASING_PRICE' => new Main\Entity\FloatField('PURCHASING_PRICE', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_PURCHASING_PRICE_FIELD')
+			)),
+			'PURCHASING_CURRENCY' => new Main\Entity\StringField('PURCHASING_CURRENCY', array(
 				'validation' => array(__CLASS__, 'validatePurchasingCurrency'),
-				'title' => Loc::getMessage('PRODUCT_ENTITY_PURCHASING_CURRENCY_FIELD'),
-			),
-			'BARCODE_MULTI' => array(
-				'data_type' => 'boolean',
+				'title' => Loc::getMessage('PRODUCT_ENTITY_PURCHASING_CURRENCY_FIELD')
+			)),
+			'BARCODE_MULTI' => new Main\Entity\BooleanField('BARCODE_MULTI', array(
 				'values' => array('N', 'Y'),
-				'title' => Loc::getMessage('PRODUCT_ENTITY_BARCODE_MULTI_FIELD'),
-			),
-			'QUANTITY_RESERVED' => array(
-				'data_type' => 'float',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_QUANTITY_RESERVED_FIELD'),
-			),
+				'default_value' => 'N',
+				'title' => Loc::getMessage('PRODUCT_ENTITY_BARCODE_MULTI_FIELD')
+			)),
+			'QUANTITY_RESERVED' => new Main\Entity\FloatField('QUANTITY_RESERVED', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_QUANTITY_RESERVED_FIELD')
+			)),
 			'SUBSCRIBE' => new Main\Entity\EnumField('SUBSCRIBE', array(
 				'values' => array(self::STATUS_DEFAULT, self::STATUS_NO, self::STATUS_YES),
 				'default_value' => self::STATUS_DEFAULT,
@@ -203,30 +204,34 @@ class ProductTable extends Main\Entity\DataManager
 				'%s',
 				'SUBSCRIBE',
 				array(
-					'data_type' => 'string',
-					'title' => Loc::getMessage('PRODUCT_ENTITY_SUBSCRIBE_ORIG_FIELD')
+					'data_type' => 'string'
 				)
 			),
-			'WIDTH' => array(
-				'data_type' => 'float',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_WIDTH_FIELD'),
-			),
-			'LENGTH' => array(
-				'data_type' => 'float',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_LENGTH_FIELD'),
-			),
-			'HEIGHT' => array(
-				'data_type' => 'float',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_HEIGHT_FIELD'),
-			),
-			'MEASURE' => array(
-				'data_type' => 'integer',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_MEASURE_FIELD'),
-			),
-			'TYPE' => array(
-				'data_type' => 'integer',
-				'title' => Loc::getMessage('PRODUCT_ENTITY_TYPE_FIELD'),
-			),
+			'WIDTH' => new Main\Entity\FloatField('WIDTH', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_WIDTH_FIELD')
+			)),
+			'LENGTH' => new Main\Entity\FloatField('LENGTH', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_LENGTH_FIELD')
+			)),
+			'HEIGHT' => new Main\Entity\FloatField('HEIGHT', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_HEIGHT_FIELD')
+			)),
+			'MEASURE' => new Main\Entity\IntegerField('MEASURE', array(
+				'title' => Loc::getMessage('PRODUCT_ENTITY_MEASURE_FIELD')
+			)),
+			'TYPE' => new Main\Entity\EnumField('TYPE', array(
+				'values' => array(self::TYPE_PRODUCT, self::TYPE_SET, self::TYPE_SKU, self::TYPE_OFFER, self::TYPE_FREE_OFFER, self::TYPE_EMPTY_SKU),
+				'default_value' => self::TYPE_PRODUCT,
+				'title' => Loc::getMessage('PRODUCT_ENTITY_TYPE_FIELD')
+			)),
+			'AVAILABLE' => new Main\Entity\BooleanField('AVAILABLE', array(
+				'values' => array(self::STATUS_NO, self::STATUS_YES),
+				'title' => Loc::getMessage('PRODUCT_ENTITY_AVAILABLE_FIELD')
+			)),
+			'BUNDLE' => new Main\Entity\BooleanField('BUNDLE', array(
+				'values' => array(self::STATUS_NO, self::STATUS_YES),
+				'title' => Loc::getMessage('PRODUCT_ENTITY_BUNDLE_FIELD')
+			)),
 			'IBLOCK_ELEMENT' => new Main\Entity\ReferenceField(
 				'IBLOCK_ELEMENT',
 				'Bitrix\Iblock\Element',
@@ -239,6 +244,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns validators for PRICE_TYPE field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function validatePriceType()
@@ -251,6 +257,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns validators for RECUR_SCHEME_TYPE field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function validateRecurSchemeType()
@@ -263,6 +270,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns validators for TMP_ID field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function validateTmpId()
@@ -274,6 +282,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns validators for PURCHASING_CURRENCY field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function validatePurchasingCurrency()
@@ -286,6 +295,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns fetch modificators for QUANTITY_TRACE field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function modifyQuantityTrace()
@@ -298,6 +308,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns fetch modificators for CAN_BUY_ZERO field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function modifyCanBuyZero()
@@ -310,6 +321,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns fetch modificators for NEGATIVE_AMOUNT_TRACE field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function modifyNegativeAmountTrace()
@@ -322,6 +334,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Returns fetch modificators for SUBSCRIBE field.
 	 *
+	 * @internal
 	 * @return array
 	 */
 	public static function modifySubscribe()
@@ -334,6 +347,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Convert default QUANTITY_TRACE into real from module settings.
 	 *
+	 * @internal
 	 * @param string $value			QUANTITY_TRACE original value.
 	 * @return string
 	 */
@@ -351,6 +365,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Convert default CAN_BUY_ZERO into real from module settings.
 	 *
+	 * @internal
 	 * @param string $value			CAN_BUY_ZERO original value.
 	 * @return string
 	 */
@@ -368,6 +383,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Convert default NEGATIVE_AMOUNT_TRACE into real from module settings.
 	 *
+	 * @internal
 	 * @param string $value			NEGATIVE_AMOUNT_TRACE original value.
 	 * @return string
 	 */
@@ -385,6 +401,7 @@ class ProductTable extends Main\Entity\DataManager
 	/**
 	 * Convert default SUBSCRIBE into real from module settings.
 	 *
+	 * @internal
 	 * @param string $value			SUBSCRIBE original value.
 	 * @return string
 	 */
@@ -518,7 +535,7 @@ class ProductTable extends Main\Entity\DataManager
 				false,
 				array()
 			);
-			while ($measure = $measureIterator->GetNext())
+			while ($measure = $measureIterator->getNext())
 			{
 				$measure['ID'] = (int)$measure['ID'];
 				if (empty($measureMap[$measure['ID']]))
@@ -536,17 +553,95 @@ class ProductTable extends Main\Entity\DataManager
 	}
 
 	/**
+	 * Calculate available for product.
+	 *
+	 * @param array $fields					Product data.
+	 * @return string
+	 * @throws Main\ArgumentNullException
+	 */
+	public static function calculateAvailable($fields)
+	{
+		if (empty($fields) || !is_array($fields))
+			return self::STATUS_NO;
+
+		if (isset($fields['QUANTITY']) && isset($fields['QUANTITY_TRACE']) && isset($fields['CAN_BUY_ZERO']))
+		{
+			if (empty(self::$defaultProductSettings))
+				self::loadDefaultProductSettings();
+			if ($fields['QUANTITY_TRACE'] == self::STATUS_DEFAULT)
+				$fields['QUANTITY_TRACE'] = self::$defaultProductSettings['QUANTITY_TRACE'];
+			if ($fields['CAN_BUY_ZERO'] == self::STATUS_DEFAULT)
+				$fields['CAN_BUY_ZERO'] = self::$defaultProductSettings['CAN_BUY_ZERO'];
+			return (
+				(
+					(float)$fields['QUANTITY'] <= 0
+					&& $fields['QUANTITY_TRACE'] == self::STATUS_YES
+					&& $fields['CAN_BUY_ZERO'] == self::STATUS_NO
+				)
+				? self::STATUS_NO
+				: self::STATUS_YES
+			);
+		}
+
+		return self::STATUS_NO;
+	}
+
+	/**
 	 * Load default product settings from module options.
 	 *
+	 * @internal
 	 * @return void
 	 */
-	protected static function loadDefaultProductSettings()
+	public static function loadDefaultProductSettings()
 	{
 		self::$defaultProductSettings = array(
 			'QUANTITY_TRACE' => ((string)Main\Config\Option::get('catalog', 'default_quantity_trace') == 'Y' ? 'Y' : 'N'),
 			'CAN_BUY_ZERO' => ((string)Main\Config\Option::get('catalog', 'default_can_buy_zero') == 'Y' ? 'Y' : 'N'),
 			'NEGATIVE_AMOUNT_TRACE' => ((string)Main\Config\Option::get('catalog', 'allow_negative_amount') == 'Y' ? 'Y' : 'N'),
 			'SUBSCRIBE' => ((string)Main\Config\Option::get('catalog', 'default_subscribe') == 'N' ? 'N' : 'Y')
+		);
+	}
+
+	/**
+	 * Return product type list.
+	 *
+	 * @param bool $withDescr			With description.
+	 * @return array
+	 */
+	public static function getProductTypes($withDescr = false)
+	{
+		$withDescr = ($withDescr === true);
+		if ($withDescr)
+		{
+			return array(
+				self::TYPE_PRODUCT => Loc::getMessage('PRODUCT_ENTITY_TYPE_PRODUCT'),
+				self::TYPE_SET => Loc::getMessage('PRODUCT_ENTITY_TYPE_SET'),
+				self::TYPE_SKU => Loc::getMessage('PRODUCT_ENTITY_TYPE_SKU'),
+				self::TYPE_OFFER => Loc::getMessage('PRODUCT_ENTITY_TYPE_OFFER'),
+				self::TYPE_FREE_OFFER => Loc::getMessage('PRODUCT_ENTITY_TYPE_FREE_OFFER')
+			);
+		}
+		return array(
+			self::TYPE_PRODUCT,
+			self::TYPE_SET,
+			self::TYPE_SKU,
+			self::TYPE_OFFER,
+			self::TYPE_FREE_OFFER
+		);
+	}
+
+	/**
+	 * Return default alailable settings.
+	 *
+	 * @return array
+	 */
+	public static function getDefaultAvailableSettings()
+	{
+		return array(
+			'AVAILABLE' => self::STATUS_NO,
+			'QUANTITY' => 0,
+			'QUANTITY_TRACE' => self::STATUS_YES,
+			'CAN_BUY_ZERO' => self::STATUS_NO
 		);
 	}
 }

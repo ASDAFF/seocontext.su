@@ -418,7 +418,7 @@ class CCheckList
 
 class CCheckListResult
 {
-	function Save($arFields = array())
+	public static function Save($arFields = array())
 	{
 		global $DB;
 
@@ -462,7 +462,7 @@ class CCheckListResult
 
 	}
 
-	function GetList($arOrder = array(), $arFilter = array())
+	public static function GetList($arOrder = array(), $arFilter = array())
 	{
 		global $DB;
 
@@ -487,7 +487,7 @@ class CCheckListResult
 		return $arResult;
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		$ID = IntVal($ID);
@@ -500,7 +500,7 @@ class CCheckListResult
 		return $ID;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$ID = intval($ID);
@@ -516,7 +516,7 @@ class CCheckListResult
 
 class CAutoCheck
 {
-	function CheckCustomComponents($arParams)
+	public static function CheckCustomComponents($arParams)
 	{
 		$arResult["STATUS"] = false;
 		$arComponentFolders = array(
@@ -615,7 +615,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckBackup()
+	public static function CheckBackup()
 	{
 		$arCount = 0;
 		$arResult = array();
@@ -662,7 +662,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckTemplates()
+	public static function CheckTemplates()
 	{
 		$arFolders = array(
 			$_SERVER['DOCUMENT_ROOT']."/bitrix/templates",
@@ -737,7 +737,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckKernel($arParams)
+	public static function CheckKernel($arParams)
 	{
 
 		$time_start = time();
@@ -925,7 +925,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckSecurity($arParams)
+	public static function CheckSecurity($arParams)
 	{
 		global $DB;
 		$err = 0;
@@ -989,7 +989,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckErrorReport()
+	public static function CheckErrorReport()
 	{
 		global $DBDebug;
 		$err = 0;
@@ -1011,7 +1011,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function IsCacheOn()
+	public static function IsCacheOn()
 	{
 		$arResult["STATUS"] = true;
 		if (COption::GetOptionString("main", "component_cache_on", "Y") == "N")
@@ -1029,12 +1029,12 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckDBPassword()
+	public static function CheckDBPassword()
 	{
 		global $DBPassword;
 		$err = 0;
 		$arMessage = "";
-		$sign = ",.#!*%$:-";
+		$sign = ",.#!*%$:-^@{}[]()'\"-+=<>?`&;";
 		$dit = "1234567890";
 		$have_sign = false;
 		$have_dit = false;
@@ -1078,7 +1078,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckPerfomance($arParams)
+	public static function CheckPerfomance($arParams)
 	{
 		if (!IsModuleInstalled("perfmon"))
 			return array(
@@ -1134,7 +1134,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function CheckQueryString($arParams = array())
+	public static function CheckQueryString($arParams = array())
 	{
 		$time = time();
 		$arPath = array(
@@ -1223,7 +1223,7 @@ class CAutoCheck
 		return $arResult;
 	}
 
-	function KeyCheck()
+	public static function KeyCheck()
 	{
 		$arResult = array("STATUS" => false);
 		require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/classes/general/update_client.php");
@@ -1244,7 +1244,7 @@ class CAutoCheck
 
 class CCheckListTools
 {
-	function __scandir($pwd, &$arFiles, $arExept = false)
+	public static function __scandir($pwd, &$arFiles, $arExept = false)
 	{
 		if(file_exists($pwd))
 		{
@@ -1269,7 +1269,7 @@ class CCheckListTools
 		}
 	}
 
-	function AdminPolicyLevel()
+	public static function AdminPolicyLevel()
 	{
 		$arGroupPolicy = array(
 			"parent" => array(

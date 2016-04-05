@@ -27,7 +27,6 @@ ClearVars();
 
 $sTableID = "b_catalog_store_docs";
 
-$order = ($_REQUEST["order"]) ? $_REQUEST["order"] : 'desc';
 $oSort = new CAdminSorting($sTableID, "ID", "desc");
 $lAdmin = new CAdminList($sTableID, $oSort);
 
@@ -154,12 +153,21 @@ if(strlen($_REQUEST["filter_date_document_to"])>0)
 if(strlen($_REQUEST["filter_status"]) > 0) $arFilter["STATUS"] = $_REQUEST["filter_status"];
 if(strlen($_REQUEST["filter_contractor_id"]) > 0) $arFilter["CONTRACTOR_ID"] = $_REQUEST["filter_contractor_id"];
 
+if (!isset($by))
+	$by = 'ID';
+$by = strtoupper($by);
+
+if (!isset($order))
+	$order = 'DESC';
+$order = strtoupper($order);
+$docsOrder = array($by => $order);
+
 if (!$bReadOnly && ($arID = $lAdmin->GroupAction()))
 {
 	if ($_REQUEST['action_target'] == 'selected')
 	{
 		$arID = array();
-		$docsIterator = CCatalogDocs::getList(array(), $arFilter, false, false, array('ID'));
+		$docsIterator = CCatalogDocs::getList($docsOrder, $arFilter, false, false, array('ID'));
 		while($arResult = $docsIterator->Fetch())
 		{
 			$arID[] = $arResult['ID'];
@@ -369,9 +377,6 @@ $arUserList = array();
 $strNameFormat = CSite::GetNameFormat(true);
 $arRows = array();
 
-$by = (isset($_REQUEST["by"]) ? $_REQUEST["by"] : 'ID');
-$order = (isset($_REQUEST["order"]) ? $_REQUEST["order"] : 'DESC');
-
 $showCancel = false;
 $showConduct = false;
 $showDelete = false;
@@ -383,7 +388,7 @@ $arNavParams = (
 );
 
 $dbResultList = CCatalogDocs::getList(
-	array($by => $order),
+	$docsOrder,
 	$arFilter,
 	false,
 	$arNavParams,

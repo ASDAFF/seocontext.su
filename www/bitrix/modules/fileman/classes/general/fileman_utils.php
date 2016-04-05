@@ -1410,7 +1410,7 @@ class CFilemanSearch
 			);
 
 			unset($arFields['NEW']);
-			CDatabase::Add("b_file_search", $arFields);
+			$DB->Add("b_file_search", $arFields);
 		}
 		return $searchRes;
 	}
@@ -1900,7 +1900,7 @@ class CFilemanCopy
 
 class CFilemanTransliterate
 {
-	function Init($Params)
+	public static function Init($Params)
 	{
 		echo CUtil::InitJSCore(array('translit'), true);
 ?>

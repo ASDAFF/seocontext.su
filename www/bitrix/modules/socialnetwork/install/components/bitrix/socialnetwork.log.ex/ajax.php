@@ -26,15 +26,26 @@ $ls_arr = isset($_REQUEST["ls_arr"])? $_REQUEST["ls_arr"]: "";
 
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
 
+use Bitrix\Main\Localization\Loc;
+
 $rsSite = CSite::GetByID($site_id);
 if ($arSite = $rsSite->Fetch())
+{
 	define("LANGUAGE_ID", $arSite["LANGUAGE_ID"]);
+}
 else
+{
 	define("LANGUAGE_ID", "en");
+}
+
+if (empty($lng))
+{
+	$lng = LANGUAGE_ID;
+}
 
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/socialnetwork.log.ex/include.php");
 
-__IncludeLang(dirname(__FILE__)."/lang/".$lng."/ajax.php");
+Loc::loadLanguageFile(__FILE__, $lng);
 
 if(CModule::IncludeModule("compression"))
 	CCompress::Disable2048Spaces();
@@ -509,7 +520,7 @@ if(CModule::IncludeModule("socialnetwork"))
 				$arSubscribe["CB_ALL"][$strTmp."_INHERITED"] = true;
 			}
 
-			$arSubscribe["CB_ALL"]["TITLE"]	= GetMessage("SUBSCRIBE_CB_ALL");
+			$arSubscribe["CB_ALL"]["TITLE"]	= Loc::getMessage("SUBSCRIBE_CB_ALL", false, $lng);
 
 			if (
 				array_key_exists("NAME_FORMATTED", $arCreatedByTmp)
@@ -519,12 +530,12 @@ if(CModule::IncludeModule("socialnetwork"))
 				$arSubscribe["CB_ALL"]["TITLE_1"] = str_replace(
 					array("#TITLE#"),
 					array(array_key_exists("~NAME_FORMATTED", $arCreatedByTmp) ? $arCreatedByTmp["~NAME_FORMATTED"] : $arCreatedByTmp["NAME_FORMATTED"]),
-					GetMessage("SUBSCRIBE_CB_ALL_1")
+					Loc::getMessage("SUBSCRIBE_CB_ALL_1", false, $lng)
 				);
 				$arSubscribe["CB_ALL"]["TITLE_2"] = str_replace(
 					array("#TITLE#"),
 					array(array_key_exists("~NAME_FORMATTED", $arCreatedByTmp) ? $arCreatedByTmp["~NAME_FORMATTED"] : $arCreatedByTmp["NAME_FORMATTED"]),
-					GetMessage("SUBSCRIBE_CB_ALL_2")
+					Loc::getMessage("SUBSCRIBE_CB_ALL_2", false, $lng)
 				);
 			}
 		}
@@ -550,12 +561,12 @@ if(CModule::IncludeModule("socialnetwork"))
 		$arResult["Subscription"] = $arSubscribe;
 
 		$arResult["Transport"] = array(
-			0 => array("Key" => "N", "Value" => GetMessage("SUBSCRIBE_TRANSPORT_NONE")),
-			1 => array("Key" => "M", "Value" => GetMessage("SUBSCRIBE_TRANSPORT_MAIL")),
+			0 => array("Key" => "N", "Value" => Loc::getMessage("SUBSCRIBE_TRANSPORT_NONE", false, $lng)),
+			1 => array("Key" => "M", "Value" => Loc::getMessage("SUBSCRIBE_TRANSPORT_MAIL", false, $lng)),
 		);
 
 		if (CBXFeatures::IsFeatureEnabled("WebMessenger"))
-			$arResult["Transport"][] = array("Key" => "X", "Value" => GetMessage("SUBSCRIBE_TRANSPORT_XMPP"));
+			$arResult["Transport"][] = array("Key" => "X", "Value" => Loc::getMessage("SUBSCRIBE_TRANSPORT_XMPP", false, $lng));
 	}
 	elseif ($action == "set")
 	{

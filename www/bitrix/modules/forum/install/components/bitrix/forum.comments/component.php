@@ -57,7 +57,8 @@ $arParams["ALLOW"] = array_flip(array(
 		"ALLOW_NL2BR",
 		"ALLOW_TABLE",
 		"ALLOW_MENTION",
-		"ALLOW_ALIGN"));
+		"ALLOW_ALIGN",
+		"ALLOW_MENTION"));
 foreach ($arParams["ALLOW"] as $sName => $default)
 {
 	$sVal = array_key_exists($sName, $arParams) ? $arParams[$sName] : $arResult['FORUM'][$sName];
@@ -148,7 +149,8 @@ $arAllow = array(
 	"NL2BR" => $arParams["ALLOW_NL2BR"],
 	"TABLE" => $arParams["ALLOW_TABLE"],
 	"UPLOAD" => $arParams["ALLOW_UPLOAD"],
-	"ALIGN" => $arParams["ALLOW_ALIGN"]
+	"ALIGN" => $arParams["ALLOW_ALIGN"],
+	"MENTION" => $arParams["ALLOW_MENTION"]
 );
 
 /********************************************************************
@@ -408,6 +410,10 @@ if ($arResult['DO_NOT_CACHE'] || $this->StartResultCache($arParams["CACHE_TIME"]
 							);
 						if ($res["AVATAR"]["FILE"] !== false)
 							$res["AVATAR"]["HTML"] = CFile::ShowImage($res["AVATAR"]["FILE"]['src'], 30, 30, "border=0 align='right'");
+					}
+					else
+					{
+						$res["AVATAR"] = null;
 					}
 					// For quote JS
 					$res["FOR_JS"] = array(

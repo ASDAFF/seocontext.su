@@ -4,6 +4,9 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 
 <?= $javascriptFunctions ?>
 <script language="JavaScript">
+
+BX.namespace('BX.Bizproc');
+
 function BWFVCChangeFieldType(ind, field, value)
 {
 	BX.showWait();
@@ -16,8 +19,11 @@ function BWFVCChangeFieldType(ind, field, value)
 			if (v == undefined)
 				document.getElementById('id_td_document_value_' + ind).innerHTML = "";
 			else
+			{
 				document.getElementById('id_td_document_value_' + ind).innerHTML = v;
-
+				if (typeof BX.Bizproc.Selector !== 'undefined')
+					BX.Bizproc.Selector.initSelectors(document.getElementById('id_td_document_value_' + ind));
+			}
 			BX.closeWait();
 		},
 		true

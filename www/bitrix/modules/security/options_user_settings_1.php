@@ -53,8 +53,8 @@ $jsSettings = array(
 	'availableTypes' => $availableTypesDescription
 )
 ?>
-<script id="otp-user-edit-messages" type="application/json"><?=CSecurityJsonHelper::encode($jsMessages)?></script>
-<script id="otp-user-edit-settings" type="application/json"><?=CSecurityJsonHelper::encode($jsSettings)?></script>
+<script id="otp-user-edit-messages" type="application/json"><?=\Bitrix\Main\Web\Json::encode($jsMessages)?></script>
+<script id="otp-user-edit-settings" type="application/json"><?=\Bitrix\Main\Web\Json::encode($jsSettings)?></script>
 <!--Popup starts-->
 <tr style="display: none;">
 	<td colspan="2">

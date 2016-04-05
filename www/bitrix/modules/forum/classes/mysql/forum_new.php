@@ -12,7 +12,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/forum/classes/general/fo
 /**********************************************************************/
 class CForumNew extends CAllForumNew
 {
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -51,7 +51,7 @@ class CForumNew extends CAllForumNew
 		return $ID;
 	}
 
-	function OnReindex($NS = array(), $oCallback = NULL, $callback_method = "")
+	public static function OnReindex($NS = array(), $oCallback = NULL, $callback_method = "")
 	{
 		global $DB;
 
@@ -189,7 +189,7 @@ class CForumNew extends CAllForumNew
 		return $arResultAll;
 	}
 
-	function GetNowTime($ResultType = "timestamp")
+	public static function GetNowTime($ResultType = "timestamp")
 	{
 		global $DB;
 		static $result = array();
@@ -203,7 +203,7 @@ class CForumNew extends CAllForumNew
 		return $result[$ResultType];
 	}
 
-	function Concat($glue = "", $pieces = array())
+	public static function Concat($glue = "", $pieces = array())
 	{
 		return "TRIM(BOTH '".$glue."' FROM REPLACE(CONCAT_WS('".$glue."',".implode(",", $pieces)."), '".$glue.$glue."', '".$glue."'))";
 	}
@@ -214,7 +214,7 @@ class CForumNew extends CAllForumNew
 /**********************************************************************/
 class CForumGroup extends CAllForumGroup
 {
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -254,7 +254,7 @@ class CForumGroup extends CAllForumGroup
 		return $ID;
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		$ID = intVal($ID);

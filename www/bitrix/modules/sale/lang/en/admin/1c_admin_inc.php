@@ -17,4 +17,13 @@ $MESS["SALE_1C_SITE_NEW_ORDERS"] = "Site to import new orders and contractors to
 $MESS["SALE_1C_IMPORT_NEW_ORDERS"] = "Create new orders and contractors from 1C";
 $MESS["SALE_1C_CHANGE_STATUS_FROM_1C"] = "Use 1C data to set order status ";
 $MESS["SALE_1C_IMPORT_DEFAULT_PS"] = "Payment system for new orders";
+$MESS["SALE_1C_IMPORT_DEFAULT_PS_C"] = "Cash settlement: payment system  for new orders";
+$MESS["SALE_1C_IMPORT_DEFAULT_PS_B"] = "Cashless settlement: payment system  for new orders";
+$MESS["SALE_1C_IMPORT_DEFAULT_SHIPMENT_SERVICE"] = "Delivery service for new orders";
+$MESS["SALE_1C_IMPORT_UPDATE_BASKET_QUANTITY"] = "Increase product quantity in cart if it is less than that in 1C's delivery";
+$MESS["SALE_1C_IMPORT_NEW_PAYMENT"] = "Create new payment docs in 1C";
+$MESS["SALE_1C_IMPORT_NEW_SHIPMENT"] = "Create new delivery docs in 1C";
+$MESS["SALE_1C_IMPORT_NEW_ORDER_NEW_SHIPMENT"] = "Create new order (if it does not exist) on receiving a new delivery from 1C";
+$MESS["SALE_1C_IMPORT_DEFAULT_PS_A"] = "Card transaction. Payment system for new orders";
+$MESS["SALE_1C_IMPORT_DEFAULT_PS_ORDER_PAID"] = "Payment system to pay orders when 1C order payment status change";
 ?>

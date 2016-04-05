@@ -222,7 +222,7 @@ class CSiteCheckerTest
 		$this->LogFile = '/bitrix'.'/site_checker_'.md5('SITE_CHECKER'.$LICENSE_KEY).'.log';
 	}
 
-	function GetTestList()
+	public static function GetTestList()
 	{
 		$ar = array();
 		foreach(get_class_methods('CSiteCheckerTest') as $method)
@@ -518,7 +518,7 @@ class CSiteCheckerTest
 			if (!$str)
 				return $this->Result(false, GetMessage('SC_CHECK_FILES'));
 
-			$body = str_repeat($str, 10);
+			$body = str_repeat($str, 2);
 		}
 
 		list($usec0, $sec0) = explode(" ", microtime());
@@ -626,16 +626,10 @@ class CSiteCheckerTest
 
 	function check_socket_ssl()
 	{
-		$strRequest = "GET "."/bitrix/admin/site_checker.php?test_type=socket_test&unique_id=".checker_get_unique_id()." HTTP/1.1\r\n";
-		$strRequest.= "Host: ".$this->host."\r\n";
-		$strRequest.= "\r\n";
-		if (!($res = $this->ConnectToHost('ssl://'.$this->host, 443)) || !IsHttpResponseSuccess($res, $strRequest))
-			return $this->Result(null, GetMessage('MAIN_SC_TEST_SSL_WARN'));
-
 		if (!file_exists($this->cafile) || filesize($this->cafile) == 0)
 			return $this->Result(null, GetMessage("MAIN_SC_TEST_SSL1"));
 
-		$context = stream_context_create(
+		if (!$context = stream_context_create(
 			array(
 				'ssl' => array(
 					'verify_peer' => true,
@@ -643,19 +637,38 @@ class CSiteCheckerTest
 					'cafile' => $this->cafile,
 				)
 			)
-		);
-		if (!$context)
-			return null;
+		))
+			return false;
 
-		echo "Validation HTTPS on ssl://{$this->host}:443	";
-		if (!$res = stream_socket_client('ssl://'.$this->host.':443', $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $context))
+		echo "Connection to ssl://{$this->host}:443 (certificate check enabled)	";
+		if ($res = stream_socket_client('ssl://'.$this->host.':443', $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $context))
 		{
-			echo "Fail\n";
+			echo "Success\n";
+			fclose($res);
+			return true;
+		}
+		echo "Fail\n";
+
+		if (!$context = stream_context_create(
+			array(
+				'ssl' => array(
+					'verify_peer' => false,
+					'allow_self_signed' => true,
+					'cafile' => $this->cafile,
+				)
+			)
+		))
+			return false;
+
+		echo "Connection to ssl://{$this->host}:443	";
+		if ($res = stream_socket_client('ssl://'.$this->host.':443', $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $context))
+		{
+			echo "Success\n";
+			fclose($res);
 			return $this->Result(null, GetMessage("MAIN_SC_SSL_NOT_VALID"));
 		}
-		fclose($res);
-
-		return true;
+		echo "Fail\n";
+		return $this->Result(null, GetMessage("MAIN_SC_NO_CONNECTTO", array('#HOST#' => 'https://'.$this->host)));
 	}
 
 	function check_ad()
@@ -1256,7 +1269,7 @@ class CSiteCheckerTest
 
 	function check_webdav()
 	{
-		if (!CModule::IncludeModule('webdav'))
+		if (!CModule::IncludeModule('webdav') && !CModule::IncludeModule('disk'))
 			return $this->Result(false, GetMessage("MAIN_SC_NO_WEBDAV_MODULE"));
 
 		if ($this->arTestVars['check_socket_fail'])
@@ -2392,7 +2405,7 @@ class CSiteCheckerTest
 
 	function CommonTest()
 	{
-		if (defined('BX_CRONTAB') || (defined('CHK_EVENT') && CHK_EVENT === true)) // can't get real HTTP server vars from cron
+		if (defined('BX_CRONTAB') || (defined('CHK_EVENT') && CHK_EVENT === true) || !$_SERVER['HTTP_HOST']) // can't get real HTTP server vars from cron
 			return "CSiteCheckerTest::CommonTest();";
 		if (($ntlm_varname = COption::GetOptionString('ldap', 'ntlm_varname', 'REMOTE_USER')) && ($user = trim($_SERVER[$ntlm_varname])))
 			return "CSiteCheckerTest::CommonTest();"; // Server NTLM is enabled, no way to connect through a socket
@@ -2407,7 +2420,7 @@ class CSiteCheckerTest
 			$oTest = new CSiteCheckerTest($step, $fast = 1);
 			$oTest->arTestVars = $ar;
 			$oTest->host = $_SERVER['HTTP_HOST'] ? $_SERVER['HTTP_HOST'] : 'localhost';
-			$oTest->ssl = $_SERVER['HTTPS'] == 'on';
+			$oTest->ssl = $_SERVER['HTTPS'] == 'on' || $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' || $_SERVER["SERVER_PORT"] == 443;
 			$oTest->port = $_SERVER['SERVER_PORT'] ? $_SERVER['SERVER_PORT'] : ($oTest->ssl ? 443 : 80);
 			$oTest->Start();
 			if ($oTest->result === false)
@@ -2651,7 +2664,7 @@ function InitPureDB()
 			return false;
 		}
 	}
-	global $DB, $DBType, $DBDebug, $DBDebugToFile, $DBHost, $DBName, $DBLogin, $DBPassword, $DBSQLServerType;
+	global $DB, $DBType, $DBDebug, $DBDebugToFile, $DBHost, $DBName, $DBLogin, $DBPassword;
 
 	/**
 	 * Defined in dbconn.php

@@ -608,7 +608,8 @@ class Query
 
 			if (!is_numeric($filter_def))
 			{
-				$csw_result = \CSQLWhere::makeOperation($filter_def);
+				$sqlWhere = new \CSQLWhere();
+				$csw_result = $sqlWhere->makeOperation($filter_def);
 				list($definition, ) = array_values($csw_result);
 
 				// do not register it in global chain registry - get it in a smuggled way
@@ -790,7 +791,8 @@ class Query
 			$is_having = false;
 			if (!is_numeric($filter_def))
 			{
-				$csw_result = \CSQLWhere::makeOperation($filter_def);
+				$sqlWhere = new \CSQLWhere();
+				$csw_result = $sqlWhere->makeOperation($filter_def);
 				list($definition, ) = array_values($csw_result);
 
 				$chain = $this->filter_chains[$definition];
@@ -1258,7 +1260,8 @@ class Query
 
 			if (!is_numeric($filter_def))
 			{
-				$csw_result = \CSQLWhere::makeOperation($filter_def);
+				$sqlWhere = new \CSQLWhere();
+				$csw_result = $sqlWhere->makeOperation($filter_def);
 				list($definition, ) = array_values($csw_result);
 
 				$chain = $this->filter_chains[$definition];
@@ -1404,7 +1407,8 @@ class Query
 			else
 			{
 				// key
-				$csw_result = \CSQLWhere::makeOperation($k);
+				$sqlWhere = new \CSQLWhere();
+				$csw_result = $sqlWhere->makeOperation($k);
 				list($field, $operation) = array_values($csw_result);
 
 				if (strpos($field, 'this.') === 0)
@@ -1568,7 +1572,8 @@ class Query
 			else
 			{
 				// key
-				$csw_result = \CSQLWhere::makeOperation($k);
+				$sqlWhere = new \CSQLWhere();
+				$csw_result = $sqlWhere->makeOperation($k);
 				list($field, ) = array_values($csw_result);
 
 				$fields[$field] = array(
@@ -1716,8 +1721,12 @@ class Query
 		$connection = $this->init_entity->getConnection();
 		$configuration = $connection->getConfiguration();
 
+		/** @var Main\DB\Result $result */
+		$result = null;
+
 		if (isset($configuration['handlersocket']['read']))
 		{
+			// optimize through nosql
 			$nosqlConnectionName = $configuration['handlersocket']['read'];
 
 			$nosqlConnection = Main\Application::getInstance()->getConnectionPool()->getConnection($nosqlConnectionName);
@@ -1726,48 +1735,52 @@ class Query
 			if ($isNosqlCapable)
 			{
 				$nosqlResult = NosqlPrimarySelector::relayQuery($nosqlConnection, $this);
-
-				return new Main\DB\ArrayResult($nosqlResult);
+				$result = new Main\DB\ArrayResult($nosqlResult);
 			}
 		}
 
-		$cnt = null;
-		if ($this->count_total)
+		if ($result === null)
 		{
-			$buildParts = $this->query_build_parts;
+			// regular SQL query
+			$cnt = null;
 
-			//remove order
-			unset($buildParts['ORDER BY']);
-
-			//remove select
-			$buildParts['SELECT'] = "1";
-
-			foreach ($buildParts as $k => &$v)
+			if ($this->count_total)
 			{
-				$v = $k . ' ' . $v;
+				$buildParts = $this->query_build_parts;
+
+				//remove order
+				unset($buildParts['ORDER BY']);
+
+				//remove select
+				$buildParts['SELECT'] = "1 cntholder";
+
+				foreach ($buildParts as $k => &$v)
+				{
+					$v = $k . ' ' . $v;
+				}
+
+				$cntQuery = join("\n", $buildParts);
+
+				// select count
+				$cntQuery = 'SELECT COUNT(cntholder) AS TMP_ROWS_CNT FROM ('.$cntQuery.') xxx';
+				$cnt = $connection->queryScalar($cntQuery);
 			}
 
-			$cntQuery = join("\n", $buildParts);
+			$result = $connection->query($query);
+			$result->setReplacedAliases($this->replaced_aliases);
 
-			// select count
-			$cntQuery = 'SELECT COUNT(1) AS TMP_ROWS_CNT FROM ('.$cntQuery.') xxx';
-			$cnt = $connection->queryScalar($cntQuery);
-		}
+			if($this->count_total)
+			{
+				$result->setCount($cnt);
+			}
 
-		$result = $connection->query($query);
-		$result->setReplacedAliases($this->replaced_aliases);
-
-		if($this->count_total)
-		{
-			$result->setCount($cnt);
+			static::$last_query = $query;
 		}
 
 		if ($this->isFetchModificationRequired())
 		{
 			$result->addFetchDataModifier(array($this, 'fetchDataModificationCallback'));
 		}
-
-		static::$last_query = $query;
 
 		return $result;
 	}

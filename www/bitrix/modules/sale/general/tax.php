@@ -95,8 +95,11 @@ class CAllSaleTax
 
 					foreach ($arOrder["TAX_LIST"] as $arTax)
 					{
-						if ($arTax["IS_IN_PRICE"] != "Y")
+						if ($arTax["IS_IN_PRICE"] != "Y"
+							|| (!empty($arOptions['ENABLE_INCLUSIVE_TAX']) && $arOptions['ENABLE_INCLUSIVE_TAX'] == "Y"))
+						{
 							$arOrder["TAX_PRICE"] += $arTax["VALUE_MONEY"];
+						}
 					}
 				}
 				else
@@ -181,18 +184,6 @@ class CAllSaleTax
 					}
 				}
 			}
-			else
-			{
-				if (!empty($arOrder["TAX_LIST"]) && is_array($arOrder["TAX_LIST"]))
-				{
-					foreach ($arOrder["TAX_LIST"] as &$taxValue)
-					{
-						if (isset($taxValue['VALUE_MONEY']))
-							unset($taxValue['VALUE_MONEY']);
-					}
-					unset($taxValue);
-				}
-			}
 
 			if (count($arOrder["TAX_LIST"]) > 0)
 			{
@@ -206,12 +197,13 @@ class CAllSaleTax
 				foreach ($arOrder["TAX_LIST"] as &$arTax)
 				{
 					$arTax["VALUE_MONEY"] += roundEx($arTax["TAX_VAL"], SALE_VALUE_PRECISION);
-					$arTax["TAX_VAL"] += roundEx($arTax["TAX_VAL"], SALE_VALUE_PRECISION);
-
 					$arTax['VALUE_MONEY_FORMATED'] = SaleFormatCurrency($arTax["VALUE_MONEY"], $arOrder["CURRENCY"]);
 
-					if ($arTax["IS_IN_PRICE"] != "Y")
+					if ($arTax["IS_IN_PRICE"] != "Y"
+						|| (!empty($arOptions['ENABLE_INCLUSIVE_TAX']) && $arOptions['ENABLE_INCLUSIVE_TAX'] == "Y"))
+					{
 						$arOrder["TAX_PRICE"] += $arTax["VALUE_MONEY"];
+					}
 
 				}
 				unset($arTax);
@@ -288,15 +280,25 @@ class CAllSaleTax
 				);
 
 				$hash = $itemData["NAME"]."|".$itemData["CODE"];
+				$isNew = false;
 
 				if (array_key_exists($hash, $idList))
 				{
-					CSaleOrderTax::Update($idList[$hash], $fields);
+					$taxId = CSaleOrderTax::Update($idList[$hash], $fields);
 					unset($idList[$hash]);
 				}
 				elseif (!array_key_exists($hash, $duplicateList))
 				{
-					CSaleOrderTax::Add($fields);
+					$isNew = true;
+					$taxId = CSaleOrderTax::Add($fields);
+				}
+
+				if ($orderId > 0)
+				{
+					\Bitrix\Sale\OrderHistory::addLog('TAX', $orderId, $isNew ? 'TAX_ADD' : 'TAX_UPDATE', $taxId, null, array(
+						"NAME" => $itemData["NAME"],
+						"CODE" => $itemData["CODE"]
+					), \Bitrix\Sale\OrderHistory::SALE_ORDER_HISTORY_LOG_LEVEL_1);
 				}
 			}
 		}
@@ -304,6 +306,10 @@ class CAllSaleTax
 		foreach ($idList as $code => $id)
 		{
 			CSaleOrderTax::Delete($id);
+			if ($orderId > 0)
+			{
+				\Bitrix\Sale\OrderHistory::addLog('TAX', $orderId, 'TAX_DELETED', $id, null, array(), \Bitrix\Sale\OrderHistory::SALE_ORDER_HISTORY_LOG_LEVEL_1);
+			}
 		}
 
 		if (!empty($duplicateList))
@@ -311,8 +317,15 @@ class CAllSaleTax
 			foreach ($duplicateList as $hash => $id)
 			{
 				CSaleOrderTax::Delete($id);
+				\Bitrix\Sale\OrderHistory::addLog('TAX', $orderId, 'TAX_DUPLICATE_DELETED', $id, null, array(), \Bitrix\Sale\OrderHistory::SALE_ORDER_HISTORY_LOG_LEVEL_1);
 			}
 		}
+
+		\Bitrix\Sale\OrderHistory::addAction(
+			'TAX',
+			$orderId,
+			"TAX_SAVED"
+		);
 	}
 
 	function CheckFields($ACTION, &$arFields)

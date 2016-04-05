@@ -1,5 +1,18 @@
 <?
 //<title>CSV</title>
+/** @global int $line_num */
+/** @global int $correct_lines */
+/** @global int $error_lines */
+/** @global string $tmpid */
+
+/** @global array $arIBlock */
+/** @global string $first_names_r */
+/** @global string $first_names_f */
+/** @global int $CUR_FILE_POS */
+/** @global string $USE_TRANSLIT */
+/** @global string $TRANSLIT_LANG */
+/** @global string $PATH2IMAGE_FILES */
+
 IncludeModuleLangFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/catalog/import_setup_templ.php');
 $startImportExecTime = getmicrotime();
 
@@ -456,6 +469,7 @@ if ('' == $strImportErrorMessage)
 
 		$previousProductId = false;
 		$updateFacet = false;
+		$newProducts = array();
 		CIBlock::disableClearTagCache();
 		// main
 		do
@@ -781,6 +795,8 @@ if ('' == $strImportErrorMessage)
 						$arProductGroups[$PRODUCT_ID][] = (($LAST_GROUP_CODE > 0) ? $LAST_GROUP_CODE : false);
 					}
 					$res = ($PRODUCT_ID > 0);
+					if ($res)
+						$newProducts[$PRODUCT_ID] = true;
 				}
 
 				if (!$res)
@@ -1008,6 +1024,8 @@ if ('' == $strImportErrorMessage)
 							}
 							else
 							{
+								if (isset($value['PRICE']))
+									$value['PRICE'] = str_replace(' ', '', $value['PRICE']);
 								if (CPrice::Update($arr["ID"], $value))
 								{
 									$bUpdatePrice = 'Y';
@@ -1033,6 +1051,8 @@ if ('' == $strImportErrorMessage)
 							);
 							if (!$boolEmptyNewPrice)
 							{
+								if (isset($value['PRICE']))
+									$value['PRICE'] = str_replace(' ', '', $value['PRICE']);
 								if (CPrice::Add($value))
 								{
 									$bUpdatePrice = 'Y';
@@ -1072,7 +1092,11 @@ if ('' == $strImportErrorMessage)
 				{
 					CIBlockElement::UpdateSearch($previousProductId);
 					if ($updateFacet)
+					{
+						if (isset($newProducts[$previousProductId]))
+							CCatalogSKU::ClearCache();
 						\Bitrix\Iblock\PropertyIndex\Manager::updateElementIndex($IBLOCK_ID, $previousProductId);
+					}
 					$updateFacet = false;
 					$previousProductId = $PRODUCT_ID;
 				}
@@ -1091,7 +1115,11 @@ if ('' == $strImportErrorMessage)
 	{
 		CIBlockElement::UpdateSearch($PRODUCT_ID);
 		if ($updateFacet)
+		{
+			if (isset($newProducts[$PRODUCT_ID]))
+				CCatalogSKU::ClearCache();
 			\Bitrix\Iblock\PropertyIndex\Manager::updateElementIndex($IBLOCK_ID, $PRODUCT_ID);
+		}
 		$updateFacet = false;
 	}
 

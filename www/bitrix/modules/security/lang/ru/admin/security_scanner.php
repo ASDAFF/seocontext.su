@@ -26,3 +26,5 @@ $MESS["SEC_SCANNER_TESTING_FAILURE_CODE"] = " (код ошибки: #CODE#)";
 $MESS["SEC_SCANNER_ADDITIONAL_INFO_BUTTON_ON"] = "Свернуть";
 $MESS["SEC_SCANNER_TIP_TITLE"] = "Что делать?";
 $MESS["SEC_SCANNER_ADDITIONAL_INFO_TITLE"] = "Детали";
+$MESS["SEC_SCANNER_EXECUTION_TIME_TITLE"] = "Работа сканера безопасности не возможна.";
+$MESS["SEC_SCANNER_EXECUTION_TIME_DESCRIPTION"] = "У вас выставлено слишком маленькое значение максимального времени исполнения php скриптов (max_execution_time). Рекомендовано не менее #MIN#сек.";

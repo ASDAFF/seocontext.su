@@ -54,4 +54,5 @@ $MESS["CAL_MAX_UPLOAD_FILES_IN_COMMENTS"] = "Maximum files in one comment";
 $MESS["CAL_COMMENTS_FORUM"] = "Forum for comments";
 $MESS["CAL_COMMENTS_ALLOW_EDIT"] = "Users can edit comments";
 $MESS["CAL_COMMENTS_ALLOW_REMOVE"] = "Users can delete comments";
+$MESS["CAL_PATH_TO_CAL_TYPE"] = "\"#CALENDAR_TYPE#\" calendar link template";
 ?>

@@ -48,8 +48,9 @@ else
 	$APPLICATION->RestartBuffer();
 	header("Pragma: no-cache");
 
-	if(!class_exists($arParams["WEBSERVICE_CLASS"]) and
-		!CModule::IncludeModule($arParams["WEBSERVICE_MODULE"]))
+	if(!class_exists($arParams["WEBSERVICE_CLASS"])
+		&& (empty($arParams["WEBSERVICE_MODULE"]) || !CModule::IncludeModule($arParams["WEBSERVICE_MODULE"]))
+	)
 	{
 		return;
 	}

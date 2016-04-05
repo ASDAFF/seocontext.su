@@ -32,6 +32,8 @@ define("SITE_TEMPLATE_ID", $st_id);
 
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.php");
 
+use Bitrix\Main\Localization\Loc;
+
 $rsSite = CSite::GetByID($site_id);
 if ($arSite = $rsSite->Fetch())
 {
@@ -42,9 +44,14 @@ else
 	define("LANGUAGE_ID", "en");
 }
 
+if (empty($lng))
+{
+	$lng = LANGUAGE_ID;
+}
+
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/socialnetwork.log.entry/include.php");
 
-__IncludeLang(dirname(__FILE__)."/lang/".$lng."/ajax.php");
+Loc::loadLanguageFile(__FILE__, $lng);
 
 if(CModule::IncludeModule("compression"))
 	CCompress::Disable2048Spaces();
@@ -462,7 +469,7 @@ if(CModule::IncludeModule("socialnetwork"))
 							else
 							{
 								$commentIdres = array(
-									"MESSAGE" => GetMessage("SONET_LOG_COMMENT_NO_PERMISSIONS_UPDATE")
+									"MESSAGE" => Loc::getMessage("SONET_LOG_COMMENT_NO_PERMISSIONS_UPDATE", false, $lng)
 								);
 							}
 						}
@@ -649,7 +656,9 @@ if(CModule::IncludeModule("socialnetwork"))
 
 								}
 								else
-									$arCreatedBy = array("FORMATTED" => GetMessage("SONET_C73_CREATED_BY_ANONYMOUS"));
+								{
+									$arCreatedBy = array("FORMATTED" => Loc::getMessage("SONET_C73_CREATED_BY_ANONYMOUS", false, $lng));
+								}
 
 								$arTmpCommentEvent = array(
 									"LOG_DATE" => $arComment["LOG_DATE"],
@@ -849,10 +858,14 @@ if(CModule::IncludeModule("socialnetwork"))
 						}
 					}
 					else
-						$arResult["strMessage"] = GetMessage("SONET_LOG_COMMENT_EMPTY");
+					{
+						$arResult["strMessage"] = Loc::getMessage("SONET_LOG_COMMENT_EMPTY", false, $lng);
+					}
 				}
 				else
-					$arResult["strMessage"] = GetMessage("SONET_LOG_COMMENT_NO_PERMISSIONS");
+				{
+					$arResult["strMessage"] = Loc::getMessage("SONET_LOG_COMMENT_NO_PERMISSIONS", false, $lng);
+				}
 			}
 		}
 	}
@@ -933,7 +946,7 @@ if(CModule::IncludeModule("socialnetwork"))
 
 				}
 				else
-					$arCreatedBy = array("FORMATTED" => GetMessage("SONET_C73_CREATED_BY_ANONYMOUS"));
+					$arCreatedBy = array("FORMATTED" => Loc::getMessage("SONET_C73_CREATED_BY_ANONYMOUS", false, $lng));
 
 				$arTmpCommentEvent = array(
 					"LOG_DATE" => $arComment["LOG_DATE"],
@@ -1019,6 +1032,25 @@ if(CModule::IncludeModule("socialnetwork"))
 			{
 				$arCacheVars = $cache->GetVars();
 				$arResult["arComments"] = $arCacheVars["COMMENTS_FULL_LIST"];
+
+				if (!empty($arCacheVars["Assets"]))
+				{
+					if (!empty($arCacheVars["Assets"]["CSS"]))
+					{
+						foreach($arCacheVars["Assets"]["CSS"] as $cssFile)
+						{
+							\Bitrix\Main\Page\Asset::getInstance()->addCss($cssFile, true);
+						}
+					}
+
+					if (!empty($arCacheVars["Assets"]["JS"]))
+					{
+						foreach($arCacheVars["Assets"]["JS"] as $jsFile)
+						{
+							\Bitrix\Main\Page\Asset::getInstance()->addJs($jsFile, true);
+						}
+					}
+				}
 			}
 			else
 			{
@@ -1047,6 +1079,11 @@ if(CModule::IncludeModule("socialnetwork"))
 
 				$arUFMeta = __SLGetUFMeta();
 
+				$arAssets = array(
+					"CSS" => array(),
+					"JS" => array()
+				);
+
 				$dbComments = CSocNetLogComments::GetList(
 					array("LOG_DATE" => "ASC"),
 					$arFilter,
@@ -1073,13 +1110,14 @@ if(CModule::IncludeModule("socialnetwork"))
 						}
 					}
 
-					$arResult["arComments"][$arComments["ID"]] = __SLEGetLogCommentRecord($arComments, $arParams, false);
+					$arResult["arComments"][$arComments["ID"]] = __SLEGetLogCommentRecord($arComments, $arParams, $arAssets);
 				}
 
 				if (is_object($cache))
 				{
 					$arCacheData = Array(
-						"COMMENTS_FULL_LIST" => $arResult["arComments"]
+						"COMMENTS_FULL_LIST" => $arResult["arComments"],
+						"Assets" => $arAssets
 					);
 					$cache->EndDataCache($arCacheData);
 					if(defined("BX_COMP_MANAGED_CACHE"))
@@ -1259,15 +1297,19 @@ if(CModule::IncludeModule("socialnetwork"))
 			else
 			{
 				if($e = $GLOBALS["APPLICATION"]->GetException())
+				{
 					$arResult["strMessage"] = $e->GetString();
+				}
 				else
-					$arResult["strMessage"] = GetMessage("SONET_LOG_FAVORITES_CANNOT_CHANGE");
+				{
+					$arResult["strMessage"] = Loc::getMessage("SONET_LOG_FAVORITES_CANNOT_CHANGE", false, $lng);
+				}
 				$arResult["bResult"] = "E";
 			}
 		}
 		else
 		{
-			$arResult["strMessage"] = GetMessage("SONET_LOG_FAVORITES_INCORRECT_LOG_ID");
+			$arResult["strMessage"] = Loc::getMessage("SONET_LOG_FAVORITES_INCORRECT_LOG_ID", false, $lng);
 			$arResult["bResult"] = "E";
 		}
 	}
@@ -1474,7 +1516,7 @@ if(CModule::IncludeModule("socialnetwork"))
 							),
 							"ACTION" => "DELETE"
 						),
-						"OK_MESSAGE" => ($bSuccess ? GetMessage('SONET_LOG_COMMENT_DELETED') : ''),
+						"OK_MESSAGE" => ($bSuccess ? Loc::getMessage('SONET_LOG_COMMENT_DELETED', false, $lng) : ''),
 						"ERROR_MESSAGE" => (!$bSuccess ? $errorMessage : '')
 					)
 				);

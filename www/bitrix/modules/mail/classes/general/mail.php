@@ -30,6 +30,8 @@ class CMail
 	const ERR_API_BAD_DOMAIN         = 202;
 	const ERR_API_PROHIBITED_DOMAIN  = 203;
 
+	const ERR_ENTRY_NOT_FOUND        = 301;
+
 	const F_DOMAIN_LOGO = 1;
 	const F_DOMAIN_REG  = 2;
 
@@ -73,6 +75,8 @@ class CMail
 				return GetMessage('MAIL_ERR_API_BAD_DOMAIN');
 			case self::ERR_API_PROHIBITED_DOMAIN:
 				return GetMessage('MAIL_ERR_API_PROHIBITED_DOMAIN');
+			case self::ERR_ENTRY_NOT_FOUND:
+				return GetMessage('MAIL_ERR_ENTRY_NOT_FOUND');
 			default:
 				return GetMessage('MAIL_ERR_DEFAULT');
 		}
@@ -181,8 +185,7 @@ class CAllMailBox
 	public $new_mess_count = 0;
 	public $deleted_mess_count = 0;
 
-
-	function GetList($arOrder=Array(), $arFilter=Array())
+	public static function GetList($arOrder=Array(), $arFilter=Array())
 	{
 		global $DB;
 		$strSql =
@@ -618,7 +621,12 @@ class CAllMailBox
 	{
 		global $DB;
 		$ID = IntVal($ID);
-		$db_msg = CMailMessage::GetList(Array(), Array("MAILBOX_ID"=>$ID));
+
+		Bitrix\Main\Loader::includeModule('mail');
+		$db_msg = Bitrix\Mail\MailMessageTable::getList(array(
+			'select' => array('ID'),
+			'filter' => array('MAILBOX_ID' => $ID)
+		));
 		while($msg = $db_msg->Fetch())
 		{
 			if(!CMailMessage::Delete($msg["ID"]))
@@ -632,13 +640,6 @@ class CAllMailBox
 				return false;
 		}
 
-		$db_log = CMailLog::GetList(Array(), Array("MAILBOX_ID"=>$ID));
-		while($log = $db_log->Fetch())
-		{
-			if(!CMailLog::Delete($log["ID"]))
-				return false;
-		}
-
 		$db_mbox = CMailbox::GetList(array('ID' => $ID, 'ACTIVE' => 'Y', '!USER_ID' => 0));
 		if ($mbox = $db_mbox->fetch())
 		{
@@ -649,6 +650,10 @@ class CAllMailBox
 		}
 
 		CAgent::RemoveAgent("CMailbox::CheckMailAgent(".$ID.");", "mail");
+
+		$strSql = "DELETE FROM b_mail_log WHERE MAILBOX_ID=".$ID;
+		if(!$DB->Query($strSql, true))
+			return false;
 
 		$strSql = "DELETE FROM b_mail_message_uid WHERE MAILBOX_ID=".$ID;
 		if(!$DB->Query($strSql, true))
@@ -1385,20 +1390,12 @@ class CAllMailMessage
 
 		$content_type = strtolower($header->content_type);
 		if (
-			(
-				strpos($content_type, 'plain') !== false
-				|| strpos($content_type, 'html') !== false
-				|| strpos($content_type, 'text') !== false
-			)
+			preg_match('/plain|html|text/', $content_type)
 			&& strpos($content_type, 'x-vcard') === false
 			&& strpos($content_type, 'csv') === false
 		)
 		{
-			$body = CMailUtil::ConvertCharset($body, $header->charset, $charset);
-			if ($body === false)
-			{
-				AddMessage2Log("Failed to convert attachment body. content_type = ".$content_type);
-			}
+			$body = CMailUtil::convertCharset($body, $header->charset, $charset);
 		}
 
 		return array(
@@ -1411,10 +1408,10 @@ class CAllMailMessage
 
 	private static function parseMessage($message, $charset)
 	{
-		$headerP = strpos($message, "\r\n\r\n");
+		$headerP = CUtil::binStrpos($message, "\r\n\r\n");
 
-		$rawHeader = substr($message, 0, $headerP);
-		$body      = substr($message, $headerP+4);
+		$rawHeader = CUtil::binSubstr($message, 0, $headerP);
+		$body      = CUtil::binSubstr($message, $headerP+4);
 
 		$header = CMailMessage::ParseHeader($rawHeader, $charset);
 
@@ -1428,17 +1425,17 @@ class CAllMailMessage
 			$startB = "\r\n--" . $header->GetBoundary() . "\r\n";
 			$endB   = "\r\n--" . $header->GetBoundary() . "--\r\n";
 
-			$startP = strpos($message, $startB)+strlen($startB);
-			$endP   = strpos($message, $endB);
+			$startP = CUtil::binStrpos($message, $startB)+CUtil::binStrlen($startB);
+			$endP   = CUtil::binStrpos($message, $endB);
 
-			$data = substr($message, $startP, $endP-$startP);
+			$data = CUtil::binSubstr($message, $startP, $endP-$startP);
 
 			$isHtml = false;
 			$rawParts = preg_split("/\r\n--".preg_quote($header->GetBoundary(), '/')."\r\n/s", $data);
 			$tmpParts = array();
 			foreach ($rawParts as $part)
 			{
-				if (substr($part, 0, 2) == "\r\n")
+				if (CUtil::binSubstr($part, 0, 2) == "\r\n")
 					$part = "\r\n" . $part;
 
 				list(, $subHtml, $subText, $subParts) = CMailMessage::parseMessage($part, $charset);
@@ -1501,7 +1498,7 @@ class CAllMailMessage
 				if (strtolower($bodyPart['CONTENT-TYPE']) == 'text/html')
 				{
 					$htmlBody = $bodyPart['BODY'];
-					$textBody = htmlToTxt($bodyPart['BODY']);
+					$textBody = html_entity_decode(htmlToTxt($bodyPart['BODY']), ENT_QUOTES | ENT_HTML401, $charset);
 				}
 				else
 				{
@@ -1595,9 +1592,10 @@ class CAllMailMessage
 		$arFields['ATTACHMENTS'] = $atchCnt;
 		if (is_set($arFields, 'FIELD_DATE_ORIGINAL') && !is_set($arFields, 'FIELD_DATE'))
 		{
+			$date = preg_replace('/(?<=[\s\d])UT$/i', '+0000', $arFields['FIELD_DATE_ORIGINAL']);
 			$arFields['FIELD_DATE'] = $DB->formatDate(
-				date('d.m.Y H:i:s', strtotime($arFields['FIELD_DATE_ORIGINAL']) + CTimeZone::getOffset()),
-				'DD.MM.YYYY HH:MI:SS', CLang::GetDateFormat('FULL')
+				date('d.m.Y H:i:s', strtotime($date) + CTimeZone::getOffset()),
+				'DD.MM.YYYY HH:MI:SS', CLang::getDateFormat('FULL')
 			);
 		}
 
@@ -1620,7 +1618,13 @@ class CAllMailMessage
 			$arFields["~DATE_INSERT"] = $DB->GetNowFunction();
 
 		if(is_set($arFields, "FIELD_DATE_ORIGINAL") && !is_set($arFields, "FIELD_DATE"))
-			$arFields["FIELD_DATE"] = $DB->FormatDate(date("d.m.Y H:i:s", strtotime($arFields["FIELD_DATE_ORIGINAL"])+CTimeZone::GetOffset()), "DD.MM.YYYY HH:MI:SS", CLang::GetDateFormat("FULL"));
+		{
+			$date = preg_replace('/(?<=[\s\d])UT$/i', '+0000', $arFields['FIELD_DATE_ORIGINAL']);
+			$arFields['FIELD_DATE'] = $DB->formatDate(
+				date('d.m.Y H:i:s', strtotime($date) + CTimeZone::getOffset()),
+				'DD.MM.YYYY HH:MI:SS', CLang::getDateFormat('FULL')
+			);
+		}
 
 		if (array_key_exists('SUBJECT', $arFields))
 		{
@@ -1638,7 +1642,13 @@ class CAllMailMessage
 		$ID = Intval($ID);
 
 		if(is_set($arFields, "FIELD_DATE_ORIGINAL") && !is_set($arFields, "FIELD_DATE"))
-			$arFields["FIELD_DATE"] = $DB->FormatDate(date("d.m.Y H:i:s", strtotime($arFields["FIELD_DATE_ORIGINAL"])+CTimeZone::GetOffset()), "DD.MM.YYYY HH:MI:SS", CLang::GetDateFormat("FULL"));
+		{
+			$date = preg_replace('/(?<=[\s\d])UT$/i', '+0000', $arFields['FIELD_DATE_ORIGINAL']);
+			$arFields['FIELD_DATE'] = $DB->formatDate(
+				date('d.m.Y H:i:s', strtotime($date) + CTimeZone::getOffset()),
+				'DD.MM.YYYY HH:MI:SS', CLang::getDateFormat('FULL')
+			);
+		}
 
 		if (array_key_exists('SUBJECT', $arFields))
 		{
@@ -1941,47 +1951,36 @@ class CMailAttachment
 
 class CAllMailUtil
 {
-	public static function ConvertCharset($str, $from, $to)
+	public static function convertCharset($str, $from, $to)
 	{
 		$from = trim(strtolower($from));
-		$to = trim(strtolower($to));
+		$to   = trim(strtolower($to));
 
-		if (($from == 'utf-8' || $to == 'utf-8') || defined('BX_UTF'))
+		if (in_array($from, array('utf-8', 'utf8')))
 		{
-			$error = "";
-			$result = CharsetConverter::ConvertCharset($str, $from, $to, $error, true);
-			return $result;
+			$regex = '/
+				([\x00-\x7F]
+					|[\xC2-\xDF][\x80-\xBF]
+					|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF])
+				|(\xE0[\xA0-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]|\xED[\x80-\x9F]
+					|\xF0[\x90-\xBF][\x80-\xBF]{0,2}|[\xF1-\xF3][\x80-\xBF]{1,3}|\xF4[\x80-\x8F][\x80-\xBF]{0,2}
+					|[\x80-\xFF])
+			/x';
+
+			$str = preg_replace_callback($regex, function ($matches)
+			{
+				return isset($matches[2])
+					? str_repeat('?', CUtil::binStrlen($matches[2]))
+					: $matches[1];
+			}, $str);
 		}
 
-
-		if($from=='windows-1251' || $from=='cp1251')
-			$from = 'w';
-		elseif(strpos($from, 'koi8')===0)
-			$from = 'k';
-		elseif($from=='dos-866')
-			$from = 'd';
-		elseif($from=='iso-8859-5')
-			$from = 'i';
+		if ($result = Bitrix\Main\Text\Encoding::convertEncoding($str, $from, $to, $error))
+			$str = $result;
 		else
-			$from = '';
+			addMessage2Log(sprintf('Failed to convert email part. (%s -> %s : %s)', $from, $to, $error));
 
-		if($to=='windows-1251' || $to=='cp1251')
-			$to = 'w';
-		elseif(strpos($to, 'koi8')===0)
-			$to = 'k';
-		elseif($to=='dos-866')
-			$to = 'd';
-		elseif($to=='iso-8859-5')
-			$to = 'i';
-		else
-			$to = '';
-
-		if(strlen($from)>0 && strlen($to)>0)
-		{
-			$str = convert_cyr_string($str, $from, $to);
-		}
 		return $str;
-
 	}
 
 	public static function uue_decode($str)

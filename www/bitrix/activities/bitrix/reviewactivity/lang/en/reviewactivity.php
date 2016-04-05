@@ -9,4 +9,5 @@ $MESS["BPAR_ACT_PROP_EMPTY1"] = "The 'Users' property is not specified.";
 $MESS["BPAR_ACT_REVIEW_TRACK"] = "User #PERSON# has read the document#COMMENT#";
 $MESS["BPAA_ACT_APPROVERS_NONE"] = "none";
 $MESS["BPAA_ACT_NO_ACTION"] = "Invalid action selected.";
+$MESS["BPAA_ACT_COMMENT_ERROR"] = "The '#COMMENT_LABEL#' field is required.";
 ?>

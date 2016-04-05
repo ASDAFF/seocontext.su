@@ -446,12 +446,21 @@ if ($arResult['CATALOG'] && isset($arResult['OFFERS']) && !empty($arResult['OFFE
 	$arResult['MIN_BASIS_PRICE'] = false;
 	foreach ($arResult['OFFERS'] as $keyOffer => $arOffer)
 	{
-		if (empty($arResult['MIN_PRICE']) && $arOffer['CAN_BUY'])
+		if (empty($arResult['MIN_PRICE']))
 		{
-			$intSelected = $keyOffer;
-			$arResult['MIN_PRICE'] = (isset($arOffer['RATIO_PRICE']) ? $arOffer['RATIO_PRICE'] : $arOffer['MIN_PRICE']);
-			$arResult['MIN_BASIS_PRICE'] = $arOffer['MIN_PRICE'];
+			if ($arResult['OFFER_ID_SELECTED'] > 0)
+				$foundOffer = ($arResult['OFFER_ID_SELECTED'] == $arOffer['ID']);
+			else
+				$foundOffer = $arOffer['CAN_BUY'];
+			if ($foundOffer)
+			{
+				$intSelected = $keyOffer;
+				$arResult['MIN_PRICE'] = (isset($arOffer['RATIO_PRICE']) ? $arOffer['RATIO_PRICE'] : $arOffer['MIN_PRICE']);
+				$arResult['MIN_BASIS_PRICE'] = $arOffer['MIN_PRICE'];
+			}
+			unset($foundOffer);
 		}
+
 		$arSKUProps = false;
 		if (!empty($arOffer['DISPLAY_PROPERTIES']))
 		{
@@ -497,7 +506,11 @@ if ($arResult['CATALOG'] && isset($arResult['OFFERS']) && !empty($arResult['OFFE
 		$arMatrix[$keyOffer] = $arOneRow;
 	}
 	if (-1 == $intSelected)
+	{
 		$intSelected = 0;
+		$arResult['MIN_PRICE'] = (isset($arResult['OFFERS'][0]['RATIO_PRICE']) ? $arResult['OFFERS'][0]['RATIO_PRICE'] : $arResult['OFFERS'][0]['MIN_PRICE']);
+		$arResult['MIN_BASIS_PRICE'] = $arResult['OFFERS'][0]['MIN_PRICE'];
+	}
 	$arResult['JS_OFFERS'] = $arMatrix;
 	$arResult['OFFERS_SELECTED'] = $intSelected;
 	if ($arMatrix[$intSelected]['SLIDER_COUNT'] > 0)
@@ -516,7 +529,13 @@ if ($arResult['MODULES']['catalog'] && $arResult['CATALOG'])
 		CIBlockPriceTools::setRatioMinPrice($arResult, false);
 		$arResult['MIN_BASIS_PRICE'] = $arResult['MIN_PRICE'];
 	}
-	if (CBXFeatures::IsFeatureEnabled('CatCompleteSet') && $arResult['CATALOG_TYPE'] == CCatalogProduct::TYPE_PRODUCT)
+	if (
+		CBXFeatures::IsFeatureEnabled('CatCompleteSet')
+		&& (
+			$arResult['CATALOG_TYPE'] == CCatalogProduct::TYPE_PRODUCT
+			|| $arResult['CATALOG_TYPE'] == CCatalogProduct::TYPE_SET
+		)
+	)
 	{
 		$rsSets = CCatalogProductSet::getList(
 			array(),
@@ -592,4 +611,3 @@ if ($arResult['MODULES']['currency'])
 		unset($currencyFormat, $currency, $currencyIterator);
 	}
 }
-?>

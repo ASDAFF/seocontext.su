@@ -155,55 +155,6 @@ else
 }
 
 $bEmptyBest = false;
-if ($arParams["SHOW_BEST_ELEMENT"] == "Y" && $_REQUEST["return_array"] != "Y")
-{
-	if (!isset($_REQUEST['image_rotator']) && !isset($_REQUEST["photo_list_action"]))
-		ob_start();
-
-	$APPLICATION->IncludeComponent("bitrix:photogallery.imagerotator",
-		"",
-		array(
-			"WIDTH" => 300,
-			"HEIGHT" => 300,
-			"ROTATETIME" => 5,
-			"BACKCOLOR" => "#000000",
-			"FRONTCOLOR" => "#e8e8e8",
-			"LIGHTCOLOR" => "#ffffff",
-			// "SCREENCOLOR" => "#ffffff",
-			"LOGO" => (isset($arParams['ROTATOR_LOGO']) ? $arParams['ROTATOR_LOGO'] : ""),
-			"OVERSTRETCH" => "Y",
-			"SHOWICONS" => "N",
-			"SHOWNAVIGATION" => "Y",
-			"TRANSITION" => (isset($arParams['ROTATOR_TRANSITION']) ? $arParams['ROTATOR_TRANSITION'] : "slowfade"), //random|fade|bgfade|blocks|bubbles|circles|flash|fluids|lines|slowfade",
-			"USEFULLSCREEN" => "N",
-			"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
-			"IBLOCK_ID" => $arParams["IBLOCK_ID"],
-			"BEHAVIOUR" => "USER",
-			"USER_ALIAS" => "",
-			"PERMISSION" => "",
-			"SECTION_ID" => 0,
-			"SECTION_CODE" => "",
-			"PAGE_ELEMENTS" => "20",
-			"ELEMENT_SORT_FIELD" => $arParams["USE_RATING"] != "N" ? 'PROPERTY_RATING' : 'shows',
-			"ELEMENT_SORT_ORDER" => "desc",
-			"ELEMENT_FILTER" => $arFilter,
-			"GALLERY_URL" => $arResult["URL_TEMPLATES"]["gallery"],
-			"DETAIL_URL" => $arResult["URL_TEMPLATES"]["detail"],
-			"USE_PERMISSIONS" => $arParams["USE_PERMISSIONS"],
-			"GROUP_PERMISSIONS" => $arParams["GROUP_PERMISSIONS"],
-			"CACHE_TYPE" => $arParams["CACHE_TYPE"],
-			"CACHE_TIME" => $arParams["CACHE_TIME"]
-		)
-);
-	if (!isset($_REQUEST['image_rotator']) && !isset($_REQUEST["photo_list_action"]))
-		$sBestPhoto = ob_get_clean();
-
-	// if ($element_id > 0)
-		// $arFilterBest["!ID"] = $element_id;
-	// else
-		// $bEmptyBest = true;
-}
-$element_id = false;
 
 if ($bEmptyBest == true && (isset($arFilterBest[">PROPERTY_FORUM_MESSAGE_CNT"]) || isset($arFilterBest[">PROPERTY_BLOG_COMMENTS_CNT"])))
 {

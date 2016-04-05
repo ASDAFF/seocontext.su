@@ -5,10 +5,12 @@ $langFile = GetLangFileName(dirname(__FILE__)."/", "/bill.php");
 if(file_exists($langFile))
 	include($langFile);
 
-$psTitle = GetMessage("SBLP_DTITLE");
 $psDescription = GetMessage("SBLP_DDESCR");
 
 $isAffordPdf = true;
+
+include \Bitrix\Main\Application::getDocumentRoot().'/bitrix/modules/sale/handlers/paysystem/bill/.description.php';
+return;
 
 $arPSCorrespondence = array(
 		"DATE_INSERT" => array(

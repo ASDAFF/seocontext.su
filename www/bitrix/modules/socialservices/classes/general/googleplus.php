@@ -33,7 +33,7 @@ class CSocServGooglePlusOAuth extends CSocServGoogleOAuth
 		}
 		else
 		{
-			$redirect_uri = CSocServUtil::ServerName()."/bitrix/tools/oauth/google.php";
+			$redirect_uri = \CHTTP::URN2URI("/bitrix/tools/oauth/google.php");
 		}
 
 		$ob = $this->getEntityOAuth();

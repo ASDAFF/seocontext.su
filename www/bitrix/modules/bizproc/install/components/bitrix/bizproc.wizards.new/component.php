@@ -158,7 +158,7 @@ if (strlen($arResult["FatalErrorMessage"]) <= 0)
 		$errorMessageTmp = "";
 
 		if (array_key_exists("bp_image", $_FILES))
-			$imageId = CFile::SaveFile($_FILES["bp_image"], "bizproc_wf", true, true);
+			$imageId = CFile::SaveFile($_FILES["bp_image"], "bizproc_wf", true);
 		else
 			$imageId = intval($_REQUEST["bp_image"]);
 

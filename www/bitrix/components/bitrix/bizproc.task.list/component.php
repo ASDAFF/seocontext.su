@@ -114,10 +114,10 @@ if (strlen($arResult["FatalErrorMessage"]) <= 0 && !$arParams['COUNTERS_ONLY'])
 
 	$arResult['DOCUMENT_TYPES'] = array(
 		'*' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_ALL'), 'COUNTER_KEY' => '*'),
-		'processes' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_CLAIMS'), 'FILTER' => array('MODULE_ID' => 'lists'), 'COUNTER_KEY' => 'lists'),
+		'processes' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_CLAIMS'), 'FILTER' => array('MODULE_ID' => 'lists', 'ENTITY' => 'BizprocDocument'), 'COUNTER_KEY' => 'lists'),
 		'crm' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_CRM'), 'FILTER' => array('MODULE_ID' => 'crm'), 'COUNTER_KEY' => 'crm'),
 		'disk' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_DISK'), 'FILTER' => array('MODULE_ID' => 'disk'), 'COUNTER_KEY' => 'disk'),
-		'lists' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_LISTS'), 'FILTER' => array('MODULE_ID' => 'iblock'), 'COUNTER_KEY' => 'iblock')
+		'lists' => array('NAME' => GetMessage('BPATL_FILTER_DOCTYPE_LISTS'), 'FILTER' => array('MODULE_ID' => 'lists', 'ENTITY' => 'Bitrix\Lists\BizprocDocumentLists'), 'COUNTER_KEY' => 'iblock')
 	);
 
 	if (!empty($_REQUEST['type']) && isset($arResult['DOCUMENT_TYPES'][$_REQUEST['type']]))
@@ -164,16 +164,23 @@ if (strlen($arResult["FatalErrorMessage"]) <= 0 && !$arParams['COUNTERS_ONLY'])
 		{
 			$op = ">=";
 			$newKey = substr($key, 0, -5);
+
+			if (in_array($newKey, array("MODIFIED", "OVERDUE_DATE")) && strlen($value) <= 10)
+			{
+				$dt = MakeTimeStamp($value, FORMAT_DATE);
+				$value = FormatDate('FULL', $dt);
+			}
+
 		}
 		elseif (substr($key, -3) == "_to")
 		{
 			$op = "<=";
 			$newKey = substr($key, 0, -3);
 
-			if (in_array($newKey, array("MODIFIED", "OVERDUE_DATE")))
+			if (in_array($newKey, array("MODIFIED", "OVERDUE_DATE")) && strlen($value) <= 10)
 			{
-				if (!preg_match("/\\d\\d:\\d\\d:\\d\\d\$/", $value))
-					$value .= " 23:59:59";
+				$dt = MakeTimeStamp($value, FORMAT_DATE) + 86399;// + 23:59:59
+				$value = FormatDate('FULL', $dt);
 			}
 		}
 		else

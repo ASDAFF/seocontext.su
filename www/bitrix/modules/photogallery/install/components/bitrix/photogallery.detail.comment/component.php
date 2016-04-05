@@ -74,7 +74,7 @@ if ($arParams["COMMENTS_TYPE"] == "forum")
 		{
 			$res = $cache->GetVars();
 			if (intval($res["FORUM_ID"]) > 0)
-				$arParams["FORUM_ID"] = $arForumTopic["FORUM_ID"];
+				$arParams["FORUM_ID"] = $res["FORUM_ID"];
 		}
 		else
 		{

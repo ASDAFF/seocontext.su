@@ -255,11 +255,11 @@ try
 	}
 	else if (!is_null($date_from))
 	{
-		$sqlTimeInterval = "> ".$db_date_from;
+		$sqlTimeInterval = ">= ".$db_date_from;
 	}
 	else if (!is_null($date_to))
 	{
-		$sqlTimeInterval = "< ".$db_date_to;
+		$sqlTimeInterval = "<= ".$db_date_to;
 	}
 	else
 	{

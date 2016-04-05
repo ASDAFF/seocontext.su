@@ -2043,11 +2043,12 @@ class CQAACheckListTests
 				'ereg' => Array(Array(2), Array()),
 				'eregi' => Array(Array(2), Array()),
 				'sleep' => Array(Array(1), Array()),
+				// It's too difficult to validate, maybe in future versions
 				//'unserialize' => Array(Array(1), Array()),
 				//'extract' => Array(Array(1), Array()),
 				//'mb_parse_str' => Array(Array(1), Array()),
 				//'parse_str' => Array(Array(1), Array()),
-				'define' => Array(Array(1), Array())
+				//'define' => Array(Array(1), Array())
 			),
 			'POP' => Array(
 				'unserialize' => Array(Array(1), Array()),

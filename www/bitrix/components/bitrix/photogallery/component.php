@@ -399,6 +399,5 @@ $arParams["PERMISSION"] = $oPhoto->User["Permission"];
 CUtil::InitJSCore(array('window', 'ajax'));
 
 $oPhoto::CheckUploaderType($arParams["UPLOADER_TYPE"]);
-
 $this->IncludeComponentTemplate($componentPage);
 ?>

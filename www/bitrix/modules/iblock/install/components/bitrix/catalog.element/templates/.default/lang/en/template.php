@@ -31,4 +31,5 @@ $MESS["CT_BCE_CATALOG_MESS_COMPARE_OK"] = "Product has been added to comparison 
 $MESS["CT_BCE_CATALOG_MESS_COMPARE_TITLE"] = "Product comparison";
 $MESS["CT_BCE_CATALOG_MESS_COMPARE_UNKNOWN_ERROR"] = "Error adding the product to comparison chart";
 $MESS["CT_BCE_CATALOG_BTN_MESSAGE_COMPARE_REDIRECT"] = "Compare products";
+$MESS["CT_BCE_CATALOG_PRODUCT_GIFT_LABEL"] = "Gift";
 ?>

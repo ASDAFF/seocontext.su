@@ -6,7 +6,7 @@ class CSocNetGroup extends CAllSocNetGroup
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -170,7 +170,7 @@ class CSocNetGroup extends CAllSocNetGroup
 		return $ID;
 	}
 
-	function Update($ID, $arFields, $bAutoSubscribe = true, $bClearCommonTag = true)
+	public static function Update($ID, $arFields, $bAutoSubscribe = true, $bClearCommonTag = true)
 	{
 		global $DB;
 
@@ -425,7 +425,7 @@ class CSocNetGroup extends CAllSocNetGroup
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetList($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
+	public static function GetList($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB, $USER_FIELD_MANAGER;
 
@@ -620,4 +620,3 @@ class CSocNetGroup extends CAllSocNetGroup
 		return $dbRes;
 	}
 }
-?>

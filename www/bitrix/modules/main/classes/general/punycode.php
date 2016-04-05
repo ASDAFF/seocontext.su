@@ -13,8 +13,15 @@ class CBXPunycode
 	private $encoding = null;
 	private $arErrors = array();
 
+	/** @var CBXPunycode */
 	private static $instance;
 
+	/**
+	 * Singleton method to return object instance.
+	 *
+	 * @static
+	 * @return CBXPunycode
+	 */
 	public static function GetConverter()
 	{
 		if (!isset(self::$instance))
@@ -166,6 +173,13 @@ class CBXPunycode
 			$domainName = substr($domainName, $schemePosition + 3);
 		}
 
+		$port = "";
+		if (preg_match("/^(.+):([0-9]+)\$/", $domainName, $portMatch))
+		{
+			$port = $portMatch[2];
+			$domainName = $portMatch[1];
+		}
+
 		if ($this->encoding != "utf-8")
 			$domainName = CharsetConverter::ConvertCharset($domainName, $this->encoding, "utf-8");
 
@@ -192,6 +206,9 @@ class CBXPunycode
 
 		if (!empty($scheme))
 			$domainName = $scheme."://".$domainName;
+
+		if ($port !== "")
+			$domainName = $domainName.":".$port;
 
 		return $domainName;
 	}

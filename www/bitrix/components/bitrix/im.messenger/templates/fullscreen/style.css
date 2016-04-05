@@ -1,8 +1,8 @@
 .bx-im-fullscreen { background: #2fc6f7; overflow: auto; }
 .bx-im-fullscreen .bx-desktop-placeholder { border-radius: 4px; display: inline-block; height: 618px; width: 1085px; overflow: hidden; text-align: left; box-shadow: 0 9px 9px 1px rgba(0, 0, 0, 0.20); position: relative; }
-.bx-im-fullscreen .bx-desktop-appearance-menu { border-radius: 4px 0 0 4px; background-color: #f1f3f5; width: 46px; }
-.bx-im-fullscreen .bx-messenger-box-contact { box-shadow: none; padding-top: 10px;}
-.bx-im-fullscreen .bx-desktop-appearance-content { box-shadow: none; margin-left: 44px;  border-left: 1px solid #CBCED0; }
+.bx-im-fullscreen .bx-desktop-appearance-menu { border-radius: 4px 0 0 4px;}
+.bx-im-fullscreen .bx-messenger-box-contact { box-shadow: none; }
+.bx-im-fullscreen .bx-desktop-appearance-content { box-shadow: none;  }
 .bx-im-fullscreen-table { border:0; height: 100%; width: 100%; }
 .bx-im-fullscreen-td1 { vertical-align: middle; padding-left: 100px; padding-top: 10px; height: 15%;padding-right: 100px;}
 .bx-im-fullscreen .bx-desktop-placeholder { -webkit-animation: imFullscreenShow 1s 1; animation: imFullscreenShow 1s 1; }

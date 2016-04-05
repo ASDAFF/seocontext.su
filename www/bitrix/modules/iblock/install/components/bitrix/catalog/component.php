@@ -9,6 +9,25 @@ if (isset($arParams["USE_FILTER"]) && $arParams["USE_FILTER"]=="Y")
 else
 	$arParams["FILTER_NAME"] = "";
 
+//default gifts
+if(empty($arParams['USE_GIFTS_SECTION']))
+{
+	$arParams['USE_GIFTS_SECTION'] = 'Y';
+}
+if(empty($arParams['GIFTS_SECTION_LIST_PAGE_ELEMENT_COUNT']))
+{
+	$arParams['GIFTS_SECTION_LIST_PAGE_ELEMENT_COUNT'] = 3;
+}
+if(empty($arParams['GIFTS_MAIN_PRODUCT_DETAIL_PAGE_ELEMENT_COUNT']))
+{
+	$arParams['GIFTS_MAIN_PRODUCT_DETAIL_PAGE_ELEMENT_COUNT'] = 3;
+}
+if(empty($arParams['GIFTS_DETAIL_PAGE_ELEMENT_COUNT']))
+{
+	$arParams['GIFTS_DETAIL_PAGE_ELEMENT_COUNT'] = 3;
+}
+
+
 $smartBase = ($arParams["SEF_URL_TEMPLATES"]["section"]? $arParams["SEF_URL_TEMPLATES"]["section"]: "#SECTION_ID#/");
 $arDefaultUrlTemplates404 = array(
 	"sections" => "",

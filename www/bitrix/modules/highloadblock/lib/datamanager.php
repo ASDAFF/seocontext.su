@@ -431,7 +431,7 @@ abstract class DataManager extends Entity\DataManager
 			else
 			{
 				// remove empty (false) values
-				$tmpValue = array_filter($tmpValue, 'strlen');
+				$tmpValue = array_filter($tmpValue, array('static', 'isNotNull'));
 
 				$data[$k] = $tmpValue;
 				$multiValues[$k] = $tmpValue;
@@ -450,11 +450,18 @@ abstract class DataManager extends Entity\DataManager
 			);
 		}
 
-		if(strlen($value)<=0)
+		if(static::isNotNull($value))
 		{
-			$value = false;
+			return $value;
 		}
+		else
+		{
+			return false;
+		}
+	}
 
-		return $value;
+	protected function isNotNull($value)
+	{
+		return !($value === null || $value === false || $value === '');
 	}
 }

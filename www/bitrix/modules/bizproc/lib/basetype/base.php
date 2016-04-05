@@ -37,9 +37,10 @@ class Base
 	protected static function getFormatCallable($format)
 	{
 		$format = strtolower($format);
-		if (isset(static::$formats[$format]['callable']))
+		$formats = static::getFormats();
+		if (isset($formats[$format]['callable']))
 		{
-			$callable = static::$formats[$format]['callable'];
+			$callable = $formats[$format]['callable'];
 			if (is_string($callable))
 			{
 				$callable = array(get_called_class(), $callable);
@@ -58,9 +59,10 @@ class Base
 	{
 		$format = strtolower($format);
 		$separator = ', '; //default - coma
-		if (isset(static::$formats[$format]['separator']))
+		$formats = static::getFormats();
+		if (isset($formats[$format]['separator']))
 		{
-			$separator = static::$formats[$format]['separator'];
+			$separator = $formats[$format]['separator'];
 		}
 		return $separator;
 	}
@@ -81,6 +83,15 @@ class Base
 	}
 
 	/**
+	 * Get formats list.
+	 * @return array
+	 */
+	public static function getFormats()
+	{
+		return static::$formats;
+	}
+
+	/**
 	 * @param FieldType $fieldType Document field type.
 	 * @param mixed $value Field value.
 	 * @param string $format Format name.
@@ -88,8 +99,7 @@ class Base
 	 */
 	public static function formatValueMultiple(FieldType $fieldType, $value, $format = 'printable')
 	{
-		if (!is_array($value) || is_array($value) && \CBPHelper::isAssociativeArray($value))
-			$value = array($value);
+		$value = (array) $value;
 
 		foreach ($value as $k => $v)
 		{
@@ -124,7 +134,7 @@ class Base
 	 */
 	protected static function formatValuePrintable(FieldType $fieldType, $value)
 	{
-		return static::convertValueSingle($fieldType, $value, '\Bitrix\Bizproc\BaseType\String');
+		return static::convertValueSingle($fieldType, $value, '\Bitrix\Bizproc\BaseType\StringType');
 	}
 
 	/**
@@ -135,9 +145,7 @@ class Base
 	 */
 	public static function convertValueMultiple(FieldType $fieldType, $value, $toTypeClass)
 	{
-		if (!is_array($value) || is_array($value) && \CBPHelper::isAssociativeArray($value))
-			$value = array($value);
-
+		$value = (array) $value;
 		foreach ($value as $k => $v)
 		{
 			$value[$k] = static::convertValueSingle($fieldType, $v, $toTypeClass);
@@ -155,9 +163,6 @@ class Base
 	public static function convertValueSingle(FieldType $fieldType, $value, $toTypeClass)
 	{
 		/** @var Base $toTypeClass */
-
-		if (ltrim(get_called_class(), '\\') === ltrim($toTypeClass, '\\'))
-			return $value;
 
 		$result = static::convertTo($fieldType, $value, $toTypeClass);
 		if ($result === null)
@@ -189,6 +194,20 @@ class Base
 	public static function convertFrom(FieldType $fieldType, $value, $fromTypeClass)
 	{
 		return null;
+	}
+
+	/**
+	 * Return conversion map for current type.
+	 * @return array Map.
+	 */
+	public static function getConversionMap()
+	{
+		return array(
+			//to
+			array(),
+			//from
+			array()
+		);
 	}
 
 	/**
@@ -297,7 +316,7 @@ class Base
 		$controlId = static::generateControlId($field);
 		// example: control rendering
 		return '<input type="text" size="40" id="'.htmlspecialcharsbx($controlId).'" name="'
-			.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx((string) $value).'">';
+			.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx((string) $value).'"/>';
 	}
 
 	/**
@@ -333,7 +352,7 @@ class Base
 
 		if ($allowSelection)
 		{
-			$renderResult .= static::renderControlSelector($field, $selectorValue, true);
+			$renderResult .= static::renderControlSelector($field, $selectorValue, true, '', $fieldType);
 		}
 
 		return $renderResult;
@@ -384,7 +403,7 @@ class Base
 
 		if ($allowSelection)
 		{
-			$renderResult .= static::renderControlSelector($field, $selectorValue, true);
+			$renderResult .= static::renderControlSelector($field, $selectorValue, true, '', $fieldType);
 		}
 
 		return $renderResult;
@@ -395,9 +414,10 @@ class Base
 	 * @param null|string $value
 	 * @param bool $showInput
 	 * @param string $selectorMode
+	 * @param FieldType $fieldType
 	 * @return string
 	 */
-	protected static function renderControlSelector(array $field, $value = null, $showInput = false, $selectorMode = '')
+	protected static function renderControlSelector(array $field, $value = null, $showInput = false, $selectorMode = '', FieldType $fieldType = null)
 	{
 		$html = '';
 		$controlId = static::generateControlId($field);
@@ -408,11 +428,27 @@ class Base
 			$html = '<input type="text" id="'.htmlspecialcharsbx($controlId).'" name="'
 					.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx((string)$value).'">';
 		}
-		$html .= '<input type="button" value="..." onclick="BPAShowSelector(\''
-			.htmlspecialcharsbx($controlId).'\', \''.htmlspecialcharsbx(static::getType()).'\''
-			.($selectorMode ? ', \''.htmlspecialcharsbx($selectorMode).'\'' : '').');">';
+		$html .= static::renderControlSelectorButton($controlId, $fieldType, $selectorMode);
 
 		return $html;
+	}
+
+	protected static function renderControlSelectorButton($controlId, FieldType $fieldType, $selectorMode = '')
+	{
+		$baseType = $fieldType ? $fieldType->getBaseType() : null;
+		$selectorProps = \Bitrix\Main\Web\Json::encode(array(
+			'controlId' => $controlId,
+			'baseType' => $baseType,
+			'type' => $fieldType ? $fieldType->getType() : null,
+			'documentType' => $fieldType ? $fieldType->getDocumentType() : null,
+			'documentId' => $fieldType ? $fieldType->getDocumentId() : null,
+		));
+
+		return '<input type="button" value="..." onclick="BPAShowSelector(\''
+			.\CUtil::jsEscape(htmlspecialcharsbx($controlId)).'\', \''.\CUtil::jsEscape(htmlspecialcharsbx($baseType)).'\', '
+			.($selectorMode ? '\''.\CUtil::jsEscape(htmlspecialcharsbx($selectorMode)).'\'' : 'null').', null, '
+			.htmlspecialcharsbx(\Bitrix\Main\Web\Json::encode($fieldType ? $fieldType->getDocumentType() : null)).');"'
+			.' data-role="bp-selector-button" data-bp-selector-props="'.htmlspecialcharsbx($selectorProps).'">';
 	}
 
 	/**

@@ -3,6 +3,9 @@
 global $SECURITY_SESSION_DBH;
 $SECURITY_SESSION_DBH = false;
 
+/**
+ * @deprecated since 16.0.0
+ */
 class CSecurityDB
 {
 	function Init($bDoConnect = false)

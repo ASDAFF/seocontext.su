@@ -119,6 +119,15 @@ class FieldType
 	/**
 	 * @return string
 	 */
+	public function getBaseType()
+	{
+		$class = $this->typeClass;
+		return $class::getType();
+	}
+
+	/**
+	 * @return string
+	 */
 	public function getTypeClass()
 	{
 		return $this->typeClass;
@@ -350,14 +359,14 @@ class FieldType
 	public static function getBaseTypesMap()
 	{
 		return array(
-			static::BOOL => '\Bitrix\Bizproc\BaseType\Bool',
+			static::BOOL => '\Bitrix\Bizproc\BaseType\BoolType',
 			static::DATE => '\Bitrix\Bizproc\BaseType\Date',
 			static::DATETIME => '\Bitrix\Bizproc\BaseType\Datetime',
 			static::DOUBLE => '\Bitrix\Bizproc\BaseType\Double',
 			static::FILE => '\Bitrix\Bizproc\BaseType\File',
-			static::INT => '\Bitrix\Bizproc\BaseType\Int',
+			static::INT => '\Bitrix\Bizproc\BaseType\IntType',
 			static::SELECT => '\Bitrix\Bizproc\BaseType\Select',
-			static::STRING => '\Bitrix\Bizproc\BaseType\String',
+			static::STRING => '\Bitrix\Bizproc\BaseType\StringType',
 			static::TEXT => '\Bitrix\Bizproc\BaseType\Text',
 			static::USER => '\Bitrix\Bizproc\BaseType\User',
 			static::INTERNALSELECT => '\Bitrix\Bizproc\BaseType\InternalSelect',

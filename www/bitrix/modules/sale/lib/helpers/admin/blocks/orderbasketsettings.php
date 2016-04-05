@@ -49,12 +49,12 @@ class OrderBasketSettings
 		$arAvailableColumnsHTML = "";
 
 		foreach ($availableColumns as $key => $value)
-			$arAvailableColumnsHTML .= "<option value=".$key.">".$value."</option>";
+			$arAvailableColumnsHTML .= "<option value=".$key.">".htmlspecialcharsbx($value)."</option>";
 
 		$arUserColumnsHTML = "";
 
 		foreach ($this->visibleColumns as $key => $value)
-			$arUserColumnsHTML .= "<option value=".$key.">".$value."</option>";
+			$arUserColumnsHTML .= "<option value=".$key.">".htmlspecialcharsbx($value)."</option>";
 
 		$settingsTemplate = '
 			<div id="'.$this->idPrefix.'columns_form">

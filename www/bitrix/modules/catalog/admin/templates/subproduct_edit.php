@@ -1,6 +1,7 @@
 <?
 /** @global CUser $USER */
-use Bitrix\Currency;
+use Bitrix\Main,
+	Bitrix\Currency;
 
 if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_price') || $USER->CanDoOperation('catalog_view'))
 {
@@ -67,39 +68,6 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 	?>
 <script type="text/javascript">
 var bReadOnly = <? echo ($bReadOnly ? 'true' : 'false'); ?>;
-function onChangeSubCanBuyZero(el)
-{
-	var prefix = 'SUB',
-		defaultValue = '<? echo $availCanBuyZero; ?>',
-		obNegativeAmount,
-		oldValue = 0,
-		i = 0;
-
-	obNegativeAmount = BX(prefix+'NEGATIVE_AMOUNT');
-	if (!!obNegativeAmount)
-	{
-		if (-1 < el.selectedIndex)
-		{
-			if (
-				'Y' === el.options[el.selectedIndex].value ||
-				('D' === el.options[el.selectedIndex].value && 'Y' === defaultValue)
-			)
-			{
-				obNegativeAmount.selectedIndex = ('Y' === el.options[el.selectedIndex].value ? 1 : 0);
-				obNegativeAmount.disabled = true;
-			}
-			else
-			{
-				obNegativeAmount.disabled = false;
-				if (obNegativeAmount.hasAttribute('data-oldvalue'))
-				{
-					oldValue = parseInt(obNegativeAmount.getAttribute('data-oldvalue'), 10);
-				}
-				obNegativeAmount.selectedIndex = oldValue;
-			}
-		}
-	}
-}
 
 function getElementSubForm()
 {
@@ -351,7 +319,9 @@ function toggleSubPriceType()
 $arCatPricesExist = array(); // attr for exist prices for range
 $bUseExtendedPrice = $bVarsFromForm ? $subprice_useextform == 'Y' : count($arPriceBoundaries) > 1;
 $str_CAT_VAT_ID = $bVarsFromForm ? $SUBCAT_VAT_ID : ($arBaseProduct['VAT_ID'] == 0 ? $arCatalog['VAT_ID'] : $arBaseProduct['VAT_ID']);
-$str_CAT_VAT_INCLUDED = $bVarsFromForm ? $SUBCAT_VAT_INCLUDED : $arBaseProduct['VAT_INCLUDED'];
+$str_CAT_VAT_INCLUDED = (string)($bVarsFromForm ? $SUBCAT_VAT_INCLUDED : $arBaseProduct['VAT_INCLUDED']);
+if ($str_CAT_VAT_INCLUDED != 'Y' && $str_CAT_VAT_INCLUDED != 'N')
+	$str_CAT_VAT_INCLUDED = ((string)Main\Config\Option::get('catalog', 'default_product_vat_included') == 'Y' ? 'Y' : 'N');
 		?>
 <input type="hidden" name="subprice_useextform" id="subprice_useextform_N" value="N" />
 <table border="0" cellspacing="0" cellpadding="0" width="100%" class="edit-table" id="subcatalog_vat_table">
@@ -1789,48 +1759,17 @@ function HideNotice()
 			</tr>
 			<tr>
 				<td width="40%">
-					<?echo GetMessage("C2IT_CAN_BUY_NULL")?>:
+					<?echo GetMessage("C2IT_CAN_BUY_NULL_EXT")?>:
 				</td>
 				<td width="60%">
 					<?
 					$str_CAT_BASE_CAN_BUY_ZERO = $arBaseProduct["CAN_BUY_ZERO_ORIG"];
 					if ($bVarsFromForm) $str_CAT_BASE_CAN_BUY_ZERO = $SUBUSE_STORE;
 					?>
-					<select id="SUBUSE_STORE" name="SUBUSE_STORE" <? echo ($bReadOnly ? "disabled readonly" : 'onchange="onChangeSubCanBuyZero(this)"'); ?>>
+					<select id="SUBUSE_STORE" name="SUBUSE_STORE" <? echo ($bReadOnly ? "disabled readonly" : ''); ?>>
 						<option value="D" <?if ("D"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_DEFAULT_NEGATIVE")." ("?><?echo $availCanBuyZero=='Y' ? GetMessage("C2IT_YES_NEGATIVE") : GetMessage("C2IT_NO_NEGATIVE")?>) </option>
 						<option value="Y" <?if ("Y"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_YES_NEGATIVE")?></option>
 						<option value="N" <?if ("N"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_NO_NEGATIVE")?></option>
-					</select>
-				</td>
-			</tr>
-			<tr>
-				<td width="40%">
-					<?echo GetMessage("C2IT_CAN_NEGATIVE_AMOUMT")?>:
-				</td>
-				<td width="60%">
-					<?
-					$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $arBaseProduct["NEGATIVE_AMOUNT_TRACE_ORIG"];
-					if ($bVarsFromForm) $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $SUBNEGATIVE_AMOUNT;
-					$oldIndex = 0;
-					if ('N' == $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE)
-					{
-						$oldIndex = 2;
-					}
-					elseif ('Y' == $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE)
-					{
-						$oldIndex = 1;
-					}
-					$disableNegative = false;
-					if ('Y' == $str_CAT_BASE_CAN_BUY_ZERO || ('D' == $str_CAT_BASE_CAN_BUY_ZERO && 'Y' == $availCanBuyZero))
-					{
-						$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $str_CAT_BASE_CAN_BUY_ZERO;
-						$disableNegative = true;
-					}
-					?>
-					<select id="SUBNEGATIVE_AMOUNT" name="SUBNEGATIVE_AMOUNT" <?if ($bReadOnly) echo "disabled readonly" ?><? if ($disableNegative) echo " disabled"; ?> data-oldvalue="<? echo $oldIndex; ?>">
-						<option value="D" <?if ("D"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_DEFAULT_NEGATIVE")." ("?><?echo $availNegativeAmountGlobal=='Y' ? GetMessage("C2IT_YES_NEGATIVE") : GetMessage("C2IT_NO_NEGATIVE")?>) </option>
-						<option value="Y" <?if ("Y"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_YES_NEGATIVE")?></option>
-						<option value="N" <?if ("N"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_NO_NEGATIVE")?></option>
 					</select>
 				</td>
 			</tr>

@@ -7,17 +7,23 @@ if (!CModule::IncludeModule("sale"))
 	return;
 }
 
+if (!array_key_exists('PAY_SYSTEM_ID_NEW', $arParams))
+{
+	$newPsId = CSalePaySystem::getNewIdsFromOld($arParams["PAY_SYSTEM_ID"], $arParams["PERSON_TYPE_ID"]);
+	$newPsId = current($newPsId);
+}
+else
+{
+	$newPsId = $arParams["PAY_SYSTEM_ID_NEW"];
+}
 
 $dbPaySysAction = CSalePaySystemAction::GetList(
-		array(),
-		array(
-				"PAY_SYSTEM_ID" => $arParams["PAY_SYSTEM_ID"],
-				"PERSON_TYPE_ID" => $arParams["PERSON_TYPE_ID"],
-			),
-		false,
-		false,
-		array("ACTION_FILE", "PARAMS", "ENCODING")
-	);
+	array(),
+	array('ID' => $newPsId),
+	false,
+	false,
+	array("ACTION_FILE", "PARAMS", "ENCODING")
+);
 
 if ($arPaySysAction = $dbPaySysAction->Fetch())
 {
@@ -41,6 +47,7 @@ if ($arPaySysAction = $dbPaySysAction->Fetch())
 					include($pathToAction."/result_rec.php");
 			}
 		}
+
 		if(strlen($arPaySysAction["ENCODING"]) > 0)
 		{
 			define("BX_SALE_ENCODING", $arPaySysAction["ENCODING"]);
@@ -56,4 +63,3 @@ if ($arPaySysAction = $dbPaySysAction->Fetch())
 
 	}
 }
-?>

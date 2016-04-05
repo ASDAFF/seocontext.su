@@ -123,7 +123,14 @@ class PropertyTable extends Main\Entity\DataManager
 			),
 			'PROPERTY_TYPE' => array(
 				'data_type' => 'enum',
-				'values' => array(self::TYPE_STRING, self::TYPE_NUMBER, self::TYPE_FILE, self::TYPE_ELEMENT, self::TYPE_SECTION, self::TYPE_LIST),
+				'values' => array(
+					self::TYPE_STRING,
+					self::TYPE_NUMBER,
+					self::TYPE_FILE,
+					self::TYPE_ELEMENT,
+					self::TYPE_SECTION,
+					self::TYPE_LIST
+				),
 				'title' => Loc::getMessage('IBLOCK_PROPERTY_ENTITY_PROPERTY_TYPE_FIELD'),
 			),
 			'ROW_COUNT' => array(

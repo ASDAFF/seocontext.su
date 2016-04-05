@@ -47,77 +47,49 @@ if (!$arOrder)
 
 if ($arOrder)
 {
+	/** @var \Bitrix\Sale\Order $order */
+	$order = \Bitrix\Sale\Order::load($arOrder['ID']);
+
+	/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+	$paymentCollection = $order->getPaymentCollection();
+
 	if ($paymentId > 0)
-		$filter = array('ID' => $paymentId);
-	else
-		$filter = array('ORDER_ID' => $arOrder['ID'], '!PAY_SYSTEM_ID' => \Bitrix\Sale\Internals\PaySystemInner::getId());
-
-	$resPayment = \Bitrix\Sale\Internals\PaymentTable::getList(array(
-		'select' => array('PAY_SYSTEM_ID', 'SUM', 'DATE_BILL', 'ID'),
-		'filter' => $filter,
-		'limit' => array(1)
-	));
-
-	$payment = $resPayment->fetch();
-
-	$dbPaySysAction = CSalePaySystemAction::GetList(
-			array(),
-			array(
-					"PAY_SYSTEM_ID" => $payment['PAY_SYSTEM_ID'],
-					"PERSON_TYPE_ID" => $arOrder["PERSON_TYPE_ID"]
-				),
-			false,
-			false,
-			array("ACTION_FILE", "PARAMS", "ENCODING")
-		);
-
-	if ($arPaySysAction = $dbPaySysAction->Fetch())
 	{
-		if (strlen($arPaySysAction["ACTION_FILE"]) > 0)
+		/** @var \Bitrix\Sale\Payment $paymentItem */
+		$paymentItem = $paymentCollection->getItemById($paymentId);
+	}
+	else
+	{
+		/** @var \Bitrix\Sale\Payment $item */
+		foreach ($paymentCollection as $item)
 		{
-			CSalePaySystemAction::InitParamArrays($arOrder, $ID, $arPaySysAction["PARAMS"], array(), $payment);
-
-			$pathToAction = $_SERVER["DOCUMENT_ROOT"].$arPaySysAction["ACTION_FILE"];
-			$pathToAction = rtrim(str_replace("\\", "/", $pathToAction), "/");
-
-			try
+			if (!$item->isInner())
 			{
-				if (file_exists($pathToAction))
-				{
-					if (is_dir($pathToAction))
-					{
-						if (file_exists($pathToAction."/payment.php"))
-							include($pathToAction."/payment.php");
-					}
-					else
-					{
-						include($pathToAction);
-					}
-				}
+				$paymentItem = $item;
+				break;
 			}
-			catch(\Bitrix\Main\SystemException $e)
+		}
+	}
+
+	$service = \Bitrix\Sale\PaySystem\Manager::getObjectById($paymentItem->getPaymentSystemId());
+	if ($service)
+	{
+		$context = \Bitrix\Main\Application::getInstance()->getContext();
+
+		$service->initiatePay($paymentItem, $context->getRequest());
+
+		if($service->getField('ENCODING') != '')
+		{
+			define("BX_SALE_ENCODING", $service->getField('ENCODING'));
+
+			AddEventHandler("main", "OnEndBufferContent", "ChangeEncoding");
+			function ChangeEncoding($content)
 			{
-				if($e->getCode() == CSalePaySystemAction::GET_PARAM_VALUE)
-					$message = GetMessage("SOA_TEMPL_ORDER_PS_ERROR");
-				else
-					$message = $e->getMessage();
-
-				ShowError($message);
+				global $APPLICATION;
+				header("Content-Type: text/html; charset=".BX_SALE_ENCODING);
+				$content = $APPLICATION->ConvertCharset($content, SITE_CHARSET, BX_SALE_ENCODING);
+				$content = str_replace("charset=".SITE_CHARSET, "charset=".BX_SALE_ENCODING, $content);
 			}
-
-			if(strlen($arPaySysAction["ENCODING"]) > 0)
-			{
-				define("BX_SALE_ENCODING", $arPaySysAction["ENCODING"]);
-				AddEventHandler("main", "OnEndBufferContent", "ChangeEncoding");
-				function ChangeEncoding($content)
-				{
-					global $APPLICATION;
-					header("Content-Type: text/html; charset=".BX_SALE_ENCODING);
-					$content = $APPLICATION->ConvertCharset($content, SITE_CHARSET, BX_SALE_ENCODING);
-					$content = str_replace("charset=".SITE_CHARSET, "charset=".BX_SALE_ENCODING, $content);
-				}
-			}
-
 		}
 	}
 }

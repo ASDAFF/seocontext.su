@@ -381,9 +381,15 @@ if ($catalogIncluded)
 {
 	$arComponentParameters["PARAMETERS"]['HIDE_NOT_AVAILABLE'] = array(
 		'PARENT' => 'DATA_SOURCE',
-		'NAME' => GetMessage('CP_BCT_HIDE_NOT_AVAILABLE'),
-		'TYPE' => 'CHECKBOX',
+		'NAME' => GetMessage('CP_BCT_HIDE_NOT_AVAILABLE_EXT'),
+		'TYPE' => 'LIST',
 		'DEFAULT' => 'N',
+		'VALUES' => array(
+			'Y' => GetMessage('CP_BCT_HIDE_NOT_AVAILABLE_HIDE'),
+			'L' => GetMessage('CP_BCT_HIDE_NOT_AVAILABLE_LAST'),
+			'N' => GetMessage('CP_BCT_HIDE_NOT_AVAILABLE_SHOW')
+		),
+		'ADDITIONAL_VALUES' => 'N'
 	);
 
 	$arComponentParameters["PARAMETERS"]['CONVERT_CURRENCY'] = array(

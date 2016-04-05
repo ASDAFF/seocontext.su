@@ -159,7 +159,8 @@ class CWikiSocnet
 						"UPDATE_CALLBACK" => array("CSocNetLogTools", "UpdateComment_Forum"),
 						"DELETE_CALLBACK" => array("CSocNetLogTools", "DeleteComment_Forum"),
 						"CLASS_FORMAT" => "CWikiSocnet",
-						"METHOD_FORMAT" => "FormatComment_Wiki"
+						"METHOD_FORMAT" => "FormatComment_Wiki",
+						"RATING_TYPE_ID" => "FORUM_POST"
 					)
 				),
 				'wiki_del' => array(

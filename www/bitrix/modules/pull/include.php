@@ -20,8 +20,10 @@ CModule::AddAutoloadClasses(
 		"CPushManager" => "classes/general/pull_push.php",
 		"CAppleMessage" => "classes/general/pushservices/apple_push.php",
 		"CApplePush" => "classes/general/pushservices/apple_push.php",
+		"CApplePushVoip" => "classes/general/pushservices/apple_push.php",
 		"CGoogleMessage" => "classes/general/pushservices/google_push.php",
 		"CGooglePush" => "classes/general/pushservices/google_push.php",
+		"CGooglePushInteractive" => "classes/general/pushservices/google_push.php",
 
 	)
 );
@@ -29,10 +31,6 @@ CModule::AddAutoloadClasses(
 CJSCore::RegisterExt('pull', array(
 	'js' => '/bitrix/js/pull/pull.js',
 	'lang' => '/bitrix/modules/pull/lang/'.LANGUAGE_ID.'/js_pull.php',
-	'rel' => defined('BX_PULL_SKIP_LS')? array('ajax'): array('ajax', 'ls')
-));
-CJSCore::RegisterExt('npull', array(
-	'js' => '/bitrix/js/pull/npull.js',
 	'rel' => defined('BX_PULL_SKIP_LS')? array('ajax'): array('ajax', 'ls')
 ));
 ?>

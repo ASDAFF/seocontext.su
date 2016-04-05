@@ -1,7 +1,7 @@
 <?
 class CFile extends CAllFile
 {
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$io = CBXVirtualIo::GetInstance();
@@ -43,7 +43,7 @@ class CFile extends CAllFile
 		}
 	}
 
-	function DoDelete($ID)
+	public static function DoDelete($ID)
 	{
 		CFile::Delete($ID);
 	}

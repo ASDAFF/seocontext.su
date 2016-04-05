@@ -31,7 +31,7 @@ class Signer
 	}
 
 	/**
-	 * Set key for singing
+	 * Set key for signing
 	 *
 	 * @param string $value Key.
 	 * @return $this
@@ -191,7 +191,7 @@ class Signer
 	}
 
 	/**
-	 * Return salted key for singing.
+	 * Return salted key for signing.
 	 * If key was set by setKey - use it
 	 * Otherwise - used default (if default key does not exists - automatically generate it)
 	 *
@@ -241,7 +241,7 @@ class Signer
 	 * @param array $values Values for packing.
 	 * @return string
 	 */
-	protected function pack(array $values)
+	public function pack(array $values)
 	{
 		return join($this->separator, $values);
 	}
@@ -265,7 +265,7 @@ class Signer
 	 * @return array
 	 * @throws BadSignatureException
 	 */
-	protected function unpack($value, $limit = 2)
+	public function unpack($value, $limit = 2)
 	{
 		// Some kind of optimization
 		if ($limit === 0)

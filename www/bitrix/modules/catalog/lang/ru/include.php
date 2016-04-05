@@ -17,4 +17,6 @@ $MESS["CATALOG_ERR_NO_PRODUCT"] = "Товар не найден";
 $MESS["CATALOG_ERR_PRODUCT_RUN_OUT"] = "Товар отсутствует";
 $MESS["CATALOG_ERR_NO_IBLOCK_ELEMENT"] = "Не найден элемент инфоблока";
 $MESS["CATALOG_ERR_NO_SUBSCRIBE"] = "Для товара запрещена подписка";
+$MESS["CATALOG_ERR_CANNOT_ADD_SKU"] = "Нельзя добавить в корзину товар с торговыми предложениями - только конкретное предложение";
+$MESS["CATALOG_ERR_CANNOT_SUBSCRIBE_SKU"] = "Нельзя добавить подписку на уведомление о поступлении товара с торговыми предложениями - только на конкретное предложение";
 ?>

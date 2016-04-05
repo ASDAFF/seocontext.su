@@ -142,7 +142,6 @@ if($APPLICATION->GetGroupRight("seo") > "D")
 
 		$arEngineList[] = array(
 			'url' => 'seo_search_google.php?lang='.LANGUAGE_ID,
-			'more_url' => array('seo_search_google_detail.php?lang='.LANGUAGE_ID),
 			'text' => Loc::getMessage("SEO_MENU_GOOGLE"),
 		);
 /*

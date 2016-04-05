@@ -102,9 +102,20 @@ class BasketPropertiesCollection
 	 */
 	public function setProperty(array $values)
 	{
+		$indexList = array();
+		if (count($this->collection) > 0)
+		{
+			/** @var BasketPropertyItem $propertyItem */
+			foreach($this->collection as $propertyItem)
+			{
+				$code = $propertyItem->getField('NAME')."|".$propertyItem->getField("CODE");
+				$indexList[$code] = $propertyItem->getId();
+			}
+		}
+
 		foreach ($values as $value)
 		{
-			if (!is_array($value))
+			if (!is_array($value) || empty($value))
 				continue;
 
 			$propertyItem = false;
@@ -119,7 +130,15 @@ class BasketPropertiesCollection
 
 			if (!$propertyItem)
 			{
-				$propertyItem = $this->createItem($this);
+				$propertyItem = $this->createItem();
+			}
+			else
+			{
+				$code = $propertyItem->getField('NAME')."|".$propertyItem->getField("CODE");
+				if (isset($indexList[$code]))
+				{
+					unset($indexList[$code]);
+				}
 			}
 
 			$fields = array();
@@ -132,6 +151,51 @@ class BasketPropertiesCollection
 			}
 
 			$propertyItem->setFields($fields);
+		}
+
+
+		if (!empty($indexList))
+		{
+			/** @var BasketPropertiesCollection $collection */
+
+			foreach($indexList as $code => $id)
+			{
+				if ($id > 0)
+				{
+					/** @var BasketPropertyItem $propertyItem */
+					if ($propertyItem = $this->getItemById($id))
+					{
+						if (!empty($values)
+							|| ($propertyItem->getField('CODE') == "CATALOG.XML_ID"
+								|| $propertyItem->getField('CODE') == "PRODUCT.XML_ID")
+						)
+						{
+							continue;
+						}
+						$propertyItem->delete();
+					}
+				}
+				else
+				{
+					/** @var BasketPropertyItem $propertyItem */
+					foreach ($this->collection as $propertyItem)
+					{
+						if (!empty($values)
+							|| ($propertyItem->getField('CODE') == "CATALOG.XML_ID"
+								|| $propertyItem->getField('CODE') == "PRODUCT.XML_ID")
+						)
+						{
+							continue;
+						}
+
+						$propertyCode = $propertyItem->getField('NAME')."|".$propertyItem->getField("CODE");
+						if ($propertyCode == $code)
+						{
+							$propertyItem->delete();
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -190,6 +254,11 @@ class BasketPropertiesCollection
 			$requestValues[$propertyValue['CODE']] = $propertyValue["VALUE"];
 		}
 
+		if (count($propertyValues) != count($values))
+		{
+			return false;
+		}
+		
 		$found = true;
 		foreach($requestValues as $key => $val)
 		{
@@ -274,6 +343,7 @@ class BasketPropertiesCollection
 			{
 				$result = array(
 					'CODE' => $propID,
+					'ID' => $value["ID"],
 					'VALUE' => $value["VALUE"],
 					'SORT' => $value["SORT"],
 					'NAME' => $value["NAME"],

@@ -1437,6 +1437,10 @@ BX.CDialog.prototype.ShowButtons = function()
 			{
 				result.push(this.PARAMS.buttons[i]);
 			}
+			else if (BX.type.isElementNode(this.PARAMS.buttons[i]))
+			{
+				result.push(this.PARAMS.buttons[i]);
+			}
 			else if (this.PARAMS.buttons[i])
 			{
 				//if (!(this.PARAMS.buttons[i] instanceof BX.CWindowButton))

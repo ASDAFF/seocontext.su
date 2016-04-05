@@ -58,13 +58,6 @@ class Bitrix extends Engine implements IEngine
 			if(Loader::includeModule('socialservices'))
 			{
 				$this->authInterface = new \CBitrixSeoOAuthInterface($this->engine['CLIENT_ID'], $this->engine['CLIENT_SECRET']);
-
-				if($this->engineSettings['AUTH'])
-				{
-					$this->authInterface->setToken($this->engineSettings['AUTH']['access_token']);
-					$this->authInterface->setRefreshToken($this->engineSettings['AUTH']['refresh_token']);
-					$this->authInterface->setAccessTokenExpires($this->engineSettings['AUTH']['expires_in']);
-				}
 			}
 		}
 

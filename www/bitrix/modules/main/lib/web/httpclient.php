@@ -17,7 +17,10 @@ class HttpClient
 	const HTTP_GET = "GET";
 	const HTTP_POST = "POST";
 	const HTTP_PUT = "PUT";
-	const BUF_READ_LEN = 8192;
+	const HTTP_HEAD = "HEAD";
+	const HTTP_PATCH = "PATCH";
+
+	const BUF_READ_LEN = 16384;
 	const BUF_POST_LEN = 131072;
 
 	protected $proxyHost;
@@ -50,8 +53,8 @@ class HttpClient
 	protected $responseCookies;
 	protected $result = '';
 	protected $outputStream;
-	protected $contentType = '';
-	protected $responseCharset = '';
+
+	protected $effectiveUrl;
 
 	/**
 	 * @param array $options Optional array with options:
@@ -119,6 +122,14 @@ class HttpClient
 	}
 
 	/**
+	 * Closes the connection on the object destruction.
+	 */
+	public function __destruct()
+	{
+		$this->disconnect();
+	}
+
+	/**
 	 * Performs GET request.
 	 *
 	 * @param string $url Absolute URI eg. "http://user:pass @ host:port/path/?query".
@@ -134,7 +145,22 @@ class HttpClient
 	}
 
 	/**
-	 * Perfoms POST request.
+	 * Performs HEAD request.
+	 *
+	 * @param string $url Absolute URI eg. "http://user:pass @ host:port/path/?query"
+	 * @return HttpHeaders|bool Response headers or false on error.
+	 */
+	public function head($url)
+	{
+		if($this->query(self::HTTP_HEAD, $url))
+		{
+			return $this->getHeaders();
+		}
+		return false;
+	}
+
+	/**
+	 * Performs POST request.
 	 *
 	 * @param string $url Absolute URI eg. "http://user:pass @ host:port/path/?query".
 	 * @param array|string|resource $postData Entity of POST/PUT request. If it's resource handler then data will be read directly from the stream.
@@ -154,17 +180,17 @@ class HttpClient
 	 *
 	 * @param string $method HTTP method (GET, POST, etc.). Note, it must be in UPPERCASE.
 	 * @param string $url Absolute URI eg. "http://user:pass @ host:port/path/?query".
-	 * @param array|string|resource $postData Entity of POST/PUT request. If it's resource handler then data will be read directly from the stream.
+	 * @param array|string|resource $entityBody Entity body of the request. If it's resource handler then data will be read directly from the stream.
 	 * @return bool Query result (true or false). Response entity string can be get via getResult() method. Note, it's empty string if outputStream is set.
 	 */
-	public function query($method, $url, $postData = null)
+	public function query($method, $url, $entityBody = null)
 	{
 		$queryMethod = $method;
-		$queryUrl = $url;
+		$this->effectiveUrl = $url;
 
-		if(is_array($postData))
+		if(is_array($entityBody))
 		{
-			$postData = http_build_query($postData, "", "&");
+			$entityBody = http_build_query($entityBody, "", "&");
 		}
 
 		$this->redirectCount = 0;
@@ -173,19 +199,22 @@ class HttpClient
 		{
 			//Only absoluteURI is accepted
 			//Location response-header field must be absoluteURI either
-			$parsedUrl = new Uri($queryUrl);
+			$parsedUrl = new Uri($this->effectiveUrl);
 			if($parsedUrl->getHost() == '')
 			{
-				$this->error["URI"] = "Incorrect URI: ".$queryUrl;
+				$this->error["URI"] = "Incorrect URI: ".$this->effectiveUrl;
 				return false;
 			}
+
+			//just in case of serial queries
+			$this->disconnect();
 
 			if($this->connect($parsedUrl) === false)
 			{
 				return false;
 			}
 
-			$this->sendRequest($queryMethod, $parsedUrl, $postData);
+			$this->sendRequest($queryMethod, $parsedUrl, $entityBody);
 
 			if(!$this->waitResponse)
 			{
@@ -193,19 +222,20 @@ class HttpClient
 				return true;
 			}
 
-			if(!$this->readResponse())
+			if(!$this->readHeaders())
 			{
 				$this->disconnect();
 				return false;
 			}
 
-			$this->disconnect();
-
 			if($this->redirect && ($location = $this->responseHeaders->get("Location")) !== null && $location <> '')
 			{
+				//we don't need a body on redirect
+				$this->disconnect();
+
 				if($this->redirectCount < $this->redirectMax)
 				{
-					$queryUrl = $location;
+					$this->effectiveUrl = $location;
 					if($this->status == 302 || $this->status == 303)
 					{
 						$queryMethod = self::HTTP_GET;
@@ -221,6 +251,7 @@ class HttpClient
 			}
 			else
 			{
+				//the connection is still active to read the response body
 				break;
 			}
 		}
@@ -228,7 +259,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets an HTTP request header field
+	 * Sets an HTTP request header field.
 	 *
 	 * @param string $name Name of the header field.
 	 * @param string $value Value of the field.
@@ -244,7 +275,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets an array of cookies for HTTP request
+	 * Sets an array of cookies for HTTP request.
 	 *
 	 * @param array $cookies Array of cookie_name => value pairs.
 	 * @return void
@@ -255,7 +286,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets Basic Authorization request header field
+	 * Sets Basic Authorization request header field.
 	 *
 	 * @param string $user Username.
 	 * @param string $pass Password.
@@ -267,7 +298,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets redirect options
+	 * Sets redirect options.
 	 *
 	 * @param bool $value If true, do redirect (default true).
 	 * @param null|int $max Maximum allowed redirect count.
@@ -283,7 +314,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets response waiting option
+	 * Sets response waiting option.
 	 *
 	 * @param bool $value If true, wait for response. If false, return just after request (default true).
 	 * @return void
@@ -294,7 +325,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets connection timeout
+	 * Sets connection timeout.
 	 *
 	 * @param int $value Connection timeout in seconds (default 30).
 	 * @return void
@@ -305,7 +336,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets socket stream reading timeout
+	 * Sets socket stream reading timeout.
 	 *
 	 * @param int $value Stream reading timeout in seconds; "0" means no timeout (default 60).
 	 * @return void
@@ -361,7 +392,7 @@ class HttpClient
 	}
 
 	/**
-	 * Sets HTTP proxy for request
+	 * Sets HTTP proxy for request.
 	 *
 	 * @param string $proxyHost Proxy host name or address (without "http://").
 	 * @param null|int $proxyPort Proxy port number.
@@ -412,12 +443,26 @@ class HttpClient
 		{
 			$this->setOutputStream($handler);
 			$res = $this->query(self::HTTP_GET, $url);
+			if($res)
+			{
+				$res = $this->readBody();
+			}
+			$this->disconnect();
 
 			fclose($handler);
 			return $res;
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns URL of the last redirect if request was redirected, or initial URL if request was not redirected.
+	 * @return string
+	 */
+	public function getEffectiveUrl()
+	{
+		return $this->effectiveUrl;
 	}
 
 	protected function connect(Uri $url)
@@ -432,6 +477,14 @@ class HttpClient
 		{
 			$proto = ($url->getScheme() == "https"? "ssl://" : "");
 			$host = $url->getHost();
+			$host = \CBXPunycode::ToASCII($host, $encodingErrors);
+			if(is_array($encodingErrors) && count($encodingErrors) > 0)
+			{
+				$this->error["URI"] = "Error converting hostname to punycode: ".implode("\n", $encodingErrors);
+				return false;
+			}
+			$url->setHost($host);
+
 			$port = $url->getPort();
 		}
 
@@ -503,7 +556,7 @@ class HttpClient
 			$bufLength = self::BUF_READ_LEN;
 		}
 
-		$buf = fread($this->resource, $bufLength);
+		$buf = stream_get_contents($this->resource, $bufLength);
 		if($buf !== false)
 		{
 			if(is_resource($this->outputStream))
@@ -521,7 +574,7 @@ class HttpClient
 		return $buf;
 	}
 
-	protected function sendRequest($method, Uri $url, $postData = null)
+	protected function sendRequest($method, Uri $url, $entityBody = null)
 	{
 		$this->status = 0;
 		$this->result = '';
@@ -564,9 +617,9 @@ class HttpClient
 			$this->setHeader("Accept-Encoding", "gzip");
 		}
 
-		if(!is_resource($postData) && ($method == self::HTTP_POST || $method == self::HTTP_PUT))
+		if(!is_resource($entityBody) && $entityBody <> '')
 		{
-			if($method <> self::HTTP_PUT && $this->requestHeaders->get("Content-Type") === null)
+			if($method == self::HTTP_POST && $this->requestHeaders->get("Content-Type") === null)
 			{
 				$contentType = "application/x-www-form-urlencoded";
 				if($this->requestCharset <> '')
@@ -577,7 +630,7 @@ class HttpClient
 			}
 			if($this->requestHeaders->get("Content-Length") === null)
 			{
-				$this->setHeader("Content-Length", String::getBinaryLength($postData));
+				$this->setHeader("Content-Length", String::getBinaryLength($entityBody));
 			}
 		}
 
@@ -586,24 +639,21 @@ class HttpClient
 
 		$this->send($request);
 
-		if($method == self::HTTP_POST || $method == self::HTTP_PUT)
+		if(is_resource($entityBody))
 		{
-			if(is_resource($postData))
+			//PUT data can be a file resource
+			while(!feof($entityBody))
 			{
-				//PUT data can be file resource
-				while(!feof($postData))
-				{
-					$this->send(fread($postData, self::BUF_POST_LEN));
-				}
+				$this->send(fread($entityBody, self::BUF_POST_LEN));
 			}
-			else
-			{
-				$this->send($postData);
-			}
+		}
+		elseif($entityBody <> '')
+		{
+			$this->send($entityBody);
 		}
 	}
 
-	protected function readResponse()
+	protected function readHeaders()
 	{
 		$headers = "";
 		while(!feof($this->resource))
@@ -632,12 +682,11 @@ class HttpClient
 
 		$this->parseHeaders($headers);
 
-		if($this->redirect && ($location = $this->responseHeaders->get("Location")) !== null && $location <> '')
-		{
-			//do we need entity body on redirect?
-			return true;
-		}
+		return true;
+	}
 
+	protected function readBody()
+	{
 		if($this->responseHeaders->get("Transfer-Encoding") == "chunked")
 		{
 			while(!feof($this->resource))
@@ -756,21 +805,6 @@ class HttpClient
 				$this->responseHeaders->add($headerName, trim($headerValue));
 			}
 		}
-
-		if(($contentType = $this->responseHeaders->get("Content-Type")) !== null)
-		{
-			$parts = explode(";", $contentType);
-			$this->contentType = trim($parts[0]);
-			foreach($parts as $part)
-			{
-				$values = explode("=", $part);
-				if(strtolower(trim($values[0])) == "charset")
-				{
-					$this->responseCharset = trim($values[1]);
-					break;
-				}
-			}
-		}
 	}
 
 	/**
@@ -810,6 +844,11 @@ class HttpClient
 	 */
 	public function getResult()
 	{
+		if($this->waitResponse && $this->resource)
+		{
+			$this->readBody();
+			$this->disconnect();
+		}
 		return $this->result;
 	}
 
@@ -830,7 +869,7 @@ class HttpClient
 	 */
 	public function getContentType()
 	{
-		return $this->contentType;
+		return $this->responseHeaders->getContentType();
 	}
 
 	/**
@@ -840,6 +879,6 @@ class HttpClient
 	 */
 	public function getCharset()
 	{
-		return $this->responseCharset;
+		return $this->responseHeaders->getCharset();
 	}
 }

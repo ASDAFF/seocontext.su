@@ -39,4 +39,9 @@ $MESS["CT_BLLE_FIELD_NAME_PROCESS"] = "Workflow name";
 $MESS["CT_BLLE_FIELD_DESCRIPTION_PROCESS"] = "Workflow description";
 $MESS["CT_BLLE_TOOLBAR_MIGRATE_PROCESSES"] = "Move to workflows";
 $MESS["CT_BLLE_TOOLBAR_MIGRATE_WARNING_PROCESS"] = "Are you sure you want to move this list?";
+$MESS["CT_BLLE_TOOLBAR_LIST_COPY"] = "Copy list";
+$MESS["CT_BLLE_TOOLBAR_LIST_COPY_TITLE"] = "Creates a duplicate of this list";
+$MESS["CT_BLLE_TOOLBAR_LIST_COPY_PROCESS"] = "Copy workflow";
+$MESS["CT_BLLE_TOOLBAR_LIST_COPY_TITLE_PROCESS"] = "Creates a duplicate of this workflow";
+$MESS["CT_BLLE_TOOLBAR_LIST_COPY_BUTTON_TITLE"] = "Copying...";
 ?>

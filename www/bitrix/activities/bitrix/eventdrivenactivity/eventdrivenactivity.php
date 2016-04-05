@@ -29,7 +29,7 @@ class CBPEventDrivenActivity
 		{
 			self::IncludeActivityFile($childActivity);
 			$child = self::CreateInstance($childActivity, "XXX");
-			if (!($child instanceof IBPEventActivity))
+			if (!($child instanceof IBPEventDrivenActivity))
 				$arErrors[] = array("code" => "WrongChildType", "message" => GetMessage("BPEDA_INVALID_CHILD"));
 		}
 

@@ -47,10 +47,14 @@ class Mobile
 		self::$isDev = (isset($_COOKIE["MOBILE_DEV"]) && $_COOKIE["MOBILE_DEV"] == "Y");
 
 		$this->setDevice($_COOKIE["MOBILE_DEVICE"]);
-		if($_COOKIE["IS_WEBRTC_SUPPORTED"] && $_COOKIE["IS_WEBRTC_SUPPORTED"] == "Y")
+		if ($_COOKIE["IS_WEBRTC_SUPPORTED"] && $_COOKIE["IS_WEBRTC_SUPPORTED"] == "Y")
+		{
 			$this->setWebRtcSupport(true);
+		}
 		if ($_COOKIE["IS_BXSCRIPT_SUPPORTED"] && $_COOKIE["IS_BXSCRIPT_SUPPORTED"] == "Y")
+		{
 			$this->setBXScriptSupported(true);
+		}
 
 		if ($this->getDevice() == "iPad")
 		{
@@ -61,7 +65,6 @@ class Mobile
 				$this->setDeviceHeight($_COOKIE["MOBILE_RESOLUTION_HEIGHT"] / 2);
 			}
 		}
-
 		//detecting OS
 		if (array_key_exists("MOBILE_DEVICE", $_COOKIE))
 		{
@@ -81,7 +84,7 @@ class Mobile
 			self::$platform = "android";
 		}
 
-		if(array_key_exists("emulate_platform", $_REQUEST))
+		if (array_key_exists("emulate_platform", $_REQUEST))
 		{
 			self::$platform = $_REQUEST["emulate_platform"];
 		}
@@ -95,7 +98,7 @@ class Mobile
 		{
 			self::$apiVersion = $APPLICATION->get_cookie("MOBILE_APP_VERSION");
 		}
-		elseif(array_key_exists("api_version", $_REQUEST))
+		elseif (array_key_exists("api_version", $_REQUEST))
 		{
 			self::$apiVersion = intval($_REQUEST["api_version"]);
 		}
@@ -108,6 +111,16 @@ class Mobile
 	public function isWebRtcSupported()
 	{
 		return $this->isWebRtcSupported;
+	}
+
+	/**
+	 * Returns true if mobile application made this request in background
+	 * @return bool
+	 */
+	public static function isAppBackground()
+	{
+		$isBackground = Context::getCurrent()->getServer()->get("HTTP_BX_MOBILE_BACKGROUND");
+		return ($isBackground === "true");
 	}
 
 	/**
@@ -163,7 +176,7 @@ class Mobile
 	 */
 	public function setUserScalable($userScalable)
 	{
-		$this->userScalable = ($userScalable === false?"no":"yes");
+		$this->userScalable = ($userScalable === false ? "no" : "yes");
 	}
 
 	private function __clone()
@@ -198,7 +211,7 @@ class Mobile
 
 		\CJSCore::Init();
 		$APPLICATION->AddHeadString("<script type=\"text/javascript\">var mobileSiteDir=\"" . SITE_DIR . "\"; var appVersion = " . self::$apiVersion . ";var platform = \"" . self::$platform . "\";</script>", false, true);
-		if(self::$platform == "android")
+		if (self::$platform == "android")
 		{
 			/**
 			 * This is workaround for android
@@ -206,7 +219,7 @@ class Mobile
 			 */
 			$APPLICATION->AddHeadString("<script type=\"text/javascript\">console.log(\"bxdata://success\")</script>", false, true);
 		}
-		if(self::getInstance()->getBXScriptSupported())
+		if (self::getInstance()->getBXScriptSupported())
 		{
 			/**
 			 * If the application tells us bxscript-feature is available
@@ -283,13 +296,15 @@ class Mobile
 	}
 
 
-	public function onMobileInit()
+	public static function onMobileInit()
 	{
-		if(!defined("MOBILE_INIT_EVENT_SKIP"))
+		if (!defined("MOBILE_INIT_EVENT_SKIP"))
 		{
 			$db_events = getModuleEvents("mobileapp", "OnMobileInit");
 			while ($arEvent = $db_events->Fetch())
+			{
 				ExecuteModuleEventEx($arEvent);
+			}
 		}
 	}
 
@@ -373,8 +388,7 @@ class Mobile
 		}
 
 
-
-		if($this->getWidth())
+		if ($this->getWidth())
 		{
 			$contentAttributes[] = "width=" . $this->getWidth();
 		}
@@ -387,12 +401,14 @@ class Mobile
 		if (toUpper($this->getPlatform()) == "ANDROID")
 		{
 			if (!$this->getWidth())
+			{
 				$contentAttributes[] = "width=device-width";
+			}
 			$contentAttributes[] = "target-densitydpi=" . $this->getTargetDpi();
 		}
 
 
-		$contentAttributes[] = "user-scalable=".$this->getUserScalable();
+		$contentAttributes[] = "user-scalable=" . $this->getUserScalable();
 
 		return str_replace("#content_value#", implode(", ", $contentAttributes), $viewPortMeta);
 	}

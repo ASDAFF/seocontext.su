@@ -108,6 +108,10 @@ else
 	Main\Page\Asset::getInstance()->addJs('/bitrix/js/catalog/step_operations.js');
 	Main\Page\Asset::getInstance()->addJs('/bitrix/js/sale/admin/step_operations.js');
 
+	$startDate = new Main\Type\DateTime();
+	$startDate->add('-3M');
+	$startDate->setTime(0,0,0);
+
 	?><div id="basket_discount_result_div" style="margin:0; display: none;"></div>
 	<div id="basket_discount_error_div" style="margin:0; display: none;">
 		<div class="adm-info-message-wrap adm-info-message-red">
@@ -134,7 +138,7 @@ else
 				<select name="filter_type" id="filter_type">
 					<option value="all" selected><? echo Loc::getMessage('SALE_BASKET_DISCOUNT_FILTER_TYPE_ALL'); ?></option>
 					<option value="id"><? echo Loc::getMessage('SALE_BASKET_DISCOUNT_FILTER_TYPE_ID'); ?></option>
-					<option value="date"><? echo Loc::getMessage('SALE_BASKET_DISCOUNT_FILTER_TYPE_DATE'); ?></option>
+					<option value="date" selected><? echo Loc::getMessage('SALE_BASKET_DISCOUNT_FILTER_TYPE_DATE'); ?></option>
 				</select>
 			</td>
 		</tr>
@@ -147,13 +151,13 @@ else
 				?>&nbsp;<input type="text" name="order_id_to" id="order_id_to" size="5">
 			</td>
 		</tr>
-		<tr id="tr_filter_date" style="display: none;">
+		<tr id="tr_filter_date" style="display: table-row;">
 			<td width="40%"><? echo Loc::getMessage('SALE_BASKET_DISCOUNT_FILTER_DATE_RANGE') ?></td>
 			<td><?
 				$calendar = new CAdminCalendar;
 				echo $calendar->CalendarPeriodCustom(
 					'order_date_from', 'order_date_to',
-					'', '',
+					$startDate->toString(), '',
 					false, 19, true
 				);
 			?></td>

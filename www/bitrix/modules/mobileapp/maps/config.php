@@ -11,8 +11,11 @@ $map = array(
 		'controller_settings/navigation_bar_background' => ParameterType::GROUP_BACKGROUND_LIGHT,
 		'table/cell_background' => ParameterType::GROUP_BACKGROUND_LIGHT,
 		'sliding_panel/background' => ParameterType::GROUP_BACKGROUND_LIGHT,
+		'buttons/badge' => ParameterType::GROUP,
 		'buttons/stretchable' => ParameterType::GROUP,
 		'additional/push' => ParameterType::GROUP,
+		'offline/files' => ParameterType::GROUP,
+
 
 		//status bar
 		'statusBar/use_top_offset' => ParameterType::BOOLEAN,
@@ -49,11 +52,15 @@ $map = array(
 		'buttons/text_color' => ParameterType::COLOR,
 		'buttons/main_background_image' => ParameterType::IMAGE,
 		'buttons/type' => ParameterType::IMAGE_SET,
-
-		'buttons/stretchable/main_position_vertical' => ParameterType::SIZE,
-		'buttons/stretchable/main_position_horizontal' => ParameterType::SIZE,
-		'buttons/stretchable/back_text_position_vertical' => ParameterType::SIZE,
-		'buttons/stretchable/back_text_position_horizontal' => ParameterType::SIZE,
+		'buttons/badge/background_color' => ParameterType::COLOR,
+		'buttons/badge/text_color' => ParameterType::COLOR,
+		'buttons/badge/show_frame' => ParameterType::BOOLEAN,
+		'buttons/badge/border_color' => ParameterType::COLOR,
+//		'buttons/badge/radius' => ParameterType::SIZE,
+//		'buttons/stretchable/main_position_vertical' => ParameterType::SIZE,
+//		'buttons/stretchable/main_position_horizontal' => ParameterType::SIZE,
+//		'buttons/stretchable/back_text_position_vertical' => ParameterType::SIZE,
+//		'buttons/stretchable/back_text_position_horizontal' => ParameterType::SIZE,
 		//tables|lists
 		'table/sections_text_color' => ParameterType::COLOR,
 		'table/sections_text_shadow_color' => ParameterType::COLOR,
@@ -76,12 +83,12 @@ $map = array(
 		'pull_down/icon' => ParameterType::IMAGE,
 		'pull_down/text_style' => ParameterType::VALUE_LIST,
 		'pull_down/arrow_color' => ParameterType::COLOR,//android only
+
 		//sliding panel
 		'sliding_panel/text_color' => ParameterType::COLOR,
 		'sliding_panel/background/color' => ParameterType::COLOR,
 		'sliding_panel/background/image' => ParameterType::IMAGE,
 		'sliding_panel/background/image_large' => ParameterType::IMAGE,
-//		'sliding_panel/textSize' => ParameterType::SIZE,
 
 		//category switcher in a list controller
 		'category_switcher/button_text_color_selected' => ParameterType::COLOR,
@@ -95,6 +102,15 @@ $map = array(
 		'additional/use_slider'=>ParameterType::BOOLEAN,
 		'additional/push/use_push'=>ParameterType::BOOLEAN,
 		'additional/push/app_push_id'=>ParameterType::STRING,
+		'additional/useCSSStyle'=>ParameterType::BOOLEAN,
+		'additional/css_file_path'=>ParameterType::STRING,
+
+		//offline
+		'offline/launch_mode' => ParameterType::VALUE_LIST,
+		'offline/file_list' => ParameterType::VALUE_SET,
+		'offline/main' => ParameterType::VALUE_LIST,
+		'offline/left' => ParameterType::VALUE_LIST,
+		'offline/right' => ParameterType::VALUE_LIST,
 
 	),
 	"listValues"=>array(
@@ -103,6 +119,10 @@ $map = array(
 		"controller_settings/main_background/fill_mode"=>array("repeat","crop","stretch"),
 		"pull_down/background/fill_mode"=>array("repeat","crop","stretch"),
 		"pull_down/text_style"=>array("normal","bold"),
+		"offline/launch_mode"=> array("offline_only", "online_only", "mixed"),
+		"offline/main"=>"offline/file_list",
+		"offline/left"=>"offline/file_list",
+		"offline/right"=>"offline/file_list"
 	),
 	"limits" => array(
 

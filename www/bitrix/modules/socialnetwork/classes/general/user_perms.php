@@ -6,7 +6,7 @@ class CAllSocNetUserPerms
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $DB, $arSocNetUserOperations, $arSocNetAllowedRelationsType;
 
@@ -63,7 +63,7 @@ class CAllSocNetUserPerms
 		return True;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
@@ -79,7 +79,7 @@ class CAllSocNetUserPerms
 		return $bSuccess;
 	}
 
-	function DeleteNoDemand($userID)
+	public static function DeleteNoDemand($userID)
 	{
 		global $DB;
 
@@ -95,7 +95,7 @@ class CAllSocNetUserPerms
 		return $bSuccess;
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 
@@ -145,7 +145,7 @@ class CAllSocNetUserPerms
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -166,7 +166,7 @@ class CAllSocNetUserPerms
 	/***************************************/
 	/**********  COMMON METHODS  ***********/
 	/***************************************/
-	function GetOperationPerms($userID, $operation)
+	public static function GetOperationPerms($userID, $operation)
 	{
 		global $arSocNetUserOperations;
 		static $arCachedUserPerms;
@@ -242,7 +242,7 @@ class CAllSocNetUserPerms
 		}
 	}
 
-	function CanPerformOperation($fromUserID, $toUserID, $operation, $bCurrentUserIsAdmin = false)
+	public static function CanPerformOperation($fromUserID, $toUserID, $operation, $bCurrentUserIsAdmin = false)
 	{
 		global $arSocNetUserOperations;
 
@@ -291,7 +291,7 @@ class CAllSocNetUserPerms
 		return false;
 	}
 
-	function InitUserPerms($currentUserID, $userID, $bCurrentUserIsAdmin)
+	public static function InitUserPerms($currentUserID, $userID, $bCurrentUserIsAdmin)
 	{
 		global $arSocNetUserOperations, $USER;
 
@@ -362,7 +362,7 @@ class CAllSocNetUserPerms
 		return $arReturn;
 	}
 
-	function SetPerm($userID, $feature, $perm)
+	public static function SetPerm($userID, $feature, $perm)
 	{
 		$userID = IntVal($userID);
 		$feature = Trim($feature);
@@ -401,4 +401,3 @@ class CAllSocNetUserPerms
 		return $r;
 	}
 }
-?>

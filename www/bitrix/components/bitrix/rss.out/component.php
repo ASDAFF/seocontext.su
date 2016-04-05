@@ -68,7 +68,7 @@ $bDesignMode = $APPLICATION->GetShowIncludeAreas() && is_object($USER) && $USER-
 if(!$bDesignMode)
 {
 	$APPLICATION->RestartBuffer();
-	header("Content-Type: text/xml; charset=".LANG_CHARSET);
+	header("Content-Type: application/rss+xml; charset=".LANG_CHARSET);
 	header("Pragma: no-cache");
 }
 else

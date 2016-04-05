@@ -2,6 +2,7 @@
 	width: 100%;
 	min-width: 220px;
 	font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	margin-bottom: 20px;
 }
 .bx-filter .bx-filter-section {
 	/*background: #edf6fc; /* color */

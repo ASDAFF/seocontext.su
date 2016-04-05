@@ -434,6 +434,83 @@ class CBPCalc
 		return ConvertTimeStamp($newDate, "FULL");
 	}
 
+	private function FunctionAddWorkDays($args)
+	{
+		if (!is_array($args))
+			$args = array($args);
+
+		$ar = $this->ArrgsToArray($args);
+		$date = array_shift($ar);
+		$days = (int) array_shift($ar);
+
+		if ($date == null)
+			return null;
+
+		if (intval($date)."!" != $date."!")
+		{
+			if (($dateTmp = MakeTimeStamp($date, FORMAT_DATETIME)) === false)
+			{
+				if (($dateTmp = MakeTimeStamp($date, FORMAT_DATE)) === false)
+				{
+					if (($dateTmp = MakeTimeStamp($date, "YYYY-MM-DD HH:MI:SS")) === false)
+					{
+						if (($dateTmp = MakeTimeStamp($date, "YYYY-MM-DD")) === false)
+							return null;
+					}
+				}
+			}
+
+			$date = $dateTmp;
+		}
+
+		if ($days === 0 || !CModule::IncludeModule('calendar'))
+			return $date;
+
+		$calendarSettings = CCalendar::GetSettings();
+		$weekHolidays = array(0, 6);
+		$yearHolidays = array();
+
+		if (isset($calendarSettings['week_holidays']))
+		{
+			$weekDays = array('SU' => 0, 'MO' => 1, 'TU' => 2, 'WE' => 3, 'TH' => 4, 'FR' => 5, 'SA' => 6);
+			$weekHolidays = array();
+			foreach($calendarSettings['week_holidays'] as $day)
+				$weekHolidays[] = $weekDays[$day];
+		}
+
+		if (isset($calendarSettings['year_holidays']))
+		{
+			foreach(explode(',', $calendarSettings['year_holidays']) as $yearHoliday)
+			{
+				$ardate = explode('.', trim($yearHoliday));
+				if (count($ardate) == 2 && $ardate[0] && $ardate[1])
+					$yearHolidays[] = (int)$ardate[0].'.'.(int)$ardate[1];
+			}
+		}
+
+		$delta = 60*60*24;
+		if ($days < 0)
+			$delta *= -1;
+
+		$days = min(250, abs($days));
+
+		while ($days > 0)
+		{
+			$date += $delta;
+
+			$dayOfWeek = date('w', $date);
+			if (in_array($dayOfWeek, $weekHolidays))
+				continue;
+			$dayOfYear = date('j.n', $date);
+			if (in_array($dayOfYear, $yearHolidays))
+				continue;
+
+			--$days;
+		}
+
+		return ConvertTimeStamp($date, "FULL");
+	}
+
 	private function FunctionDateDiff($args)
 	{
 		if (!is_array($args))
@@ -637,6 +714,7 @@ class CBPCalc
 		'true' => array('args' => false, 'func' => 'FunctionTrue'),
 		'convert' => array('args' => true, 'func' => 'FunctionConvert'),
 		'merge' => array('args' => true, 'func' => 'FunctionMerge'),
+		'addworkdays' => array('args' => true, 'func' => 'FunctionAddWorkDays'),
 	);
 
 	// Allowable errors

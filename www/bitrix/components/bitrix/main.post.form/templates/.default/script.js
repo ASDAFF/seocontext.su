@@ -934,10 +934,16 @@ var LHEPostForm = function(formID, params)
 {
 	this.params = params;
 	this.formID = formID;
+	this.showPinButton = !!BX('lhe_button_editor_' + this.formID);
+	if(this.showPinButton)
+	{
+		this.params.showPanelEditor = !!this.params.pinEditorPanel;
+	}
 	this.oEditorId = params['LHEJsObjId'];
 	this.__divId = (params['LHEJsObjName'] || params['LHEJsObjId']);
 	repo.handler[this.oEditorId] = this;
 	this.oEditor = LHEPostForm.getEditor(this.oEditorId);
+	this.urlPreview = this.initUrlPreview(params);
 
 	this.eventNode = BX('div' + this.__divId);
 	BX.addCustomEvent(this.eventNode, 'OnShowLHE', BX.delegate(this.OnShowLHE, this));
@@ -1103,6 +1109,14 @@ LHEPostForm.prototype = {
 	{
 		this.controllerInitStatus = (status == 'show' || status == 'hide' ? status : (this.controllerInitStatus == 'show' ? 'hide' : 'show'));
 		BX.onCustomEvent(this.eventNode, "onShowControllers", [this.controllerInitStatus]);
+	},
+	initUrlPreview: function()
+	{
+		if(this.params['urlPreviewId'] && window['BXUrlPreview'] && BX(this.params['urlPreviewId']))
+		{
+			return new BXUrlPreview(BX(this.params['urlPreviewId']));
+		}
+		return null;
 	},
 	getContent : function()
 	{
@@ -1454,6 +1468,21 @@ LHEPostForm.prototype = {
 			this.oEditor.SetConfigHeight(this.params["~height"]);
 			this.oEditor.ResizeSceleton();
 		}
+
+		if (this.urlPreview)
+		{
+			this.urlPreview.detachUrlPreview();
+			var urlPreviewId;
+			for(var uf in data)
+			{
+				if(data.hasOwnProperty(uf) && data[uf].hasOwnProperty('USER_TYPE_ID') && data[uf]['USER_TYPE_ID'] === 'url_preview')
+				{
+					urlPreviewId = data[uf]['VALUE'];
+				}
+			}
+			if(urlPreviewId)
+				this.urlPreview.attachUrlPreview({id: urlPreviewId});
+		}
 	},
 	Parse : function(parser, content, editor)
 	{
@@ -1645,16 +1674,15 @@ LHEPostForm.prototype = {
 		editor.formID = this.formID;
 		if (this.params)
 			this.params["~height"] = editor.config["height"];
-		if (this.params && this.params['ctrlEnterHandler'])
-		{
-			BX.addCustomEvent(editor, 'OnCtrlEnter', function() {
-				editor.SaveContent();
-				if (typeof window[_this.params['ctrlEnterHandler']] == 'function')
-					window[_this.params['ctrlEnterHandler']]();
-				else
-					BX.submit(BX(_this.formID));
-			});
-		}
+
+		BX.addCustomEvent(editor, 'OnCtrlEnter', function() {
+			editor.SaveContent();
+			if (_this.params && _this.params['ctrlEnterHandler'] && typeof window[_this.params['ctrlEnterHandler']] == 'function')
+				window[_this.params['ctrlEnterHandler']]();
+			else
+				BX.submit(BX(_this.formID));
+		});
+
 		var parsers = (this.params.parsers ? this.params.parsers : []);
 
 		if (BX.util.object_search('Spoiler', parsers))
@@ -1801,6 +1829,50 @@ LHEPostForm.prototype = {
 				});
 			}
 		}
+
+		if (this.showPinButton)
+		{
+			this.pinEditorPanel = this.params && this.params.pinEditorPanel === true;
+			var pinId = 'toolbar_pin';
+			var but = function (editor, wrap)
+			{
+				// Call parrent constructor
+				but.superclass.constructor.apply(this, arguments);
+				this.id = pinId;
+				this.title = BX.message('MPF_PIN_EDITOR_PANNEL');
+				this.className += ' ' + (_this.pinEditorPanel ? 'bxhtmled-button-toolbar-pined' : 'bxhtmled-button-toolbar-pin');
+				this.Create();
+				if (wrap)
+					wrap.appendChild(this.GetCont());
+			};
+
+			BX.extend(but, window.BXHtmlEditor.Button);
+			but.prototype.OnClick = function ()
+			{
+				BX.removeClass(this.pCont, 'bxhtmled-button-toolbar-pined');
+				BX.removeClass(this.pCont, 'bxhtmled-button-toolbar-pin');
+				//console.info('but.prototype.OnClick', , but.pCont);
+				if (_this.pinEditorPanel)
+				{
+					_this.pinEditorPanel = false;
+					BX.addClass(this.pCont, 'bxhtmled-button-toolbar-pin');
+				}
+				else
+				{
+					_this.pinEditorPanel = true;
+					BX.addClass(this.pCont, 'bxhtmled-button-toolbar-pined');
+				}
+				BX.userOptions.save('main.post.form', 'postEdit', 'pinEditorPanel', _this.pinEditorPanel ? "Y" : "N");
+			};
+
+			window.BXHtmlEditor.Controls[pinId] = but;
+			BX.addCustomEvent(editor, "GetControlsMap", function (controlsMap)
+			{
+				controlsMap.push({
+					id: pinId, compact: true, hidden: false, sort: 500, checkWidth: true, offsetWidth: 32, wrap: 'right'
+				});
+			});
+		}
 	},
 	OnEditorInitedAfter : function(editor)
 	{
@@ -1808,8 +1880,8 @@ LHEPostForm.prototype = {
 		BX.addCustomEvent(editor, "OnIframeDragOver", BX.proxy(function(){BX.onCustomEvent(this.eventNode, "OnIframeDragOver", arguments);}, this));
 		BX.addCustomEvent(editor, "OnIframeDragLeave", BX.proxy(function(){BX.onCustomEvent(this.eventNode, "OnIframeDragLeave", arguments);}, this));
 		BX.addCustomEvent(editor, "OnImageDataUriHandle", BX.proxy(function(){BX.onCustomEvent(this.eventNode, "OnImageDataUriHandle", arguments);}, this));
-
-
+		BX.addCustomEvent(editor, "OnAfterUrlConvert", this.OnAfterUrlConvert.bind(this));
+		BX.addCustomEvent(editor, "OnBeforeCommandExec", this.OnBeforeCommandExec.bind(this));
 		// Contextmenu changing for images/files
 		editor.contextMenu.items['postimage'] =
 			editor.contextMenu.items['postdocument'] =
@@ -1944,6 +2016,20 @@ LHEPostForm.prototype = {
 					}
 				);
 			}
+		}
+	},
+	OnAfterUrlConvert: function(url)
+	{
+		if(this.urlPreview)
+		{
+			this.urlPreview.attachUrlPreview({url: url});
+		}
+	},
+	OnBeforeCommandExec: function(isContentAction, action, oAction, value)
+	{
+		if(this.urlPreview && action == 'createLink' && value.hasOwnProperty('href'))
+		{
+			this.urlPreview.attachUrlPreview({url: value.href});
 		}
 	}
 };
@@ -2186,105 +2272,12 @@ var MPFMention = {
 
 window.BXfpdSelectCallback = function(item, type, search, bUndeleted)
 {
-	if(!BX.findChild(BX('feed-add-post-destination-item'), { attr : { 'data-id' : item.id }}, false, false))
-	{
-		var type1 = type;
-		var prefix = 'S';
-
-		if (type == 'groups')
-		{
-			type1 = 'all-users';
-		}
-		else if (BX.util.in_array(type, ['contacts', 'companies', 'leads', 'deals']))
-		{
-			type1 = 'crm';
-		}
-
-		if (type == 'sonetgroups')
-		{
-			prefix = 'SG';
-		}
-		else if (type == 'groups')
-		{
-			prefix = 'UA';
-		}
-		else if (type == 'users')
-		{
-			prefix = 'U';
-		}
-		else if (type == 'department')
-		{
-			prefix = 'DR';
-		}
-		else if (type == 'contacts')
-		{
-			prefix = 'CRMCONTACT';
-		}
-		else if (type == 'companies')
-		{
-			prefix = 'CRMCOMPANY';
-		}
-		else if (type == 'leads')
-		{
-			prefix = 'CRMLEAD';
-		}
-		else if (type == 'deals')
-		{
-			prefix = 'CRMDEAL';
-		}
-
-		var stl = (bUndeleted ? ' feed-add-post-destination-undelete' : '');
-		stl += (type == 'sonetgroups' && typeof window['arExtranetGroupID'] != 'undefined' && BX.util.in_array(item.entityId, window['arExtranetGroupID']) ? ' feed-add-post-destination-extranet' : '');
-
-		var el = BX.create("span", {
-			attrs : {
-				'data-id' : item.id
-			},
-			props : {
-				className : "feed-add-post-destination feed-add-post-destination-"+type1+stl
-			},
-			children: [
-				BX.create("input", {
-					attrs : {
-						'type' : 'hidden',
-						'name' : 'SPERM[' + prefix + '][]',
-						'value' : item.id
-					}
-				}),
-				BX.create("span", {
-					props : {
-						'className' : "feed-add-post-destination-text"
-					},
-					html : item.name
-				})
-			]
-		});
-
-		if(!bUndeleted)
-		{
-			el.appendChild(BX.create("span", {
-				props : {
-					'className' : "feed-add-post-del-but"
-				},
-				events : {
-					'click' : function(e){
-						BX.SocNetLogDestination.deleteItem(item.id, type, window.BXSocNetLogDestinationFormName);
-						BX.PreventDefault(e)
-					},
-					'mouseover' : function(){
-						BX.addClass(this.parentNode, 'feed-add-post-destination-hover');
-					},
-					'mouseout' : function(){
-						BX.removeClass(this.parentNode, 'feed-add-post-destination-hover');
-					}
-				}
-			}));
-		}
-		BX('feed-add-post-destination-item').appendChild(el);
-	}
-
-	BX('feed-add-post-destination-input').value = '';
-	BX.SocNetLogDestination.BXfpSetLinkName({
+	BX.SocNetLogDestination.BXfpSelectCallback({
+		item: item,
+		type: type,
+		bUndeleted: bUndeleted,
+		containerInput: BX('feed-add-post-destination-item'),
+		valueInput: BX('feed-add-post-destination-input'),
 		formName: window.BXSocNetLogDestinationFormName,
 		tagInputName: 'bx-destination-tag',
 		tagLink1: BX.message('BX_FPD_LINK_1'),
@@ -2299,8 +2292,9 @@ window.onKeyDownHandler = function(e, editor, formID)
 	if (!window['BXfpdStopMent' + formID])
 		return true;
 
-	if (keyCode == 107 || (e.shiftKey || e.modifiers > 3) &&
-		BX.util.in_array(keyCode, [187, 50, 107, 43, 61]))
+	if (keyCode == 107 ||
+		((e.shiftKey || e.modifiers > 3) && BX.util.in_array(keyCode, [187, 50, 107, 43, 61])) ||
+		(e.altKey && BX.util.in_array(keyCode, [76])) /* German @ == Alt + L*/)
 	{
 		setTimeout(function()
 		{
@@ -2822,7 +2816,9 @@ window.MPFMentionInit = function(formId, params)
 			itemsSelected : params["itemsSelected"],
 			isCrmFeed : params["isCrmFeed"],
 			useClientDatabase: (!!params["useClientDatabase"]),
-			destSort: params["destSort"]
+			destSort: params["destSort"],
+			allowAddUser: params["allowAddUser"],
+			userNameTemplate: (typeof params["userNameTemplate"] != 'undefined' ? params["userNameTemplate"] : '')
 		});
 		BX.bind(BX('feed-add-post-destination-input'), 'keyup', BX.delegate(BX.SocNetLogDestination.BXfpSearch, {
 			formName: window.BXSocNetLogDestinationFormName,
@@ -2971,7 +2967,9 @@ window.MPFMentionInit = function(formId, params)
 		destSort: (typeof params["mentionDestSort"] != 'undefined' && params["mentionDestSort"] ? params["mentionDestSort"] : {}),
 		departmentSelectDisable : true,
 		obWindowClass : 'bx-lm-mention',
-		obWindowCloseIcon : false
+		obWindowCloseIcon : false,
+		useClientDatabase: (!!params["useClientDatabase"]),
+		userNameTemplate: (typeof params["userNameTemplate"] != 'undefined' ? params["userNameTemplate"] : '')
 	});
 
 	BX.ready(function() {

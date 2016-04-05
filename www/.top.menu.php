@@ -15,6 +15,13 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
+		"Решения", 
+		"resheniya/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
 		"Магазин", 
 		"katalog/", 
 		Array(), 
@@ -29,8 +36,29 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"Информация", 
-		"informatsiya/", 
+		"Инструменты", 
+		"instrumenty_dlya_prodvizheniya/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Техподдержка", 
+		"texpodderzhka/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Новости", 
+		"novosti/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Блог", 
+		"blog/", 
 		Array(), 
 		Array(), 
 		"" 
@@ -43,15 +71,8 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"Прайс-лист", 
-		"o-kompanii/prays-list/", 
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
-		"Акции", 
-		"informatsiya/aktsii/", 
+		"Информация", 
+		"informatsiya/", 
 		Array(), 
 		Array(), 
 		"" 

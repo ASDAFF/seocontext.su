@@ -98,7 +98,10 @@ if($ID > 0)
 		'select' => array(
 			'ID', 'DATE_CREATE', 'DATE_SENT',
 			'MAILING_CHAIN_REITERATE' => 'MAILING_CHAIN.REITERATE',
-			'SUBJECT' => 'MAILING_CHAIN.SUBJECT'
+			'SUBJECT' => 'MAILING_CHAIN.SUBJECT',
+
+			'COUNT_SEND_ALL', 'COUNT_SEND_NONE', 'COUNT_SEND_ERROR', 'COUNT_SEND_SUCCESS',
+			'COUNT_SEND_DENY', 'COUNT_READ', 'COUNT_CLICK', 'COUNT_UNSUB'
 		),
 		'filter' => array('MAILING_CHAIN_ID' => $ID, '!DATE_SENT' => null),
 		'order' => array('DATE_SENT' => 'DESC', 'DATE_CREATE' => 'DESC'),
@@ -106,6 +109,7 @@ if($ID > 0)
 	));
 	$arPosting = $postingDb->fetch();
 
+	// get reiterate postings statistic
 	$arPostingReiterateList = array();
 	if (!empty($arPosting) && $arPosting['MAILING_CHAIN_REITERATE'] == 'Y')
 	{
@@ -114,7 +118,8 @@ if($ID > 0)
 		$postingReiterateList = array();
 		$postingReiterateDb = \Bitrix\Sender\PostingTable::getList(array(
 			'select' => array(
-				'ID', 'DATE_SENT'
+				'ID', 'DATE_SENT',
+				'COUNT_SEND_ALL', 'COUNT_READ', 'COUNT_CLICK', 'COUNT_UNSUB'
 			),
 			'filter' => array(
 				'MAILING_CHAIN_ID' => $ID,
@@ -125,44 +130,8 @@ if($ID > 0)
 		));
 		while($postingReiterate = $postingReiterateDb->fetch())
 		{
-			$postingReiterate['CNT'] = 0;
-			$postingReiterate['READ_CNT'] = 0;
-			$postingReiterate['CLICK_CNT'] = 0;
-			$postingReiterate['UNSUB_CNT'] = 0;
-
+			$postingReiterate['CNT'] = $postingReiterate['COUNT_SEND_ALL'];
 			$postingReiterateList[$postingReiterate['ID']] = $postingReiterate;
-		}
-		$postingReiterateListId = array_keys($postingReiterateList);
-
-		$paramList = array('Recipient', 'Read', 'Click', 'Unsub');
-		foreach($paramList as $paramName)
-		{
-			if($paramName == 'Recipient')
-			{
-				$paramNameKey = 'CNT';
-				$paramGetListArgs = array(
-					'select' => array('POSTING_ID', 'CNT'),
-					'filter' => array('POSTING_ID' => $postingReiterateListId),
-					'runtime' => array(new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(%s)', 'ID'))
-				);
-			}
-			else
-			{
-				$paramNameKey = strtoupper($paramName).'_CNT';
-				$paramGetListArgs = array(
-					'select' => array('POSTING_ID', 'CNT'),
-					'filter' => array('POSTING_ID' => $postingReiterateListId),
-					'runtime' => array(new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(DISTINCT %s)', 'RECIPIENT_ID'))
-				);
-			}
-
-			$statDb = call_user_func_array(
-				array('Bitrix\Sender\Posting' . $paramName . 'Table', 'getList'),
-				array($paramGetListArgs));
-			while($statParam = $statDb->fetch())
-			{
-				$postingReiterateList[$statParam['POSTING_ID']][$paramNameKey] = $statParam['CNT'];
-			}
 		}
 
 		foreach($postingReiterateList as $arPostingReiterate)
@@ -178,14 +147,14 @@ if($ID > 0)
 				'date' => $arPostingReiterate['DATE_SENT']->format("d/m"),
 
 				'sent' => $arPostingReiterate['CNT'],
-				'read' => $arPostingReiterate['READ_CNT'],
-				'click' => $arPostingReiterate['CLICK_CNT'],
-				'unsub' => $arPostingReiterate['UNSUB_CNT'],
+				'read' => $arPostingReiterate['COUNT_READ'],
+				'click' => $arPostingReiterate['COUNT_CLICK'],
+				'unsub' => $arPostingReiterate['COUNT_UNSUB'],
 
 				'sent_prsnt' => '100',
-				'read_prsnt' => round($arPostingReiterate['READ_CNT']/$cntDivider, 2),
-				'click_prsnt' => round($arPostingReiterate['CLICK_CNT']/$cntDivider, 2),
-				'unsub_prsnt' => round($arPostingReiterate['UNSUB_CNT']/$cntDivider, 2)
+				'read_prsnt' => round($arPostingReiterate['COUNT_READ']/$cntDivider, 2),
+				'click_prsnt' => round($arPostingReiterate['COUNT_CLICK']/$cntDivider, 2),
+				'unsub_prsnt' => round($arPostingReiterate['COUNT_UNSUB']/$cntDivider, 2)
 			);
 		}
 
@@ -203,49 +172,21 @@ if($ID > 0)
 		}
 	}
 
+	// get statistic by last posting
 	if(!empty($arPosting))
 	{
-		$statListDb = \Bitrix\Sender\PostingRecipientTable::getList(array(
-			'select' => array('STATUS', 'CNT'),
-			'filter' => array('POSTING_ID' => $arPosting['ID']),
-			'runtime' => array(
-				new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(%s)', 'ID'),
-			),
-		));
-		while($stat = $statListDb->fetch())
-		{
-			$statResult['all'] += $stat['CNT'];
-			switch($stat['STATUS'])
-			{
-				case \Bitrix\Sender\PostingRecipientTable::SEND_RESULT_SUCCESS:
-					$statResult['delivered'] = $stat['CNT'];
-					break;
-				case \Bitrix\Sender\PostingRecipientTable::SEND_RESULT_ERROR:
-					$statResult['error'] = $stat['CNT'];
-					break;
-				case \Bitrix\Sender\PostingRecipientTable::SEND_RESULT_NONE:
-					$statResult['not_send'] = $stat['CNT'];
-					break;
-			}
-		}
-		$statResult['all_print'] = $statResult['all'];
+		$statResult['all'] = $arPosting['COUNT_SEND_ALL'];
+		$statResult['delivered'] = $arPosting['COUNT_SEND_SUCCESS'];
+		$statResult['not_send'] = $arPosting['COUNT_SEND_NONE'];
+		$statResult['error'] = $arPosting['COUNT_SEND_ERROR'];
 
-		$paramList = array('Read', 'Click', 'Unsub');
-		foreach($paramList as $paramName)
-		{
-			$paramGetListArgs = array(
-				'select' => array('CNT'),
-				'filter' => array('POSTING_ID' => $arPosting['ID']),
-				'runtime' => array(new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(DISTINCT %s)', 'RECIPIENT_ID'))
-			);
-			$statDb = call_user_func_array(
-				array('Bitrix\Sender\Posting' . $paramName . 'Table', 'getList'),
-				array($paramGetListArgs));
-			$statParam = $statDb->fetch();
-			$statResult[strtolower($paramName)] = $statParam['CNT'];
-		}
+		$statResult['read'] = $arPosting['COUNT_READ'];
+		$statResult['click'] = $arPosting['COUNT_CLICK'];
+		$statResult['unsub'] = $arPosting['COUNT_UNSUB'];
+		$statResult['all_print'] = $statResult['all'];
 	}
 
+	// get url clicking statistic
 	if(!empty($arPosting))
 	{
 		$statClickDb = \Bitrix\Sender\PostingClickTable::getList(array(

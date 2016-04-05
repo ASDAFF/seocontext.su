@@ -59,6 +59,16 @@ class CBPSequentialWorkflowActivity
 		{
 			$this->ClearVariables();
 			$this->ClearProperties();
+
+			/** @var CBPActivity $event */
+			foreach ($this->arEventsMap as $eventName)
+			{
+				foreach ($eventName as $event)
+				{
+					if (method_exists($event, 'Cancel'))
+						$event->Cancel();
+				}
+			}
 		}
 		try
 		{

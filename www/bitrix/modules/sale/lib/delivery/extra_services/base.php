@@ -182,4 +182,9 @@ abstract class Base
 	{
 		return $this->operatingCurrency;
 	}
+
+	public function getCode()
+	{
+		return $this->code;
+	}
 }

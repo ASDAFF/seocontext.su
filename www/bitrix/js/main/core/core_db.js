@@ -64,7 +64,7 @@
 		this.query(
 			{
 				query: "SELECT tbl_name from sqlite_master WHERE type = 'table'",
-				values: {}
+				values: []
 			},
 			function (res)
 			{
@@ -90,11 +90,11 @@
 		if (params.success)
 		{
 			var userSuccessCallback = params.success;
-			params.success = function (result)
+			params.success = BX.proxy(function (result)
 			{
 				userSuccessCallback(result);
 				this.getTableList();
-			}
+			}, this);
 		}
 		var str = this.getQuery(params);
 		this.query(str, params.success, params.fail);
@@ -329,7 +329,7 @@
 				i++;
 			}
 		}
-		return "WHERE " + pairsRow;
+		return pairsRow == "" ? "" : "WHERE " + pairsRow;
 	};
 
 	/**

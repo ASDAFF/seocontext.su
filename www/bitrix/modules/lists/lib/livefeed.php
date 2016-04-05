@@ -21,6 +21,8 @@ class CListsLiveFeed
 		if(!CLists::getLiveFeed($element["IBLOCK_ID"]))
 			return false;
 
+		$params = serialize(array("ELEMENT_NAME" => $element['NAME']));
+
 		$element['NAME'] = preg_replace_callback(
 			'#^[^\[\]]+?\[(\d+)\]#i',
 			function ($matches)
@@ -30,7 +32,7 @@ class CListsLiveFeed
 				if ($ar = $db->GetNext())
 				{
 					$ix = randString(5);
-					return '<a class="feed-post-user-name" id="bp_'.$userId.'_'.$ix.'" href="#" onClick="return false;"
+					return '<a class="feed-post-user-name" id="bp_'.$userId.'_'.$ix.'" href="/company/personal/user/'.$userId.'/"
 						bx-post-author-id="'.$userId.'">'.CUser::FormatName(CSite::GetNameFormat(false), $ar, false, false).'</a>
 						<script type="text/javascript">if (BX.tooltip) BX.tooltip(\''.$userId.'\', "bp_'.$userId.'_'.$ix.'", "");</script>';
 				}
@@ -66,6 +68,7 @@ class CListsLiveFeed
 				'MODULE_ID' => 'lists',
 				'TITLE_TEMPLATE' => $urlElement,
 				'TITLE' => $element['IBLOCK_NAME'],
+				'PARAMS' => $params,
 				'MESSAGE' => $workflowId,
 				'CALLBACK_FUNC' => false,
 				'SITE_ID' => $siteId,
@@ -211,7 +214,8 @@ class CListsLiveFeed
 				'UPDATE_CALLBACK' => array('CSocNetLogTools', 'UpdateComment_Forum'),
 				'DELETE_CALLBACK' => array('CSocNetLogTools', 'DeleteComment_Forum'),
 				'CLASS_FORMAT' => 'CSocNetLogTools',
-				'METHOD_FORMAT' => 'FormatComment_Forum'
+				'METHOD_FORMAT' => 'FormatComment_Forum',
+				"RATING_TYPE_ID" => "FORUM_POST"
 			)
 		);
 	}
@@ -422,6 +426,11 @@ class CListsLiveFeed
 								$fieldsMessage['FILES'][] = array('FILE_ID' => $fileId);
 							}
 						}
+
+						if (array_key_exists("UF_SONET_COM_URL_PRV", $tmp))
+						{
+							$GLOBALS["UF_FORUM_MES_URL_PRV"] = $tmp["UF_SONET_COM_URL_PRV"];
+						}
 					}
 
 					$messageId = ForumAddMessage("REPLY", $forumId, $topicId, 0, $fieldsMessage, $error, $note);
@@ -434,6 +443,7 @@ class CListsLiveFeed
 							$ufFileId[] = $addedMessageFiles['FILE_ID'];
 						}
 						$ufDocId = $GLOBALS['USER_FIELD_MANAGER']->getUserFieldValue('FORUM_MESSAGE', 'UF_FORUM_MESSAGE_DOC', $messageId, LANGUAGE_ID);
+						$ufUrlPreview = $GLOBALS["USER_FIELD_MANAGER"]->GetUserFieldValue("FORUM_MESSAGE", "UF_FORUM_MES_URL_PRV", $messageID, LANGUAGE_ID);
 					}
 				}
 			}
@@ -453,7 +463,8 @@ class CListsLiveFeed
 			'NOTES' => $note,
 			'UF' => array(
 				'FILE' => $ufFileId,
-				'DOC' => $ufDocId
+				'DOC' => $ufDocId,
+				'URL_PREVIEW' => $ufUrlPreview
 			)
 		);
 	}
@@ -498,12 +509,14 @@ class CListsLiveFeed
 		{
 			foreach($users as $userId)
 			{
-				$logFollowObject = CSocNetLogFollow::getList(array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF', 'TYPE'));
+				$logFollowObject = CSocNetLogFollow::getList(
+					array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF', 'TYPE'));
 				$logFollow = $logFollowObject->fetch();
 				if(!empty($logFollow) && $logFollow['TYPE'] == 'Y' && !$logFollow['BY_WF'])
 				{
 					CSocNetLogFollow::delete($userId, 'L'.$logId, false);
-					CSocNetLogFollow::set($userId, 'L'.$logId, $type, ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), true);
+					CSocNetLogFollow::set($userId, 'L'.$logId, $type,
+						ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), SITE_ID, true);
 				}
 			}
 		}
@@ -513,17 +526,20 @@ class CListsLiveFeed
 			{
 				foreach($users as $userId)
 				{
-					$logFollowObject = CSocNetLogFollow::getList(array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF'));
+					$logFollowObject = CSocNetLogFollow::getList(
+						array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF'));
 					$logFollow = $logFollowObject->fetch();
 					if(!empty($logFollow) && ($logFollow['BY_WF'] == 'Y' || $addingComment))
 					{
 						CSocNetLogFollow::delete($userId, 'L'.$logId, false);
-						CSocNetLogFollow::set($userId, 'L'.$logId, $type, ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), true);
+						CSocNetLogFollow::set($userId, 'L'.$logId, $type,
+							ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), SITE_ID, true);
 					}
 					elseif(empty($logFollow))
 					{
 						CSocNetLogFollow::delete($userId, 'L'.$logId, false);
-						CSocNetLogFollow::set($userId, 'L'.$logId, $type, ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), true);
+						CSocNetLogFollow::set($userId, 'L'.$logId, $type,
+							ConvertTimeStamp(time() + CTimeZone::GetOffset(), "FULL", SITE_ID), SITE_ID,  true);
 					}
 				}
 			}
@@ -531,7 +547,8 @@ class CListsLiveFeed
 			{
 				foreach($users as $userId)
 				{
-					$logFollowObject = CSocNetLogFollow::getList(array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF'));
+					$logFollowObject = CSocNetLogFollow::getList(
+						array('USER_ID' => $userId, 'REF_ID' => $logId), array('BY_WF'));
 					$logFollow = $logFollowObject->fetch();
 					if(!empty($logFollow) && $logFollow['BY_WF'] == 'Y')
 					{
@@ -566,6 +583,7 @@ class CListsLiveFeed
 			&& !empty($fields['PARAM2'])
 			&& !empty($bxSocNetSearch->_params["PATH_TO_WORKFLOW"])
 			&& CModule::IncludeModule("forum")
+			&& CModule::IncludeModule("bizproc")
 		)
 		{
 			$topic = CForumTopic::GetByID($fields['PARAM2']);
@@ -652,18 +670,20 @@ class CListsLiveFeed
 			),
 			false,
 			false,
-			array("SOURCE_ID", "URL", "TITLE", "USER_ID")
+			array("SOURCE_ID", "URL", "TITLE", "USER_ID", "PARAMS")
 		);
 
 		if (($log = $logQuery->fetch()) && (intval($log["SOURCE_ID"]) > 0))
 		{
+			$params = unserialize($log["PARAMS"]);
+			$title = $log["TITLE"]." - ".$params["ELEMENT_NAME"];
 			CListsLiveFeed::notifyComment(
 				array(
 					"LOG_ID" => $comment["LOG_ID"],
 					"TO_USER_ID" => $log["USER_ID"],
 					"FROM_USER_ID" => $comment["USER_ID"],
 					"URL" => $log["URL"],
-					"TITLE" => $log["TITLE"]
+					"TITLE" => $title
 				)
 			);
 		}
@@ -688,18 +708,20 @@ class CListsLiveFeed
 			),
 			false,
 			false,
-			array("ID", "SOURCE_ID", "URL", "TITLE", "USER_ID")
+			array("ID", "SOURCE_ID", "URL", "TITLE", "USER_ID", "PARAMS")
 		);
 
 		if (($log = $logQuery->fetch()) && (intval($log["SOURCE_ID"]) > 0))
 		{
+			$params = unserialize($log["PARAMS"]);
+			$title = $log["TITLE"]." - ".$params["ELEMENT_NAME"];
 			CListsLiveFeed::notifyComment(
 				array(
 					"LOG_ID" => $log["ID"],
 					"TO_USER_ID" => $log["USER_ID"],
 					"FROM_USER_ID" => $comment["USER_ID"],
 					"URL" => $log["URL"],
-					"TITLE" => $log["TITLE"]
+					"TITLE" => $title
 				)
 			);
 		}
@@ -721,7 +743,7 @@ class CListsLiveFeed
 		$userQuery = CUser::getList(
 			$by = "id",
 			$order = "asc",
-			array("ID_EQUAL_EXACT" => intval($comment["TO_USER_ID"])),
+			array("ID_EQUAL_EXACT" => intval($comment["FROM_USER_ID"])),
 			array("FIELDS" => array("PERSONAL_GENDER"))
 		);
 		if ($user = $userQuery->fetch())
@@ -743,6 +765,7 @@ class CListsLiveFeed
 			"FROM_USER_ID" => $comment["FROM_USER_ID"],
 			"NOTIFY_TYPE" => IM_NOTIFY_FROM,
 			"NOTIFY_MODULE" => "lists",
+			"NOTIFY_TAG" => "SONET|EVENT|".$comment["LOG_ID"],
 			"NOTIFY_EVENT" => "event_lists_comment_add",
 			"NOTIFY_MESSAGE" => $messageAddComment
 		);
@@ -769,7 +792,7 @@ class CListsLiveFeed
 			),
 			false,
 			false,
-			array("ID", "TITLE", "SOURCE_ID")
+			array("ID", "TITLE", "SOURCE_ID", "PARAMS")
 		);
 
 		if ($arLog = $dbLog->GetNext())
@@ -781,7 +804,9 @@ class CListsLiveFeed
 				$genderSuffix = $arUser["PERSONAL_GENDER"];
 			}
 
-			$entityName = GetMessage("LISTS_LF_COMMENT_MENTION_TITLE", Array("#PROCESS#" => $arLog["TITLE"]));
+			$params = unserialize($arLog["~PARAMS"]);
+			$title = $arLog["TITLE"]." - ".$params["ELEMENT_NAME"];
+			$entityName = GetMessage("LISTS_LF_COMMENT_MENTION_TITLE", Array("#PROCESS#" => $title));
 			$notifyMessage = GetMessage("LISTS_LF_COMMENT_MENTION" . (strlen($genderSuffix) > 0 ? "_" . $genderSuffix : ""), Array("#title#" => "<a href=\"#url#\" class=\"bx-notifier-item-action\">".$entityName."</a>"));
 			$notifyMessageOut = GetMessage("LISTS_LF_COMMENT_MENTION" . (strlen($genderSuffix) > 0 ? "_" . $genderSuffix : ""), Array("#title#" => $entityName)) . " (" . "#server_name##url#)";
 

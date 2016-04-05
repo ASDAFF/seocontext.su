@@ -35,6 +35,9 @@ if ($arParams["COMMENTS_TYPE"] == "blog")
 }
 else
 {
+	if ($_REQUEST["photo_list_action"] == 'load_comments' && $_REQUEST["AJAX_CALL"] == "Y")
+		$APPLICATION->RestartBuffer();
+
 	$APPLICATION->IncludeComponent(
 		"bitrix:forum.topic.reviews",
 		$arParams["POPUP_MODE"] == "Y" ? "photogallery" : "",
@@ -46,9 +49,9 @@ else
 			"PREORDER" => $arParams["PREORDER"],
 			"PATH_TO_SMILE" => $arParams["PATH_TO_SMILE"],
 			"FORUM_ID" => $arParams["FORUM_ID"],
-			"URL_TEMPLATES_READ" => $arParams["URL_TEMPLATES_READ"],
-			"URL_TEMPLATES_DETAIL" => $arParams["DETAIL_URL"],
-			"URL_TEMPLATES_PROFILE_VIEW" => $arParams["URL_TEMPLATES_PROFILE_VIEW"],
+			"URL_TEMPLATES_READ" => $arParams["~URL_TEMPLATES_READ"],
+			"URL_TEMPLATES_DETAIL" => $arParams["~DETAIL_URL"],
+			"URL_TEMPLATES_PROFILE_VIEW" => $arParams["~URL_TEMPLATES_PROFILE_VIEW"],
 			"SHOW_LINK_TO_FORUM" => $arParams["SHOW_LINK_TO_FORUM"],
 			"ELEMENT_ID" => $arParams["ELEMENT_ID"],
 			"IBLOCK_ID" => $arParams["IBLOCK_ID"],

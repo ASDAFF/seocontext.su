@@ -5,6 +5,7 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 use Bitrix\Main\Type;
 use Bitrix\Main\Config\Option;
 use Bitrix\Main\Localization\Loc;
+use Bitrix\Main\Web\Json;
 use Bitrix\Security\Mfa\Otp;
 use Bitrix\Security\Mfa\RecoveryCodesTable;
 
@@ -61,7 +62,7 @@ class CSecurityUserRecoveryCodesComponent
 		{
 			$APPLICATION->RestartBuffer();
 			header('Content-Type: application/json', true);
-			echo CSecurityJsonHelper::encode($this->arResult);
+			echo Json::encode($this->arResult);
 			die();
 		}
 		else

@@ -22,4 +22,8 @@ $MESS["GD_SONET_USER_DESC_OTP_CODES"] = "Rocovery codes";
 $MESS["GD_SONET_USER_DESC_OTP_CODES_SHOW"] = "View";
 $MESS["GD_SONET_USER_DESC_OTP_PASSWORDS"] = "Application passwords";
 $MESS["GD_SONET_USER_DESC_OTP_PASSWORDS_SETUP"] = "Settings";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO"] = "Forward messages to your Bitrix24";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_BLOG_POST"] = "To add a post to Activity Stream";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_TASK"] = "To create a task";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_SHOW"] = "show";
 ?>

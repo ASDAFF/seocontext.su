@@ -103,46 +103,21 @@ if(!$canWrite)
 if($_SERVER['REQUEST_METHOD']=='POST' && $_REQUEST['saveajax']=='Y' && check_bitrix_sessid())
 {
 	$APPLICATION->RestartBuffer();
-	CUtil::DecodeUriComponent($_POST);
+	CBPHelper::decodeTemplatePostData($_POST);
 
 	if($_REQUEST['saveuserparams']=='Y')
 	{
 		$d = serialize($_POST['USER_PARAMS']);
-		if (strlen($d) > 64000)
+		if (\Bitrix\Main\Text\String::getBinaryLength($d) > 64000)
 		{
-			?>
-			<script>
+			?><!--SUCCESS--><script>
 			alert('<?=GetMessage("BIZPROC_USER_PARAMS_SAVE_ERROR")?>');
-			</script>
-			<?
+			</script><?
 			die();
 		}
 		CUserOptions::SetOption("~bizprocdesigner", "activity_settings", $d);
-		die();
+		die('<!--SUCCESS-->');
 	}
-
-	if (LANG_CHARSET != "UTF-8")
-	{
-		function BPasDecodeArrayKeys($item)
-		{
-			if (is_array($item))
-			{
-				$ar = array();
-
-				foreach ($item as $k => $v)
-					$ar[$GLOBALS["APPLICATION"]->ConvertCharset($k, "UTF-8", LANG_CHARSET)] = BPasDecodeArrayKeys($v);
-
-				return $ar;
-			}
-			else
-			{
-				return $item;
-			}
-		}
-
-		$_POST = BPasDecodeArrayKeys($_POST);
-	}
-	//print_r($_POST["arWorkflowTemplate"]);
 
 	$arFields = Array(
 		"DOCUMENT_TYPE" => array(MODULE_ID, ENTITY, $document_type),
@@ -167,11 +142,9 @@ if($_SERVER['REQUEST_METHOD']=='POST' && $_REQUEST['saveajax']=='Y' && check_bit
 	{
 		// PHP 5.2.1 bug http://bugs.php.net/bug.php?id=40456
 		//print_r($e);
-		?>
-		<script>
-			alert('<?=GetMessage("BIZPROC_WFEDIT_SAVE_ERROR")?>\n<?=preg_replace('#\.\W?#', ".\\n", AddSlashes(htmlspecialcharsbx($e->getMessage())))?>');
-		</script>
-		<?
+		?><!--SUCCESS--><script>
+			alert('<?=GetMessage("BIZPROC_WFEDIT_SAVE_ERROR")?>\n<?=preg_replace('#\.\W?#', ".\\n", CUtil::JSEscape($e->getMessage()))?>');
+		</script><?
 		die();
 	}
 
@@ -190,11 +163,10 @@ if($_SERVER['REQUEST_METHOD']=='POST' && $_REQUEST['saveajax']=='Y' && check_bit
 		wfeexception_handler($e);
 	}
 	restore_exception_handler();
-	?>
-	<script>
-	window.location = '<?=($_REQUEST["apply"]=="Y"? str_replace("#ID#", $ID, $arResult["EDIT_PAGE_TEMPLATE"]) : CUtil::JSEscape($arResult["LIST_PAGE_URL"]))?>';
-	</script>
-	<?
+	?><!--SUCCESS--><script>
+		BPTemplateIsModified = false;
+		window.location = '<?=($_REQUEST["apply"]=="Y"? str_replace("#ID#", $ID, $arResult["EDIT_PAGE_TEMPLATE"]) : CUtil::JSEscape($arResult["LIST_PAGE_URL"]))?>';
+	</script><?
 	die();
 }
 
@@ -261,17 +233,23 @@ if($_SERVER['REQUEST_METHOD']=='POST' && $_REQUEST['import_template']=='Y' && ch
 	die();
 }
 
-$arAllActGroups = Array(
-//		"main" => GetMessage("BIZPROC_WFEDIT_CATEGORY_MAIN"),
+$arAllActGroups = array(
 		"document" => GetMessage("BIZPROC_WFEDIT_CATEGORY_DOC"),
 		"logic" => GetMessage("BIZPROC_WFEDIT_CATEGORY_CONSTR"),
 		"interaction" => GetMessage("BIZPROC_WFEDIT_CATEGORY_INTER"),
 		"rest" => GetMessage("BIZPROC_WFEDIT_CATEGORY_REST"),
-		"other" => GetMessage("BIZPROC_WFEDIT_CATEGORY_OTHER"),
-	);
+);
 
 $runtime = CBPRuntime::GetRuntime();
+$runtime->StartRuntime();
 $arAllActivities = $runtime->SearchActivitiesByType("activity", array(MODULE_ID, ENTITY, $document_type));
+
+foreach ($arAllActivities as $activity)
+{
+	if (!empty($activity['CATEGORY']['OWN_ID']) && !empty($activity['CATEGORY']['OWN_NAME']))
+		$arAllActGroups[$activity['CATEGORY']['OWN_ID']] = $activity['CATEGORY']['OWN_NAME'];
+}
+$arAllActGroups['other'] = GetMessage("BIZPROC_WFEDIT_CATEGORY_OTHER");
 
 if($ID>0)
 	$APPLICATION->SetTitle(GetMessage("BIZPROC_WFEDIT_TITLE_EDIT"));
@@ -291,6 +269,10 @@ $arResult['TEMPLATE_CHECK_STATUS'] = CBPWorkflowTemplateLoader::checkTemplateAct
 $arResult['PARAMETERS'] = $arWorkflowParameters;
 $arResult['VARIABLES'] = $arWorkflowVariables;
 $arResult['CONSTANTS'] = $arWorkflowConstants;
+
+/** @var CBPDocumentService $documentService */
+$documentService = $runtime->GetService('DocumentService');
+$arResult['DOCUMENT_FIELDS'] = $documentService->GetDocumentFields(array(MODULE_ID, ENTITY, $document_type));
 
 $arResult["ID"] = $ID;
 

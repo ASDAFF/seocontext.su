@@ -90,49 +90,67 @@ else
 {
 	$lastDate = "";
 }
+
+$maxExecutionTime = ini_get("max_execution_time");
+$startupError = null;
+if ($maxExecutionTime > 0 && $maxExecutionTime < 30)
+{
+	$startupError = array(
+		"MESSAGE" => GetMessage("SEC_SCANNER_EXECUTION_TIME_TITLE"),
+		"TYPE" => "ERROR",
+		"DETAILS" => GetMessage("SEC_SCANNER_EXECUTION_TIME_DESCRIPTION", array('#MIN#' => 30)),
+		"HTML"=> false
+	);
+}
+
 $APPLICATION->SetTitle(GetMessage("SEC_SCANNER_TITLE"));
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
-?>
-<div id="error_container" class="adm-security-error-container" style="display:none;">
-	<?
-	CAdminMessage::ShowMessage(array(
-		"MESSAGE" => GetMessage("SEC_SCANNER_CRITICAL_ERRORS_TITLE"),
-		"TYPE" => "ERROR",
-		"DETAILS" => "",
-		"HTML"=>true
-	));
-	?>
-</div>
-<form method="POST" action="security_scanner.php?lang=<?=LANG?><?=$_GET["return_url"]? "&amp;return_url=".urlencode($_GET["return_url"]): ""?>" name="settings_form">
-<?$tabControl->Begin();?>
-<?$tabControl->BeginNextTab();?>
-<div class="adm-security-wrap">
-	<div id="start_container" class="adm-security-first-step">
-		<div id="first_start" class="adm-security-text-block" <?=(!CSecuritySiteChecker::isNewTestNeeded())? "style=\"display:none;\"" : ""?>>
-		<?=GetMessage("SEC_SCANNER_CRITICAL_FIRST_START")?>
-		</div>
-		<span id="start_button" class="adm-btn adm-btn-green"><?=GetMessage("SEC_SCANNER_START_BUTTON")?></span>
-	</div>
-	<div id="status_bar" class="adm-security-status-bar" style="display:none;">
-		<div id="progress_bar" style="width: 500px;" class="adm-progress-bar-outer">
-			<div id="progress_bar_inner" style="width: 0px;" class="adm-progress-bar-inner"></div>
-			<div id="progress_text" style="width: 500px;" class="adm-progress-bar-inner-text">0%</div>
-		</div>
-		<div id="current_test"></div>
-		<span id="stop_button" class="adm-btn stop-button"><?=GetMessage("SEC_SCANNER_STOP_BUTTON")?></span>
-	</div>
-	<div id="results_info" class="adm-security-results-info adm-security-title" <?=(empty($lastResults) && empty($lastDate))? "style=\"display:none;\"" : ""?>>
-		<div id="problems_count" style="width: 500px; float: left;"><?=!empty($lastResults)? (GetMessage("SEC_SCANNER_PROBLEMS_COUNT").count($lastResults).GetMessage("SEC_SCANNER_CRITICAL_PROBLEMS_COUNT").$criticalResultsCount): (!empty($lastTestingInfo)? GetMessage("SEC_SCANNER_NO_PROBLEMS") : "")?></div>
-		<div id="last_activity" style="width: 100%; text-align: right;"><?=($lastDate != "")? GetMessage("SEC_SCANNER_TEST_DATE", array("#DATE#" => $lastDate)): ""?></div>
-		<div style="clear:both;"></div>
-	</div>
-	<div id="results" class="adm-security-third-step" <?=(empty($lastResults))? "style=\"display:none;\"" : ""?>></div>
-</div>
-<?$tabControl->End();?>
-</form>
 
-<script id="scanner_messages" type="application/json"><?=CSecurityJsonHelper::encode(IncludeModuleLangFile(__FILE__, false, true))?></script>
-<script id="scanner_results" type="application/json"><?=CSecurityJsonHelper::encode($lastResults)?></script>
+if ($startupError):
+	CAdminMessage::ShowMessage($startupError);
+else:
+?>
+	<div id="error_container" class="adm-security-error-container" style="display:none;">
+		<?
+		CAdminMessage::ShowMessage(array(
+			"MESSAGE" => GetMessage("SEC_SCANNER_CRITICAL_ERRORS_TITLE"),
+			"TYPE" => "ERROR",
+			"DETAILS" => "",
+			"HTML"=>true
+		));
+		?>
+	</div>
+	<form method="POST" action="security_scanner.php?lang=<?=LANG?><?=$_GET["return_url"]? "&amp;return_url=".urlencode($_GET["return_url"]): ""?>" name="settings_form">
+	<?$tabControl->Begin();?>
+	<?$tabControl->BeginNextTab();?>
+	<div class="adm-security-wrap">
+		<div id="start_container" class="adm-security-first-step">
+			<div id="first_start" class="adm-security-text-block" <?=(!CSecuritySiteChecker::isNewTestNeeded())? "style=\"display:none;\"" : ""?>>
+			<?=GetMessage("SEC_SCANNER_CRITICAL_FIRST_START")?>
+			</div>
+			<span id="start_button" class="adm-btn adm-btn-green"><?=GetMessage("SEC_SCANNER_START_BUTTON")?></span>
+		</div>
+		<div id="status_bar" class="adm-security-status-bar" style="display:none;">
+			<div id="progress_bar" style="width: 500px;" class="adm-progress-bar-outer">
+				<div id="progress_bar_inner" style="width: 0px;" class="adm-progress-bar-inner"></div>
+				<div id="progress_text" style="width: 500px;" class="adm-progress-bar-inner-text">0%</div>
+			</div>
+			<div id="current_test"></div>
+			<span id="stop_button" class="adm-btn stop-button"><?=GetMessage("SEC_SCANNER_STOP_BUTTON")?></span>
+		</div>
+		<div id="results_info" class="adm-security-results-info adm-security-title" <?=(empty($lastResults) && empty($lastDate))? "style=\"display:none;\"" : ""?>>
+			<div id="problems_count" style="width: 500px; float: left;"><?=!empty($lastResults)? (GetMessage("SEC_SCANNER_PROBLEMS_COUNT").count($lastResults).GetMessage("SEC_SCANNER_CRITICAL_PROBLEMS_COUNT").$criticalResultsCount): (!empty($lastTestingInfo)? GetMessage("SEC_SCANNER_NO_PROBLEMS") : "")?></div>
+			<div id="last_activity" style="width: 100%; text-align: right;"><?=($lastDate != "")? GetMessage("SEC_SCANNER_TEST_DATE", array("#DATE#" => $lastDate)): ""?></div>
+			<div style="clear:both;"></div>
+		</div>
+		<div id="results" class="adm-security-third-step" <?=(empty($lastResults))? "style=\"display:none;\"" : ""?>></div>
+	</div>
+	<?$tabControl->End();?>
+	</form>
+
+	<script id="scanner_messages" type="application/json"><?=\Bitrix\Main\Web\Json::encode(IncludeModuleLangFile(__FILE__, false, true))?></script>
+	<script id="scanner_results" type="application/json"><?=\Bitrix\Main\Web\Json::encode($lastResults)?></script>
+<?endif;?>
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
 ?>

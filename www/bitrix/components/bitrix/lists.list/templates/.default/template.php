@@ -61,7 +61,7 @@ if($arParams["CAN_EDIT"])
 	);
 }
 
-if($arResult["CAN_ADD_ELEMENT"])
+if($arResult["CAN_READ"])
 {
 	$arToolbar[] = array(
 		"TEXT" => GetMessage("CT_BLL_EXPORT_EXCEL"),
@@ -190,10 +190,9 @@ $APPLICATION->IncludeComponent(
 	),
 	$component, array("HIDE_ICONS" => "Y")
 );
-if($arResult["SECTION_ID"])
-	$sectionId = $arResult["SECTION_ID"];
-else
-	$sectionId = 0;
+
+$sectionId = $arResult["SECTION_ID"] ? $arResult["SECTION_ID"] : 0;
+$socnetGroupId = $arParams["SOCNET_GROUP_ID"] ? $arParams["SOCNET_GROUP_ID"] : 0;
 ?>
 
 <script type="text/javascript">
@@ -202,7 +201,14 @@ else
 			randomString: '<?= $arResult["RAND_STRING"] ?>',
 			iblockTypeId: '<?= $arParams["IBLOCK_TYPE_ID"] ?>',
 			iblockId: '<?= $arResult["IBLOCK_ID"] ?>',
-			sectionId: '<?= $sectionId ?>'
+			sectionId: '<?= $sectionId ?>',
+			socnetGroupId: '<?=$socnetGroupId?>'
 		});
+
+		BX.viewElementBind(
+			'<?=$arResult["GRID_ID"]?>',
+			{showTitle: true},
+			{attr: 'data-bx-viewer'}
+		);
 	});
 </script>

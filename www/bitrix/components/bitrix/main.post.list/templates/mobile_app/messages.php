@@ -19,6 +19,7 @@ BX.message({
 	MPL_RECORD_THUMB_FILE : '<?=CUtil::JSEscape($thumbFile)?>',
 	FC_ERROR : '<?=GetMessageJS("B_B_PC_COM_ERROR")?>',
 	BLOG_C_REPLY : '<?=GetMessageJS("BLOG_C_REPLY")?>',
-	BLOG_C_HIDE : '<?=GetMessageJS("BLOG_C_HIDE")?>'
+	BLOG_C_HIDE : '<?=GetMessageJS("BLOG_C_HIDE")?>',
+	INCORRECT_SERVER_RESPONSE : '<?=GetMessageJS('INCORRECT_SERVER_RESPONSE')?>'
 	});
 </script>

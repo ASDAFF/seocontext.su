@@ -15,6 +15,7 @@ class CIBlockPropertyDirectory
 	protected static $arItemCache = array();
 	protected static $directoryMap = array();
 	protected static $hlblockCache = array();
+	protected static $hlblockClassNameCache = array();
 
 	/**
 	 * Returns property type description.
@@ -237,7 +238,6 @@ function getDirectoryTableHead(e)
 		'max_len' : 35,
 		'change_case' : 'L',
 		'replace_space' : '',
-		'replace_other' : '',
 		'delete_repeat_replace' : true
 	});
 
@@ -639,13 +639,17 @@ HIBSELECT;
 			}
 			if (!empty(self::$hlblockCache[$tableName]))
 			{
-				$entity = HL\HighloadBlockTable::compileEntity(self::$hlblockCache[$tableName]);
-				$entityDataClass = $entity->getDataClass();
 				if (!isset(self::$directoryMap[$tableName]))
-					self::$directoryMap[$tableName] = $entityDataClass::getEntity()->getFields();
+				{
+					$entity = HL\HighloadBlockTable::compileEntity(self::$hlblockCache[$tableName]);
+					self::$hlblockClassNameCache[$tableName] = $entity->getDataClass();
+					self::$directoryMap[$tableName] = $entity->getFields();
+					unset($entity);
+				}
 
 				if (!isset(self::$directoryMap[$tableName]['UF_XML_ID']))
 					return $arResult;
+				$entityDataClass = self::$hlblockClassNameCache[$tableName];
 
 				$nameExist = isset(self::$directoryMap[$tableName]['UF_NAME']);
 				if (!$nameExist)

@@ -36,14 +36,10 @@ if ($_REQUEST['Mode'] == "Type")
 }
 else
 {
-	/** @var CBPDocumentService $documentService*/
-	$fieldTypeObject = $documentService->getFieldTypeObject($_REQUEST['DocumentType'], $type);
-	if ($fieldTypeObject)
-	{
-		global $APPLICATION;
-		$APPLICATION->ShowAjaxHead();
-	}
+	global $APPLICATION;
+	$APPLICATION->ShowAjaxHead();
 
+	/** @var CBPDocumentService $documentService*/
 	echo $documentService->GetFieldInputControl(
 		$_REQUEST['DocumentType'],
 		$type,

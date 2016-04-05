@@ -87,9 +87,7 @@ BX.Currency = {
 	{
 		var index = this.getCurrencyIndex(currency);
 		if (index > -1)
-		{
 			this.currencyList = BX.util.deleteFromArray(this.currencyList, index);
-		}
 	},
 
 	clean: function()
@@ -107,14 +105,11 @@ BX.Currency = {
 		{
 			format.CURRENT_DECIMALS = format.DECIMALS;
 			if (format.HIDE_ZERO === 'Y' && price == parseInt(price, 10))
-			{
 				format.CURRENT_DECIMALS = 0;
-			}
+
 			result = BX.util.number_format(price, format.CURRENT_DECIMALS, format.DEC_POINT, format.THOUSANDS_SEP);
 			if (useTemplate)
-			{
-				result = format.FORMAT_STRING.replace('#', result);
-			}
+				result = format.FORMAT_STRING.replace(/(^|[^&])#/, '$1' + result);
 		}
 		return result;
 	}

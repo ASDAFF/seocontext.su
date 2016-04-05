@@ -1,6 +1,5 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/template.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 if (empty($arResult["ELEMENTS_LIST"])):
 	return true;
 elseif (!$this->__component->__parent || strpos($this->__component->__parent->__name, "photogallery") === false):

@@ -148,8 +148,8 @@ $arAssistSteps = array(
 						"path" => "/bitrix/admin/sale_pay_system.php?lang=".LANGUAGE_ID."&back=main_block_4#showtask",
 						"available" => IsModuleInstalled("sale")
 					),
-					"sale_delivery" => array(
-						"path" => "/bitrix/admin/sale_delivery.php?lang=".LANGUAGE_ID."&back=main_block_4#showtask",
+					(COption::GetOptionString("main", "~sale_converted_15", "") == "Y" ? "sale_delivery_service_list" : "sale_delivery") => array(
+						"path" => "/bitrix/admin/".(COption::GetOptionString("main", "~sale_converted_15", "") == "Y" ? "sale_delivery_service_list" : "sale_delivery").".php?lang=".LANGUAGE_ID."&back=main_block_4#showtask",
 						"available" => IsModuleInstalled("sale")
 					)
 				),
@@ -260,12 +260,15 @@ $arAssistSteps = array(
 				),
 				"ADDITIONAL_ITEMS" => array()
 			),
-			/*"BLOCK_5" => array(
+			"BLOCK_5" => array(
 				"MAIN_ITEMS" => array(
-					"personalization" => ""//TODO pageId
+					"sale_personalization" => array(
+						"path" => "/bitrix/admin/sale_personalization.php?lang=".LANGUAGE_ID."&back=work_block_5#showtask",
+						"available" => IsModuleInstalled("sale")
+					),
 				),
 				"ADDITIONAL_ITEMS" => array()
-			),*/
+			),
 			"BLOCK_6" => array(
 				"MAIN_ITEMS" => array(
 					"blog_comment" => array(

@@ -187,7 +187,7 @@ $MESS["INS_AP_MEM_LIMIT_DESC"] = "The maximum amount of memory in Mb that a scri
 $MESS["IS1_BIT"] = "Bitrix Site Manager";
 $MESS["IS1_BIT_LOZ"] = "Thank you for choosing Bitrix Site Manager";
 $MESS["COPYRIGHT"] = "Copyright &copy; 2001-#CURRENT_YEAR# Bitrix, Inc.";
-$MESS["SUPPORT"] = "<a href=\"http://www.bitrixsoft.com/\" target=\"_blank\">www.bitrixsoft.com</a> <span class=\"instal-footer-separator\"></span> <a href=\"http://www.bitrixsoft.com/support/\" target=\"_blank\">Support</a>";
+$MESS["SUPPORT"] = "<a href=\"https://www.bitrix24.com/\" target=\"_blank\">www.bitrix24.com</a> <span class=\"instal-footer-separator\"></span> <a href=\"https://helpdesk.bitrix24.com/\" target=\"_blank\">Support</a>";
 $MESS["SUPPORT_README"] = "<a href=\"/readme.html\" target=\"_blank\">Installation instructions</a> <span class=\"instal-footer-separator\"></span> ";
 $MESS["FIRST_PAGE"] = "<font class=\"text\">The setup wizard will test your software compatibility and install Bitrix Site Manager.<br><br>After the installation is complete, you can start using your site.<br><br>Using the SiteUpdate system you can update your copy and use the up-to-date version of Bitrix Site Manager.<br><br>You can get more details on Bitrix Site Manager here: <a href=\"http://www.bitrixsoft.com/\" target=\"_blank\">http://www.bitrixsoft.com</a><br><br>Should you have any questions on the installation process, please do not hesitate to contact the <a href=\"http://www.bitrixsoft.com/support/\" target=\"_blank\">Bitrix Helpdesk department</a>.</font>";
 $MESS["GO_TO_CONTROL"] = "Manage site";
@@ -315,4 +315,5 @@ $MESS["MP_MORE"] = "Details";
 $MESS["MP_COUPON"] = "Coupon";
 $MESS["MP_ACTIVATE"] = "Activate";
 $MESS["SC_EA_ER"] = "PHP eAccelerator is not supported.";
+$MESS["ERR_DATABASE_NAME"] = "Incorrect database name.";
 ?>

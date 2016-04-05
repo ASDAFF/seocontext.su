@@ -1,9 +1,9 @@
 <?php
 namespace Bitrix\Sale\Delivery\Restrictions;
 
-use Bitrix\Main\SystemException;
-use Bitrix\Sale\Delivery\Restrictions\Base;
 use \Bitrix\Main\Localization\Loc;
+use Bitrix\Sale\Delivery\Restrictions\Base;
+use Bitrix\Sale\Services\Base\RestrictionManager;
 
 Loc::loadMessages(__FILE__);
 
@@ -24,8 +24,14 @@ class ByPrice extends Base
 		return Loc::getMessage("SALE_DLVR_RSTR_BY_PRICE_DESCRIPT");
 	}
 
-	public function check($price, array $restrictionParams, $deliveryId = 0)
+	public static function check($price, array $restrictionParams, $deliveryId = 0)
 	{
+		if(empty($restrictionParams))
+			return true;
+
+		if($price < 0)
+			return true;
+
 		$price = floatval($price);
 
 		if(floatval($restrictionParams["MIN_PRICE"]) > 0  && $price < floatval($restrictionParams["MIN_PRICE"]))
@@ -38,31 +44,35 @@ class ByPrice extends Base
 		return $result;
 	}
 
-	public function checkByShipment(\Bitrix\Sale\Shipment $shipment, array $restrictionParams, $deliveryId = 0)
+
+	public static function checkByEntity(\Bitrix\Sale\Shipment $shipment, array $restrictionParams, $mode, $deliveryId = 0)
 	{
-		if(empty($restrictionParams))
-			return true;
+		$severity = self::getSeverity($mode);
 
-		$result = true;
+		if($severity == RestrictionManager::SEVERITY_NONE)
+			return RestrictionManager::SEVERITY_NONE;
 
-		if(!$itemCollection = $shipment->getShipmentItemCollection())
-			throw new SystemException("Cant get ShipmentItemCollection");
+		$price = self::extractParams($shipment);
 
-		$shipmentPrice = $itemCollection->getPrice();
-
-		if (\Bitrix\Main\Loader::includeModule('currency'))
+		if (!empty($restrictionParams["CURRENCY"]) && \Bitrix\Main\Loader::includeModule('currency'))
 		{
-			$shipmentPrice = \CCurrencyRates::convertCurrency(
-				$shipmentPrice,
+			$price = \CCurrencyRates::convertCurrency(
+				$price,
 				$shipment->getCurrency(),
 				$restrictionParams["CURRENCY"]
 			);
 		}
 
-		if($shipmentPrice >= 0)
-			$result = $this->check($shipmentPrice, $restrictionParams, $deliveryId);
+		$res = self::check($price, $restrictionParams, $deliveryId);
+		return $res ? RestrictionManager::SEVERITY_NONE : $severity;
+	}
 
-		return $result;
+	protected static function extractParams(\Bitrix\Sale\Shipment $shipment)
+	{
+		if(!$itemCollection = $shipment->getShipmentItemCollection())
+			return -1;
+
+		return $itemCollection->getPrice();
 	}
 
 	public static function getParamsStructure()

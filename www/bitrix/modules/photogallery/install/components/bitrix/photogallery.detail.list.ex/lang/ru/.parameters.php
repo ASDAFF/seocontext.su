@@ -51,4 +51,24 @@ $MESS["P_NAME_TEMPLATE_DEFAULT"] = "#NOBR##LAST_NAME# #NAME##/NOBR#";
 $MESS["P_SHOW_LOGIN"] = "Показывать логин, если не задано имя";
 $MESS["P_PATH_TO_USER"] = "Путь к профилю пользователя";
 $MESS["P_DRAG_SORT"] = "Сортировать фотографии в альбоме перетаскиванием";
+
+$MESS["T_IBLOCK_DESC_REVIEW_SETTINGS"] = "Настройки отзывов";
+$MESS["T_IBLOCK_DESC_USE_COMMENTS"] = "Разрешить отзывы";
+$MESS["P_COMMENTS_TYPE"] = "Компонент комментариев";
+$MESS["P_COMMENTS_TYPE_BLOG"] = "Блоги";
+$MESS["P_COMMENTS_TYPE_FORUM"] = "Форум";
+$MESS["F_BLOG_URL"] = "Блог для комментариев";
+$MESS["F_COMMENTS_COUNT"] = "Количество комментариев на странице";
+$MESS["P_PATH_TO_BLOG"] = "Путь к блогу";
+$MESS["F_PATH_TO_SMILE"] = "Путь относительно корня сайта к папке со смайлами";
+$MESS["F_FORUM_ID"] = "ID форума для отзывов";
+$MESS["F_COMMENTS_COUNT"] = "Количество комментариев на странице";
+$MESS["F_READ_TEMPLATE"] = "Страница чтения темы";
+$MESS["F_PROFILE_VIEW_TEMPLATE"] = "Страница пользователя";
+$MESS["F_PATH_TO_SMILE"] = "Путь относительно корня сайта к папке со смайлами";
+$MESS["F_USE_CAPTCHA"] = "Использовать CAPTCHA";
+$MESS["F_PREORDER"] = "Выводить сообщения в прямом порядке";
+$MESS["F_POST_FIRST_MESSAGE"] = "Начинать тему текстом элемента";
+$MESS["P_SONET_NAME_TEMPLATE"] = "Отображение имени";
+$MESS["P_SONET_NAME_TEMPLATE_DEFAULT"] = "#NOBR##LAST_NAME# #NAME##/NOBR#";
 ?>

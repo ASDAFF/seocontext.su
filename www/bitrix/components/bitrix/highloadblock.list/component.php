@@ -38,13 +38,6 @@ $entity = HL\HighloadBlockTable::compileEntity($hlblock);
 // uf info
 $fields = $GLOBALS['USER_FIELD_MANAGER']->GetUserFields('HLBLOCK_'.$hlblock['ID'], 0, LANGUAGE_ID);
 
-// pagination
-$limit = array(
-	'nPageSize' => $arParams['ROWS_PER_PAGE'],
-	'iNumPage' => is_set($_GET['PAGEN_1']) ? $_GET['PAGEN_1'] : 1,
-	'bShowAll' => true
-);
-
 // sort
 $sort_id = 'ID';
 $sort_type = 'DESC';

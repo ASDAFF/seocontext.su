@@ -142,18 +142,25 @@ namespace Bitrix\Sale\Delivery\AdminPage\DeliveryExtraServiceEdit
 					'LINK' => 'sale_delivery_eservice_edit.php?lang='.LANGUAGE_ID.'&DELIVERY_ID='.$ID.'&'.$tabControl->ActiveTabParam().'&ES_CODE='.$code.'&back_url='.urlencode($APPLICATION->GetCurPageParam()),
 				);
 			}
-
-			if(!empty($menu))
-			{
-				array_unshift($menu, array(
-					'TEXT' => Loc::getMessage('SALE_ESDL_NEW_SERVICE'),
-					"LINK" => 'sale_delivery_eservice_edit.php?lang='.LANGUAGE_ID.'&DELIVERY_ID='.$ID.'&'.$tabControl->ActiveTabParam().'&back_url='.urlencode($APPLICATION->GetCurPageParam()),
-				));
-
-				$addButtonParams["MENU"] = $menu;
-			}
 		}
 
+		$menu[] =  array(
+			'SEPARATOR' => true,
+		);
+
+		/** @var  \Bitrix\Sale\Delivery\ExtraServices\Base $esClass */
+		foreach(ExtraServices\Manager::getClassesList() as $esClass)
+		{
+			if($esClass == '\Bitrix\Sale\Delivery\ExtraServices\String')
+				continue;
+
+			$menu[] =  array(
+				'TEXT' => $esClass::getClassTitle(),
+				"LINK" => 'sale_delivery_eservice_edit.php?lang='.LANGUAGE_ID.'&DELIVERY_ID='.$ID.'&'.$tabControl->ActiveTabParam().'&CLASS_NAME='.urlencode($esClass).'&back_url='.urlencode($APPLICATION->GetCurPageParam()),
+			);
+		}
+
+		$addButtonParams["MENU"] = $menu;
 		$aContext[] = $addButtonParams;
 		$lAdmin->AddAdminContextMenu($aContext, false);
 	}

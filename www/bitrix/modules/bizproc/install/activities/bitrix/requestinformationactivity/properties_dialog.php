@@ -90,7 +90,7 @@ function BPRIAParamFillParam(id, p)
 			r[0].innerHTML = '<a href="javascript:void(0);" onclick="BPRIAParamEditParam(this);">'+HTMLEncode(p['Name'])+"</a>"
 				+ BPRIAToHiddens(p, 'requested_information[' + id + ']');
 
-			r[1].innerHTML = p['Title'];
+			r[1].innerHTML = HTMLEncode(p['Title']);
 			r[2].innerHTML = (objFields.arFieldTypes[p['Type']] ? objFields.arFieldTypes[p['Type']]['Name'] : p['Type'] );
 			r[3].innerHTML = (p['Required']=="Y" ? '<?=GetMessage("BPSFA_PD_YES")?>' : '<?=GetMessage("BPSFA_PD_NO")?>');
 			r[4].innerHTML = (p['Multiple']=="Y" ? '<?=GetMessage("BPSFA_PD_YES")?>' : '<?=GetMessage("BPSFA_PD_NO")?>');
@@ -442,7 +442,7 @@ setTimeout(BPRIAStart, 0);
 			<tr>
 				<td align="right" width="40%" class="adm-detail-content-cell-l" valign="top"><?= GetMessage("BPRIA_PD_DESCR") ?>:</td>
 				<td width="60%" valign="top" class="adm-detail-content-cell-r">
-					<?=CBPDocument::ShowParameterField("text", 'requested_description', $arCurrentValues['requested_description'], Array('rows'=>'3'))?>
+					<?=CBPDocument::ShowParameterField("text", 'requested_description', $arCurrentValues['requested_description'], array('rows' => 7))?>
 				</td>
 			</tr>
 			<tr>
@@ -455,6 +455,15 @@ setTimeout(BPRIAStart, 0);
 					<select name="show_comment">
 						<option value="Y"<?= $arCurrentValues["show_comment"] != "N" ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_YES") ?></option>
 						<option value="N"<?= $arCurrentValues["show_comment"] == "N" ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_NO") ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td align="right" class="adm-detail-content-cell-l"><?= GetMessage("BPAR_PD_COMMENT_REQUIRED") ?>:</td>
+				<td class="adm-detail-content-cell-r">
+					<select name="comment_required">
+						<option value="N"><?= GetMessage("BPSFA_PD_NO") ?></option>
+						<option value="Y"<?= $arCurrentValues["comment_required"] == "Y" ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_YES") ?></option>
 					</select>
 				</td>
 			</tr>
@@ -478,14 +487,21 @@ setTimeout(BPRIAStart, 0);
 			<tr>
 				<td align="right"><?= GetMessage("BPSFA_PD_TIMEOUT_DURATION") ?>:<br/><?= GetMessage("BPSFA_PD_TIMEOUT_DURATION_HINT") ?></td>
 				<td>
-					<input type="text" name="timeout_duration" id="id_timeout_duration" value="<?= htmlspecialcharsbx($arCurrentValues["timeout_duration"]) ?>" size="20" />
-					<input type="button" value="..." onclick="BPAShowSelector('id_timeout_duration', 'int');" />
+					<?=CBPDocument::ShowParameterField('int', 'timeout_duration', $arCurrentValues["timeout_duration"], array('size' => 20))?>
 					<select name="timeout_duration_type">
 						<option value="s"<?= ($arCurrentValues["timeout_duration_type"] == "s") ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_TIME_S") ?></option>
 						<option value="m"<?= ($arCurrentValues["timeout_duration_type"] == "m") ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_TIME_M") ?></option>
 						<option value="h"<?= ($arCurrentValues["timeout_duration_type"] == "h") ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_TIME_H") ?></option>
 						<option value="d"<?= ($arCurrentValues["timeout_duration_type"] == "d") ? " selected" : "" ?>><?= GetMessage("BPSFA_PD_TIME_D") ?></option>
 					</select>
+					<?
+					$delayMinLimit = CBPSchedulerService::getDelayMinLimit();
+					if ($delayMinLimit):
+						?>
+						<p style="color: red;">* <?= GetMessage("BPSFA_PD_TIMEOUT_LIMIT") ?>: <?=CBPHelper::FormatTimePeriod($delayMinLimit)?></p>
+						<?
+					endif;
+					?>
 				</td>
 			</tr>
 			<tr>

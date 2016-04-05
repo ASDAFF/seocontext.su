@@ -1040,9 +1040,11 @@ class CIBlockDocument
 	}
 
 	/**
-	* @param string $documentId - document id.
-	* @return array - document fields array.
-	*/
+	 * @param $documentId
+	 * @return array - document fields array.
+	 * @throws CBPArgumentNullException
+	 * @throws CBPArgumentOutOfRangeException
+	 */
 	public function GetDocument($documentId)
 	{
 		$documentId = intval($documentId);
@@ -1082,41 +1084,41 @@ class CIBlockDocument
 			{
 				if (strlen($propertyValue["USER_TYPE"]) > 0)
 				{
-					if ($propertyValue["USER_TYPE"] == "UserID"
-						|| $propertyValue["USER_TYPE"] == "employee" && (COption::GetOptionString("bizproc", "employee_compatible_mode", "N") != "Y"))
+					if ($propertyValue["USER_TYPE"] == "UserID" || $propertyValue["USER_TYPE"] == "employee" &&
+						(COption::GetOptionString("bizproc", "employee_compatible_mode", "N") != "Y"))
 					{
-						$arPropertyValue = $propertyValue["VALUE"];
-						$arPropertyKey = isset($propertyValue["VALUE_ENUM_ID"]) ? $propertyValue["VALUE_ENUM_ID"] : $propertyValue["PROPERTY_VALUE_ID"];
-						if (!is_array($arPropertyValue))
+						if(empty($propertyValue["VALUE"]))
 						{
-							$db = CUser::GetByID($arPropertyValue);
-							if ($ar = $db->GetNext())
-							{
-								$arResult["PROPERTY_".$propertyKey] = "user_".intval($arPropertyValue);
-								$arResult["PROPERTY_".$propertyKey."_PRINTABLE"] = "(".$ar["LOGIN"].")".((strlen($ar["NAME"]) > 0 || strlen($ar["LAST_NAME"]) > 0) ? " " : "").$ar["NAME"].((strlen($ar["NAME"]) > 0 && strlen($ar["LAST_NAME"]) > 0) ? " " : "").$ar["LAST_NAME"];
-							}
+							continue;
 						}
-						else
+						if(!is_array($propertyValue["VALUE"]))
 						{
-							for ($i = 0, $cnt = count($arPropertyValue); $i < $cnt; $i++)
+							$propertyValue["VALUE"] = array($propertyValue["VALUE"]);
+						}
+						$listUsers = implode(' | ', $propertyValue["VALUE"]);
+						$userQuery = CUser::getList($by = 'ID', $order = 'ASC',
+							array('ID' => $listUsers) ,
+							array('FIELDS' => array('ID' ,'LOGIN', 'NAME', 'LAST_NAME')));
+						while($user = $userQuery->fetch())
+						{
+							if($propertyValue["MULTIPLE"] == "Y")
 							{
-								$db = CUser::GetByID($arPropertyValue[$i]);
-								if ($ar = $db->GetNext())
-								{
-									$arResult["PROPERTY_".$propertyKey][$arPropertyKey[$i]] = "user_".intval($arPropertyValue[$i]);
-									$arResult["PROPERTY_".$propertyKey."_PRINTABLE"][$arPropertyKey[$i]] = "(".$ar["LOGIN"].")".((strlen($ar["NAME"]) > 0 || strlen($ar["LAST_NAME"]) > 0) ? " " : "").$ar["NAME"].((strlen($ar["NAME"]) > 0 && strlen($ar["LAST_NAME"]) > 0) ? " " : "").$ar["LAST_NAME"];
-								}
+								$arResult["PROPERTY_".$propertyKey][$user['ID']] = "user_".intval($user['ID']);
+								$arResult["PROPERTY_".$propertyKey."_PRINTABLE"][$user['ID']] = "(".$user["LOGIN"].")".
+									((strlen($user["NAME"]) > 0 || strlen($user["LAST_NAME"]) > 0) ? " " : "").$user["NAME"].
+									((strlen($user["NAME"]) > 0 && strlen($user["LAST_NAME"]) > 0) ? " " : "").$user["LAST_NAME"];
+							}
+							else
+							{
+								$arResult["PROPERTY_".$propertyKey] = "user_".intval($user['ID']);
+								$arResult["PROPERTY_".$propertyKey."_PRINTABLE"] = "(".$user["LOGIN"].")".
+									((strlen($user["NAME"]) > 0 || strlen($user["LAST_NAME"]) > 0) ? " " : "").$user["NAME"].
+									((strlen($user["NAME"]) > 0 && strlen($user["LAST_NAME"]) > 0) ? " " : "").$user["LAST_NAME"];
 							}
 						}
 					}
 					elseif($propertyValue["USER_TYPE"] == "DiskFile")
 					{
-
-						if(!CModule::includeModule("disk"))
-						{
-							continue;
-						}
-
 						if(is_array($propertyValue["VALUE"]))
 						{
 							if($propertyValue["MULTIPLE"] == "Y")
@@ -1124,34 +1126,37 @@ class CIBlockDocument
 								$propertyValue["VALUE"] = current($propertyValue["VALUE"]);
 							}
 
+							if(!is_array($propertyValue["VALUE"]))
+							{
+								continue;
+							}
+
 							foreach($propertyValue["VALUE"] as $attachedId)
 							{
-								$attachedId = (int)$attachedId;
-								$attachedModel = \Bitrix\Disk\AttachedObject::loadById($attachedId, array('OBJECT'));
-
-								if(!$attachedModel)
+								$userType = \CIBlockProperty::getUserType($propertyValue['USER_TYPE']);
+								$fileId = null;
+								if (array_key_exists('GetObjectId', $userType))
+								{
+									$fileId = call_user_func_array($userType['GetObjectId'], array($attachedId));
+								}
+								if(!$fileId)
 								{
 									continue;
 								}
-								$file = $attachedModel->getFile();
-								if(!$file)
+								$printableUrl = '';
+								if (array_key_exists('GetUrlAttachedFileElement', $userType))
 								{
-									continue;
+									$printableUrl = call_user_func_array($userType['GetUrlAttachedFileElement'], array($documentId, $fileId));
 								}
 
-								$driver = \Bitrix\Disk\Driver::getInstance();
-								$urlManager = $driver->getUrlManager();
-								$arResult["PROPERTY_".$propertyKey][$attachedId] = $file->getId();
-								$arResult["PROPERTY_".$propertyKey."_PRINTABLE"][$attachedId] =
-									'[url='.$urlManager->getUrlUfController('download', array('attachedId' =>
-										$attachedModel->getId())).']'.htmlspecialcharsbx($file->getName()).'[/url] ';
+								$arResult["PROPERTY_".$propertyKey][$attachedId] = $fileId;
+								$arResult["PROPERTY_".$propertyKey."_PRINTABLE"][$attachedId] = $printableUrl;
 							}
 						}
 						else
 						{
 							continue;
 						}
-
 					}
 					else
 					{
@@ -1417,6 +1422,9 @@ class CIBlockDocument
 				"Multiple" => ($arProperty["MULTIPLE"] == "Y"),
 			);
 
+			if(strlen(trim($arProperty["CODE"])) > 0)
+				$arResult[$key]["Alias"] = "PROPERTY_".$arProperty["ID"];
+
 			if (strlen($arProperty["USER_TYPE"]) > 0)
 			{
 				if ($arProperty["USER_TYPE"] == "UserID"
@@ -1581,8 +1589,11 @@ class CIBlockDocument
 		return $arResult;
 	}
 
-	public static function generateMnemonicCode($integerCode)
+	public static function generateMnemonicCode($integerCode = 0)
 	{
+		if(!$integerCode)
+			$integerCode = time();
+
 		$code = '';
 		for ($i = 1; $integerCode >= 0 && $i < 10; $i++)
 		{
@@ -1728,110 +1739,6 @@ class CIBlockDocument
 		return "PROPERTY_".$arFields["code"];
 	}
 
-	/**
-	 * Attaching files from the disk to the iblock element
-	 * @param int $iblockId
-	 * @param int $elementId
-	 * @param int $fileId
-	 * @param array $currentValues Old property values attached id
-	 * @return int Attached Id
-	 */
-	public static function attachFileDisk($iblockId, $elementId, $fileId, $currentValues)
-	{
-		if(!CModule::includeModule('disk'))
-		{
-			return null;
-		}
-
-		$elementId = (int)$elementId;
-		if(!$elementId)
-		{
-			return null;
-		}
-
-		$userFieldManager = Bitrix\Disk\Driver::getInstance()->getUserFieldManager();
-		list($connectorClass, $moduleId) = $userFieldManager->getConnectorDataByEntityType('lists_element');
-		$filter = array(
-			'OBJECT_ID' => $fileId,
-			'=ENTITY_TYPE' => $connectorClass,
-			'=ENTITY_ID' => $elementId,
-			'=MODULE_ID' => $moduleId
-		);
-		$listAttachedModel = Bitrix\Disk\AttachedObject::getModelList(array("filter" => $filter));
-		if(!empty($listAttachedModel))
-		{
-			foreach($listAttachedModel as $attachedModel)
-			{
-				if(in_array($attachedModel->getId(), $currentValues))
-				{
-					return $attachedModel->getId();
-				}
-			}
-		}
-
-		$errorCollection = new Bitrix\Disk\Internals\Error\ErrorCollection();
-		$fileModel = Bitrix\Disk\File::loadById($fileId, array('STORAGE'));
-		if(!$fileModel)
-		{
-			return null;
-		}
-
-		global $USER;
-		if($USER instanceof CUser && $USER->getId())
-		{
-			$userId = $USER->getId();
-		}
-		else
-		{
-			$userId = Bitrix\Disk\SystemUser::SYSTEM_USER_ID;
-		}
-		$attachedModel = Bitrix\Disk\AttachedObject::add(array(
-			'MODULE_ID' => $moduleId,
-			'OBJECT_ID' => $fileModel->getId(),
-			'ENTITY_ID' => $elementId,
-			'ENTITY_TYPE' => $connectorClass,
-			'IS_EDITABLE' => 1,
-			'ALLOW_EDIT' => (int) ((int)Bitrix\Main\Application::getInstance()->getContext()
-					->getRequest()->getPost('DISK_FILE_'.$iblockId.'_DISK_ATTACHED_OBJECT_ALLOW_EDIT')),
-			'CREATED_BY' => $userId,
-		), $errorCollection);
-		if(!$attachedModel || $errorCollection->hasErrors())
-			return null;
-
-		return $attachedModel->getId();
-	}
-
-	/**
-	 * @param array $listAttachedId
-	 * @param $entityId
-	 */
-	public static function deleteAttachedFileDisk(array $listAttachedId, $entityId)
-	{
-		if(!CModule::includeModule('disk'))
-		{
-			return;
-		}
-
-		$userFieldManager = Bitrix\Disk\Driver::getInstance()->getUserFieldManager();
-		foreach($listAttachedId as $idAttached)
-		{
-			list($type, $realId) = Bitrix\Disk\Uf\FileUserType::detectType($idAttached);
-			if($type == Bitrix\Disk\Uf\FileUserType::TYPE_ALREADY_ATTACHED)
-			{
-				$attachedModel = Bitrix\Disk\AttachedObject::loadById($realId);
-				if(!$attachedModel)
-				{
-					continue;
-				}
-
-				if($userFieldManager->belongsToEntity($attachedModel, "lists_element", $entityId))
-				{
-					$attachedModel->delete();
-				}
-			}
-		}
-	}
-
 	public function UpdateDocument($documentId, $arFields)
 	{
 		$documentId = intval($documentId);
@@ -1898,7 +1805,7 @@ class CIBlockDocument
 				$listValue = array();
 				foreach ($arFields[$key] as &$value)
 				{
-					if(CBPHelper::isAssociativeArray($value))
+					if(is_array($value) && CBPHelper::isAssociativeArray($value))
 					{
 						$listXmlId = array_keys($value);
 						foreach($listXmlId as $xmlId)
@@ -1924,75 +1831,14 @@ class CIBlockDocument
 			}
 			elseif($arDocumentFields[$key]["Type"] == "S:DiskFile")
 			{
-				$listFileId = array();
-				foreach ($arFields[$key] as $value)
+				foreach ($arFields[$key] as &$value)
 				{
-					if(is_array($value))
+					if(!empty($value))
 					{
-						foreach($value as $fileId)
-						{
-							if(!empty($fileId))
-							{
-								$listFileId[] = $fileId;
-							}
-						}
-					}
-					else
-					{
-						if(!empty($value))
-						{
-							$listFileId[] = $value;
-						}
+						$value = "n".$value;
 					}
 				}
-				/* Attaching files from the disk to the iblock element */
-				if(!empty($listFileId))
-				{
-					$arFields[$key] = array();
-					$propertyQuery = CIBlockElement::getProperty(
-						$arResult["IBLOCK_ID"],
-						$documentId,
-						"sort", "asc",
-						array("ACTIVE" => "Y", "CODE" => $realKey)
-					);
-					$property = $propertyQuery->fetch();
-					$currentValues["VALUE"] = $property["VALUE"];
-
-					$attachedId = array();
-					foreach($listFileId as $fileId)
-					{
-						$attachId = self::attachFileDisk(
-							$arResult["IBLOCK_ID"],
-							$documentId,
-							$fileId,
-							$currentValues["VALUE"]
-						);
-						if(!empty($attachId))
-						{
-							$attachedId["VALUE"][] = $attachId;
-						}
-					}
-					if(!empty($attachedId))
-					{
-						$arFields[$key][] = $attachedId;
-						$listAttachedId = array();
-						foreach($currentValues["VALUE"] as $attachId)
-						{
-							if(!in_array($attachId, $attachedId["VALUE"]))
-							{
-								$listAttachedId[] = $attachId;
-							}
-						}
-						if(!empty($listAttachedId))
-						{
-							self::deleteAttachedFileDisk($listAttachedId, $documentId);
-						}
-					}
-					else
-					{
-						$arFields[$key][] = $currentValues;
-					}
-				}
+				$arFields[$key] = array("VALUE" => $arFields[$key], "DESCRIPTION" => "workflow");
 			}
 			elseif ($arDocumentFields[$key]["Type"] == "S:HTML")
 			{
@@ -2544,18 +2390,12 @@ class CIBlockDocument
 			{
 				foreach ($arFields[$key] as &$value)
 				{
-					if(is_array($value))
+					if(!empty($value))
 					{
-						foreach($value as $attachId)
-						{
-							$listId[$realKey][] = $attachId;
-						}
-					}
-					else
-					{
-						$listId[$realKey][] = $value;
+						$value = "n".$value;
 					}
 				}
+				$arFields[$key] = array("VALUE" => $arFields[$key], "DESCRIPTION" => "workflow");
 			}
 			elseif ($arDocumentFields[$key]["Type"] == "S:HTML")
 			{
@@ -2591,36 +2431,6 @@ class CIBlockDocument
 		$id = $iblockElement->Add($arFields, false, true, true);
 		if (!$id || $id <= 0)
 			throw new Exception($iblockElement->LAST_ERROR);
-
-		/* Attaching files from the disk to the iblock element */
-		if(!empty($listId))
-		{
-			$fields = array();
-			foreach($listId as $propertyCode => $attachedData)
-			{
-				$attachedId = array();
-				foreach($attachedData as $fileId)
-				{
-					$attachId = self::attachFileDisk(
-						$arFields["IBLOCK_ID"],
-						$id,
-						$fileId,
-						array()
-					);
-					if(!empty($attachId))
-					{
-						$attachedId["VALUE"][] = $attachId;
-					}
-				}
-				$fields["PROPERTY_VALUES"][$propertyCode] = $attachedId;
-			}
-			if (!empty($fields["PROPERTY_VALUES"]))
-			{
-				$iblockElement->SetPropertyValuesEx(
-					$id, $arFields["IBLOCK_ID"], $fields["PROPERTY_VALUES"]);
-			}
-
-		}
 
 		return $id;
 	}
@@ -3417,6 +3227,26 @@ class CIBlockDocument
 			throw new CBPArgumentOutOfRangeException("documentType", $documentType);
 
 		return CIBlock::GetArrayByID($iblockId, "RIGHTS_MODE");
+	}
+
+	public static function generatePropertyCode($name, $code, $iblockId, $propertyId = 0)
+	{
+		if(empty($code))
+		{
+			$code = CUtil::translit($name, LANGUAGE_ID, array("change_case" => "U"));
+		}
+
+		$object = CIBlockProperty::getList(array(), array("IBLOCK_ID" => $iblockId));
+		while($property = $object->fetch())
+		{
+			if($property["CODE"] == $code && $property["ID"] != $propertyId)
+			{
+				$code = $code.'_'.self::generateMnemonicCode();
+				break;
+			}
+		}
+
+		return $code;
 	}
 }
 ?>

@@ -239,9 +239,6 @@ BX.ready(function(){
 			<ul class="photo-items-list photo-album-thumbs-list">
 
 			<?foreach($arResult["SECTIONS"] as $res):?>
-				<?
-				/*$res["NAME"] = __photo_part_long_words($res["NAME"]); */
-				?>
 					<li class="photo-item photo-album-item photo-album-<?=($res["ACTIVE"] != "Y" ? "nonactive" : "active")?> <?= (!empty($res["PASSWORD"]) ? " photo-album-password " : "")?>" id="photo_album_info_<?=$res["ID"]?>" title="<?= trim("&laquo;".$res["~NAME"]."&raquo;  ".(!empty($res["DATE"]) ? " ".$res["DATE"] : ""))?>">
 					<div class="photo-item-cover-block-outside">
 						<div class="photo-item-cover-block-container">

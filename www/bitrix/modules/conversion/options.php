@@ -102,11 +102,15 @@ $tabControl->Begin();
 			<td width="40%">
 				<?
 
-				include_once $_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/'.$name.'/install/index.php';
-
-				$module = new $name();
-
-				echo $module ? $module->MODULE_NAME : $name;
+				if (@include_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/'.$name.'/install/index.php'))
+				{
+					$module = new $name();
+					echo $module ? $module->MODULE_NAME : $name;
+				}
+				else
+				{
+					echo $name;
+				}
 
 				?>
 			</td>

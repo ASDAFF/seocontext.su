@@ -5,7 +5,6 @@ if (!CModule::IncludeModule('currency'))
 	return;
 
 use Bitrix\Main\Entity;
-use Bitrix\Main\Text\String;
 
 abstract class CBaseSaleReportHelper extends CReportHelper
 {

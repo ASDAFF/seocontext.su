@@ -1,29 +1,28 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/template_resizer.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 if (empty($arParams["PICTURES"]))
 	return true;
 
 if (!function_exists("__photo_cmp"))
 {
 	function __photo_cmp($a, $b) {
-	    if ($a["size"] == $b["size"]) 
+	    if ($a["size"] == $b["size"])
 	        return 0;
 	    return ($a["size"] < $b["size"] ? -1 : 1);
-	}	
+	}
 }
 $arResTmp = array_merge(
 	array(
 		"standart" => array(
-			"title" => GetMessage("P_STANDARD"), 
-			"size" => $arParams["THUMBNAIL_SIZE"])), 
-	$arParams["PICTURES"]); 
+			"title" => GetMessage("P_STANDARD"),
+			"size" => $arParams["THUMBNAIL_SIZE"])),
+	$arParams["PICTURES"]);
 $arRes = array();
 foreach ($arResTmp as $key => $val)
 	$arRes[] = $val + array("id" => $key);
 usort($arRes, __photo_cmp);
 $number = 0;
-foreach ($arRes as $val): 
+foreach ($arRes as $val):
 	$number++;
 	if ($val["id"] == $arParams["PICTURES_SIGHT"])
 	{
@@ -52,7 +51,7 @@ endforeach;
 					<div class="bx-mixer-ruler"><div id="bx_speed_mixers_ruler"><?
 							?><a id="bx_speed_mixers_cursor" href="#"><span></span></a></div></div>
 					<div class="bx-mixer-plus"><div id="bx_speed_mixers_plus"><span></span></div></div>
-				</div>				
+				</div>
 			</div>
 <script>
 var oPhotoObjects;
@@ -64,27 +63,27 @@ var __photo_init_mixer = setInterval(function() {
 		if (bPhotoCursorLoad === true && jsUtils)
 		{
 			oPhotoResizer = new BPCMixer(
-				document.getElementById('bx_speed_mixers_ruler'), 
-				document.getElementById('bx_speed_mixers_cursor'), 
-				<?=($count + 1)?>, 
+				document.getElementById('bx_speed_mixers_ruler'),
+				document.getElementById('bx_speed_mixers_cursor'),
+				<?=($count + 1)?>,
 				{
-					'minus' : document.getElementById('bx_speed_mixers_minus'), 
-					'plus' : document.getElementById('bx_speed_mixers_plus') 
+					'minus' : document.getElementById('bx_speed_mixers_minus'),
+					'plus' : document.getElementById('bx_speed_mixers_plus')
 				}
 			);
 			oPhotoResizer.SetCursor(<?=$number?>);
 			oPhotoResizer.events['AfterSetCursor'] = function() {
 					arguments = arguments[0];
-					var number_template = arguments[1] - 1; 
+					var number_template = arguments[1] - 1;
 					if (!oPhotoObjects["sights"][number_template])
 						return false;
-					
-					setTimeout(new Function("if (" + number_template + " != oPhotoResizer.current) {" + 
-							"__photo_change_template_data(" + 
-								"'sight', " + 
-								"oPhotoObjects['sights'][" + number_template + "]['id'], " + 
-								"'<?=$arParams["ID"]?>', " + 
-								"{'PICTURES_SIGHT' : oPhotoObjects['sights'][" + number_template + "]['id']}); }"), 1000); 
+
+					setTimeout(new Function("if (" + number_template + " != oPhotoResizer.current) {" +
+							"__photo_change_template_data(" +
+								"'sight', " +
+								"oPhotoObjects['sights'][" + number_template + "]['id'], " +
+								"'<?=$arParams["ID"]?>', " +
+								"{'PICTURES_SIGHT' : oPhotoObjects['sights'][" + number_template + "]['id']}); }"), 1000);
 				}
 			clearInterval(__photo_init_mixer);
 		}

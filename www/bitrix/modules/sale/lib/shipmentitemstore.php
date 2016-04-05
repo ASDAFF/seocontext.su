@@ -20,6 +20,9 @@ class ShipmentItemStore
 	protected $barcodeList = null;
 
 
+	protected static $mapFields = array();
+
+
 	/**
 	 * @return array
 	 */
@@ -41,10 +44,12 @@ class ShipmentItemStore
 	 */
 	public static function getAllFields()
 	{
-		static $fields = null;
-		if ($fields == null)
-			$fields = array_keys(ShipmentItemStoreTable::getMap());
-		return $fields;
+		if (empty(static::$mapFields))
+		{
+			static::$mapFields = parent::getAllFieldsByMap(ShipmentItemStoreTable::getMap());
+		}
+		return static::$mapFields;
+
 	}
 
 
@@ -61,6 +66,101 @@ class ShipmentItemStore
 
 		return $shipmentItemStore;
 
+	}
+
+	/**
+	 * Deletes shipment item
+	 *
+	 * @throws Main\ArgumentOutOfRangeException
+	 * @throws Main\NotSupportedException
+	 * @throws \Exception
+	 */
+	public function delete()
+	{
+		$result = new Result();
+		$eventName = static::getEntityEventName();
+
+		/** @var array $oldEntityValues */
+		$oldEntityValues = $this->fields->getOriginalValues();
+
+		/** @var Main\Event $event */
+		$event = new Main\Event('sale', "OnBefore".$eventName."EntityDeleted", array(
+				'ENTITY' => $this,
+				'VALUES' => $oldEntityValues,
+		));
+		$event->send();
+
+		if ($event->getResults())
+		{
+			/** @var Main\EventResult $eventResult */
+			foreach($event->getResults() as $eventResult)
+			{
+				if($eventResult->getType() == Main\EventResult::ERROR)
+				{
+					$errorMsg = new ResultError(Loc::getMessage('SALE_EVENT_ON_BEFORE_'.ToUpper($eventName).'_ENTITY_DELETED_ERROR'), 'SALE_EVENT_ON_BEFORE_'.ToUpper($eventName).'_ENTITY_DELETED_ERROR');
+					if ($eventResultData = $eventResult->getParameters())
+					{
+						if (isset($eventResultData) && $eventResultData instanceof ResultError)
+						{
+							/** @var ResultError $errorMsg */
+							$errorMsg = $eventResultData;
+						}
+					}
+
+					$result->addError($errorMsg);
+				}
+			}
+
+			if (!$result->isSuccess())
+			{
+				return $result;
+			}
+		}
+
+		$r = parent::delete();
+		if (!$r->isSuccess())
+		{
+			$result->addErrors($r->getErrors());
+		}
+
+		/** @var array $oldEntityValues */
+		$oldEntityValues = $this->fields->getOriginalValues();
+
+		/** @var Main\Event $event */
+		$event = new Main\Event('sale', "On".$eventName."EntityDeleted", array(
+				'ENTITY' => $this,
+				'VALUES' => $oldEntityValues,
+		));
+		$event->send();
+
+		if ($event->getResults())
+		{
+			/** @var Main\EventResult $eventResult */
+			foreach($event->getResults() as $eventResult)
+			{
+				if($eventResult->getType() == Main\EventResult::ERROR)
+				{
+					$errorMsg = new ResultError(Loc::getMessage('SALE_EVENT_ON_'.ToUpper($eventName).'_ENTITY_DELETED_ERROR'), 'SALE_EVENT_ON_'.ToUpper($eventName).'_ENTITY_DELETED_ERROR');
+					if ($eventResultData = $eventResult->getParameters())
+					{
+						if (isset($eventResultData) && $eventResultData instanceof ResultError)
+						{
+							/** @var ResultError $errorMsg */
+							$errorMsg = $eventResultData;
+						}
+					}
+
+					$result->addError($errorMsg);
+				}
+			}
+
+			if (!$result->isSuccess())
+			{
+				return $result;
+			}
+		}
+
+		return $result;
 	}
 
 
@@ -184,16 +284,61 @@ class ShipmentItemStore
 
 		$id = $this->getId();
 		$fields = $this->fields->getValues();
+		$eventName = static::getEntityEventName();
 
-		/** @var ShipmentItemStoreCollection $collection */
-		$collection = $this->getCollection();
+		/** @var ShipmentItemStoreCollection $shipmentItemStoreCollection */
+		if (!$shipmentItemStoreCollection = $this->getCollection())
+		{
+			throw new Main\ObjectNotFoundException('Entity "ShipmentItemStoreCollection" not found');
+		}
 
 		/** @var Result $r */
-		$r = $collection->checkAvailableQuantity($this);
+		$r = $shipmentItemStoreCollection->checkAvailableQuantity($this);
 		if (!$r->isSuccess())
 		{
 			$result->addErrors($r->getErrors());
 			return $result;
+		}
+
+		/** @var ShipmentItem $shipmentItem */
+		if (!$shipmentItem = $shipmentItemStoreCollection->getShipmentItem())
+		{
+			throw new Main\ObjectNotFoundException('Entity "ShipmentItem" not found');
+		}
+
+		/** @var ShipmentItemCollection $shipmentItemCollection */
+		if (!$shipmentItemCollection = $shipmentItem->getCollection())
+		{
+			throw new Main\ObjectNotFoundException('Entity "ShipmentItemCollection" not found');
+		}
+
+		/** @var Shipment $shipment */
+		if (!$shipment = $shipmentItemCollection->getShipment())
+		{
+			throw new Main\ObjectNotFoundException('Entity "Shipment" not found');
+		}
+
+		/** @var ShipmentCollection $shipmentCollection */
+		if (!$shipmentCollection = $shipment->getCollection())
+		{
+			throw new Main\ObjectNotFoundException('Entity "ShipmentCollection" not found');
+		}
+
+		/** @var Order $order */
+		if (!$order = $shipmentCollection->getOrder())
+		{
+			throw new Main\ObjectNotFoundException('Entity "Order" not found');
+		}
+
+
+		if ($this->isChanged() && $eventName)
+		{
+			/** @var Main\Entity\Event $event */
+			$event = new Main\Event('sale', 'OnBefore'.$eventName.'EntitySaved', array(
+					'ENTITY' => $this,
+					'VALUES' => $this->fields->getOriginalValues()
+			));
+			$event->send();
 		}
 
 		/** @var BasketItem $basketItem */
@@ -205,7 +350,7 @@ class ShipmentItemStore
 
 			if (!empty($fields) && is_array($fields))
 			{
-				if (isset($fields["QUANTITY"]) && (floatval($fields["QUANTITY"]) <= 0))
+				if (isset($fields["QUANTITY"]) && (floatval($fields["QUANTITY"]) < 0))
 					throw new Main\ArgumentNullException('quantity');
 
 				$fields['DATE_MODIFY'] = new Main\Type\DateTime();
@@ -213,11 +358,22 @@ class ShipmentItemStore
 
 				$r = Internals\ShipmentItemStoreTable::update($id, $fields);
 				if (!$r->isSuccess())
-					return $r;
+				{
+					OrderHistory::addAction(
+						'SHIPMENT',
+						$order->getId(),
+						'SHIPMENT_ITEM_STORE_UPDATE_ERROR',
+						null,
+						$this,
+						array("ERROR" => $r->getErrorMessages())
+					);
+					$result->addErrors($r->getErrors());
+					return $result;
+				}
 
+				if ($resultData = $r->getData())
+					$result->setData($resultData);
 			}
-
-			$result = new Main\Entity\UpdateResult();
 
 		}
 		else
@@ -231,8 +387,8 @@ class ShipmentItemStore
 
 			$fields['DATE_CREATE'] = new Main\Type\DateTime();
 
-			if (!isset($fields["QUANTITY"]) || (floatval($fields["QUANTITY"]) == 0))
-				return new Main\Entity\AddResult();
+			if (!isset($fields["QUANTITY"]))
+				return $result;
 
 			if ($basketItem->isBarcodeMulti() && isset($fields['BARCODE']) && strval(trim($fields['BARCODE'])) == "")
 			{
@@ -246,14 +402,40 @@ class ShipmentItemStore
 			$r = Internals\ShipmentItemStoreTable::add($fields);
 			if (!$r->isSuccess())
 			{
-				return $r;
+				OrderHistory::addAction(
+					'SHIPMENT',
+					$order->getId(),
+					'SHIPMENT_ITEM_STORE_ADD_ERROR',
+					$id,
+					$this,
+					array("ERROR" => $r->getErrorMessages())
+				);
+
+				$result->addErrors($r->getErrors());
+				return $result;
 			}
+
+			if ($resultData = $r->getData())
+				$result->setData($resultData);
 
 			$id = $r->getId();
 			$this->setFieldNoDemand('ID', $id);
 
-			$result = new Main\Entity\AddResult();
+		}
 
+		if ($id > 0)
+		{
+			$result->setId($id);
+		}
+
+		if ($this->isChanged() && $eventName)
+		{
+			/** @var Main\Event $event */
+			$event = new Main\Event('sale', 'On'.$eventName.'EntitySaved', array(
+					'ENTITY' => $this,
+					'VALUES' => $this->fields->getOriginalValues(),
+			));
+			$event->send();
 		}
 
 		return $result;

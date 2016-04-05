@@ -46,13 +46,15 @@ class CSocNetForumComments
 	{
 		$log_event_id = CSocNetForumComments::FindLogEventIDByForumEntityID($entityType);
 		if (!$log_event_id)
+		{
 			return false;
+		}
 
 		$arLogCommentEvent = CSocNetLogTools::FindLogCommentEventByLogEventID($log_event_id);
 		if (!$arLogCommentEvent)
+		{
 			return false;
-
-		$arLogEvent = CSocNetLogTools::FindLogEventByID($log_event_id);
+		}
 
 		$entityId = intval($entityId);
 		if ($entityId <= 0)
@@ -146,6 +148,12 @@ class CSocNetForumComments
 				$arFieldsForSocnet["UF_SONET_COM_DOC"] = $ufDocID;
 			}
 
+			$ufUrlPreview = $GLOBALS["USER_FIELD_MANAGER"]->GetUserFieldValue("FORUM_MESSAGE", "UF_FORUM_MES_URL_PRV", $messageId, LANGUAGE_ID);
+			if ($ufUrlPreview)
+			{
+				$arFieldsForSocnet["UF_SONET_COM_URL_PRV"] = $ufUrlPreview;
+			}
+
 			$comment_id = CSocNetLogComments::Add($arFieldsForSocnet, false, false);
 			CSocNetLog::CounterIncrement(
 				$comment_id, 
@@ -187,8 +195,6 @@ class CSocNetForumComments
 		$arLogCommentEvent = CSocNetLogTools::FindLogCommentEventByLogEventID($log_event_id);
 		if (!$arLogCommentEvent)
 			return false;
-
-		$arLogEvent = CSocNetLogTools::FindLogEventByID($log_event_id);
 
 		$entityId = intval($entityId);
 		if ($entityId <= 0)
@@ -292,6 +298,12 @@ class CSocNetForumComments
 							if ($ufDocID)
 								$arFieldsForSocnet["UF_SONET_COM_DOC"] = $ufDocID;
 
+							$ufUrlPreview = $GLOBALS["USER_FIELD_MANAGER"]->GetUserFieldValue("FORUM_MESSAGE", "UF_FORUM_MES_URL_PRV", intval($arData["MESSAGE_ID"]), LANGUAGE_ID);
+							if ($ufUrlPreview)
+							{
+								$arFieldsForSocnet["UF_SONET_COM_URL_PRV"] = $ufUrlPreview;
+							}
+
 							$comment_id = CSocNetLogComments::Add($arFieldsForSocnet, false, false);
 							CSocNetLog::CounterIncrement(
 								$comment_id, 
@@ -339,6 +351,12 @@ class CSocNetForumComments
 						if ($ufDocID)
 							$arFieldsForSocnet["UF_SONET_COM_DOC"] = $ufDocID;
 
+						$ufUrlPreview = $GLOBALS["USER_FIELD_MANAGER"]->GetUserFieldValue("FORUM_MESSAGE", "UF_FORUM_MES_URL_PRV", intval($arData["MESSAGE_ID"]), LANGUAGE_ID);
+						if ($ufUrlPreview)
+						{
+							$arFieldsForSocnet["UF_SONET_COM_URL_PRV"] = $ufUrlPreview;
+						}
+
 						CSocNetLogComments::Update($arLogComment["ID"], $arFieldsForSocnet);
 					}
 				}
@@ -347,12 +365,14 @@ class CSocNetForumComments
 		}
 
 		foreach (GetModuleEvents("socialnetwork", "onAfterCommentUpdateAfter", true) as $arModuleEvent)
+		{
 			ExecuteModuleEventEx($arModuleEvent, array(
 				$entityType,
 				$entityId,
 				$arData,
 				$log_id
 			));
+		}
 	}
 }
 ?>

@@ -267,6 +267,11 @@ class CAllSaleLocation
 		return $id;
 	}
 
+	public static function checkIsCode($id)
+	{
+		return ((string) $id !== (string) intval($id));
+	}
+
 	public static function tryTranslateIDToCode($id)
 	{
 		if(!CSaleLocation::isLocationProMigrated())

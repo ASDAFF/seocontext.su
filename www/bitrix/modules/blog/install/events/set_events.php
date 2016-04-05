@@ -77,6 +77,30 @@ while($lang = $langs->Fetch())
 		"DESCRIPTION" => GetMessage("BLOG_USER_TO_YOUR_BLOG_DESC"),
 	));
 
+	$et = new CEventType;
+	$et->Add(array(
+		"LID" => $lid,
+		"EVENT_NAME" => "BLOG_SONET_NEW_POST",
+		"NAME" => GetMessage("BLOG_SONET_NEW_POST_NAME"),
+		"DESCRIPTION" => GetMessage("BLOG_SONET_NEW_POST_DESC"),
+	));
+
+	$et = new CEventType;
+	$et->Add(array(
+		"LID" => $lid,
+		"EVENT_NAME" => "BLOG_SONET_NEW_COMMENT",
+		"NAME" => GetMessage("BLOG_SONET_NEW_COMMENT_NAME"),
+		"DESCRIPTION" => GetMessage("BLOG_SONET_NEW_COMMENT_DESC"),
+	));
+
+	$et = new CEventType;
+	$et->Add(array(
+		"LID" => $lid,
+		"EVENT_NAME" => "BLOG_SONET_POST_SHARE",
+		"NAME" => GetMessage("BLOG_SONET_POST_SHARE_NAME"),
+		"DESCRIPTION" => GetMessage("BLOG_SONET_POST_SHARE_DESC"),
+	));
+
 	$arSites = array();
 	$sites = CSite::GetList(($b=""), ($o=""), Array("LANGUAGE_ID"=>$lid));
 	while ($site = $sites->Fetch())
@@ -187,6 +211,42 @@ while($lang = $langs->Fetch())
 			"SUBJECT" => GetMessage("BLOG_USER_TO_YOUR_BLOG_SUBJECT"),
 			"MESSAGE" => GetMessage("BLOG_USER_TO_YOUR_BLOG_MESSAGE"),
 			"BODY_TYPE" => "text",
+		));
+		$emess = new CEventMessage;
+		$emess->Add(array(
+			"ACTIVE" => "Y",
+			"EVENT_NAME" => "BLOG_SONET_NEW_POST",
+			"LID" => $arSites,
+			"EMAIL_FROM" => "#EMAIL_FROM#",
+			"EMAIL_TO" => "#EMAIL_TO#",
+			"SUBJECT" => "#POST_TITLE#",
+			"MESSAGE" => "<?EventMessageThemeCompiler::includeComponent(\"bitrix:socialnetwork.blog.post.mail\",\"\",Array(\"EMAIL_TO\" => \"{#EMAIL_TO#}\",\"RECIPIENT_ID\" => \"{#RECIPIENT_ID#}\",\"POST_ID\" => \"{#POST_ID#}\",\"URL\" => \"{#URL#}\"));?>",
+			"BODY_TYPE" => "html",
+			"SITE_TEMPLATE_ID" => "mail_user"
+		));
+		$emess = new CEventMessage;
+		$emess->Add(array(
+			"ACTIVE" => "Y",
+			"EVENT_NAME" => "BLOG_SONET_NEW_COMMENT",
+			"LID" => $arSites,
+			"EMAIL_FROM" => "#EMAIL_FROM#",
+			"EMAIL_TO" => "#EMAIL_TO#",
+			"SUBJECT" => "Re: #POST_TITLE#",
+			"MESSAGE" => "<?EventMessageThemeCompiler::includeComponent(\"bitrix:socialnetwork.blog.post.comment.mail\",\"\",Array(\"COMMENT_ID\" => \"{#COMMENT_ID#}\",\"RECIPIENT_ID\" => \"{#RECIPIENT_ID#}\",\"EMAIL_TO\" => \"{#EMAIL_TO#}\",\"POST_ID\" => \"{#POST_ID#}\",\"URL\" => \"{#URL#}\"));?>",
+			"BODY_TYPE" => "html",
+			"SITE_TEMPLATE_ID" => "mail_user"
+		));
+		$emess = new CEventMessage;
+		$emess->Add(array(
+			"ACTIVE" => "Y",
+			"EVENT_NAME" => "BLOG_SONET_POST_SHARE",
+			"LID" => $arSites,
+			"EMAIL_FROM" => "#EMAIL_FROM#",
+			"EMAIL_TO" => "#EMAIL_TO#",
+			"SUBJECT" => "#POST_TITLE#",
+			"MESSAGE" => "<?EventMessageThemeCompiler::includeComponent(\"bitrix:socialnetwork.blog.post_share.mail\",\"\",Array(\"EMAIL_TO\" => \"{#EMAIL_TO#}\",\"RECIPIENT_ID\" => \"{#RECIPIENT_ID#}\",\"POST_ID\" => \"{#POST_ID#}\",\"URL\" => \"{#URL#}\"));?>",
+			"BODY_TYPE" => "html",
+			"SITE_TEMPLATE_ID" => "mail_user"
 		));
 	}
 }

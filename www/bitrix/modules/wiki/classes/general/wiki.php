@@ -1,5 +1,9 @@
 <?php
 
+use \Bitrix\Main\Error;
+use Bitrix\Main\ErrorCollection;
+use Bitrix\Main\Localization\Loc;
+
 IncludeModuleLangFile(__FILE__);
 
 class CWiki
@@ -14,9 +18,13 @@ class CWiki
 	const GET_BY_NAME_CACHE_ID = "WIKI_BY_NAME_CACHE_ID_";
 	const CWIKI_CACHE_TTL = 36000000;
 
+	/** @var ErrorCollection */
+	protected $errorCollection;
+
 	function __construct()
 	{
 		$this->cIB_E = new CIBlockElement();
+		$this->errorCollection = new ErrorCollection();
 	}
 
 	function Add($arFields)
@@ -336,8 +344,18 @@ class CWiki
 			if($arProperty['CODE'] == 'IMAGES')
 			{
 				$arProperties['IMAGES'] = $arProperty;
-				$arCurImages[] = $arProperty['VALUE'];
+				$arCurImages[$arProperty['VALUE']] = '';
 			}
+		}
+
+		$rsFile = CFile::GetList(array(), array('@ID' => implode(',', array_keys($arCurImages))));
+		while($arFile = $rsFile->Fetch())
+			$arCurImages[$arFile['ID']] = $arFile['ORIGINAL_NAME'];
+
+		if(array_search($arImage['name'], $arCurImages) !== false)
+		{
+			$this->errorCollection->add(array(new Error(Loc::getMessage('WIKI_ERROR_IMAGE_ATTACHED'))));
+			return false;
 		}
 
 		$obProperty = new CIBlockProperty();
@@ -371,10 +389,10 @@ class CWiki
 		while($arProperty = $rsProperties->Fetch())
 		{
 			if($arProperty['CODE'] == 'IMAGES')
-				$arCurImagesNew[] = $arProperty['VALUE'];
+				$arCurImagesNew[$arProperty['VALUE']] = '';
 		}
 
-		$arAddImage = array_diff($arCurImagesNew, $arCurImages);
+		$arAddImage = array_diff(array_keys($arCurImagesNew), array_keys($arCurImages));
 		list(, $imgId) = each($arAddImage);
 		return $imgId;
 	}
@@ -662,7 +680,7 @@ class CWiki
 			'IS_SERVICE' => 'Y'
 		);
 
-		$arFilter['=XML_ID'] = $NAME;
+		$arFilter['=XML_ID'] = CWikiUtils::htmlspecialcharsback($NAME);
 		$arFilter['IBLOCK_ID'] = $IBLOCK_ID;
 		$arFilter['CHECK_PERMISSIONS'] = 'N';
 
@@ -686,8 +704,8 @@ class CWiki
 			$arLink[] = 'category:'.CWikiUtils::htmlspecialcharsback($arSect['NAME']);
 		}
 
-		if(empty($arLink))
-			return array();
+		/*if(empty($arLink))
+			return array();*/
 
 		if (CWikiSocnet::IsSocNet() && isset($arCat[CWikiSocnet::$iCatId]))
 			unset($arCat[CWikiSocnet::$iCatId]);
@@ -892,6 +910,14 @@ class CWiki
 			$CACHE_MANAGER->Set($cacheByNameID, $arResult);
 
 		return $arResult;
+	}
+
+	/**
+	 * @return \Bitrix\Main\ErrorCollection
+	 */
+	public function getErrors()
+	{
+		return $this->errorCollection;
 	}
 
 	private function CleanCacheById($ID, $iBlockId = false)

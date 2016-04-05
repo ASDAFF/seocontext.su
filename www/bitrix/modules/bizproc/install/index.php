@@ -51,6 +51,10 @@ Class bizproc extends CModule
 		RegisterModule("bizproc");
 		RegisterModuleDependences("iblock", "OnAfterIBlockElementDelete", "bizproc", "CBPVirtualDocument", "OnAfterIBlockElementDelete");
 		RegisterModuleDependences("main", "OnAdminInformerInsertItems", "bizproc", "CBPAllTaskService", "OnAdminInformerInsertItems");
+		RegisterModuleDependences('rest', 'OnRestServiceBuildDescription', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestServiceBuildDescription');
+		RegisterModuleDependences('rest', 'OnRestAppDelete', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestAppDelete');
+		RegisterModuleDependences('rest', 'OnRestAppUpdate', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestAppUpdate');
+		RegisterModuleDependences('timeman', 'OnAfterTMDayStart', 'bizproc', 'CBPDocument', 'onAfterTMDayStart');
 
 		COption::SetOptionString("bizproc", "SkipNonPublicCustomTypes", "Y");
 
@@ -73,7 +77,12 @@ Class bizproc extends CModule
 			}
 		}
 
+		UnRegisterModuleDependences("iblock", "OnAfterIBlockElementDelete", "bizproc", "CBPVirtualDocument", "OnAfterIBlockElementDelete");
 		UnRegisterModuleDependences("main", "OnAdminInformerInsertItems", "bizproc", "CBPAllTaskService", "OnAdminInformerInsertItems");
+		UnRegisterModuleDependences('rest', 'OnRestServiceBuildDescription', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestServiceBuildDescription');
+		UnRegisterModuleDependences('rest', 'OnRestAppDelete', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestAppDelete');
+		UnRegisterModuleDependences('rest', 'OnRestAppUpdate', 'bizproc', '\Bitrix\Bizproc\RestService', 'onRestAppUpdate');
+		UnRegisterModuleDependences('timeman', 'OnAfterTMDayStart', 'bizproc', 'CBPDocument', 'onAfterTMDayStart');
 		UnRegisterModule("bizproc");
 
 		return true;

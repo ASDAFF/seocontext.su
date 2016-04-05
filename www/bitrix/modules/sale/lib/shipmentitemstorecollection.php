@@ -119,6 +119,108 @@ class ShipmentItemStoreCollection
 		return $this->shipmentItem;
 	}
 
+
+	public function onShipmentItemModify($action, ShipmentItem $shipmentItem, $name = null, $oldValue = null, $value = null)
+	{
+		if ($action !== EventActions::UPDATE)
+			return new Result();
+
+		if ($name == "QUANTITY")
+		{
+			return $this->syncQuantityAfterModify($shipmentItem, $oldValue, $value);
+		}
+
+		return new Result();
+	}
+
+	/**
+	 * @param ShipmentItem $shipmentItem
+	 * @param null $oldValue
+	 * @param null $value
+	 *
+	 * @return Result
+	 */
+	protected function syncQuantityAfterModify(ShipmentItem $shipmentItem, $oldValue = null, $value = null)
+	{
+		if (!($basketItem = $shipmentItem->getBasketItem()) || $basketItem->getId() == 0)
+			return new Result();
+
+		$result = new Result();
+
+		$deltaQuantity = $value - $oldValue;
+
+		if ($deltaQuantity >= 0)
+			return $result;
+
+		$barcodeList = array();
+		/** @var ShipmentItemStore $shipmentItemStore */
+		foreach($this->collection as $shipmentItemStore)
+		{
+			if ($shipmentItemStore->getBasketCode() == $basketItem->getBasketCode())
+			{
+				if (strval($shipmentItemStore->getBarcode()) == "")
+				{
+					$barcodeList[$shipmentItemStore->getId()] = $shipmentItemStore;
+				}
+			}
+		}
+
+		if ($basketItem->isBarcodeMulti())
+		{
+			if (count($barcodeList) < $oldValue)
+				return $result;
+
+			$oldItemsList = array();
+
+			/** @var ShipmentItemStore $shipmentItemStore */
+			foreach ($this->collection as $shipmentItemStore)
+			{
+				if ($shipmentItemStore->getBasketCode() == $basketItem->getBasketCode())
+				{
+					$oldItemsList[$shipmentItemStore->getId()] = $shipmentItemStore;
+				}
+			}
+
+			$cutBarcodeList = array_slice($barcodeList, 0, $deltaQuantity, true);
+			if (!empty($oldItemsList) && is_array($oldItemsList))
+			{
+				/**
+				 * @var int $oldItemId
+				 * @var ShipmentItemStore $oldItem
+				 */
+				foreach($oldItemsList as $oldItemId => $oldItem)
+				{
+					if (!isset($cutBarcodeList[$oldItemId]))
+					{
+						$oldItem->delete();
+					}
+				}
+			}
+		}
+		elseif (count($barcodeList) == 1)
+		{
+			/** @var ShipmentItemStore $barcodeItem */
+			$barcodeItem = reset($barcodeList);
+
+			if ($barcodeItem->getQuantity() < $oldValue)
+				return new Result();
+
+			/** @var Result $r */
+			$r = $barcodeItem->setField(
+					"QUANTITY",
+					$barcodeItem->getField("QUANTITY") + $deltaQuantity
+			);
+
+			if (!$r->isSuccess())
+			{
+				$result->addErrors($r->getErrors());
+				return $result;
+			}
+		}
+
+		return $result;
+	}
+
 	/**
 	 * @param ShipmentItemStore $item
 	 * @param null $name
@@ -194,11 +296,11 @@ class ShipmentItemStoreCollection
 			$itemsFromDbList = Internals\ShipmentItemStoreTable::getList(
 				array(
 					"filter" => array("ORDER_DELIVERY_BASKET_ID" => $this->getShipmentItem()->getId()),
-					"select" => array("*")
+					"select" => ShipmentItemStore::getAllFields()
 				)
 			);
 			while ($itemsFromDbItem = $itemsFromDbList->fetch())
-				$itemsFromDb[$itemsFromDbItem["ID"]] = true;
+				$itemsFromDb[$itemsFromDbItem["ID"]] = $itemsFromDbItem;
 		}
 
 		/** @var ShipmentItemStore $shipmentItemStore */
@@ -212,8 +314,24 @@ class ShipmentItemStoreCollection
 				unset($itemsFromDb[$shipmentItemStore->getId()]);
 		}
 
+		$itemEventName = ShipmentItemStore::getEntityEventName();
+
 		foreach ($itemsFromDb as $k => $v)
+		{
+			/** @var Main\Event $event */
+			$event = new Main\Event('sale', "OnBefore".$itemEventName."Deleted", array(
+					'VALUES' => $v,
+			));
+			$event->send();
+
 			Internals\ShipmentItemStoreTable::delete($k);
+
+			/** @var Main\Event $event */
+			$event = new Main\Event('sale', "On".$itemEventName."Deleted", array(
+					'VALUES' => $v,
+			));
+			$event->send();
+		}
 
 		return $result;
 	}
@@ -265,6 +383,9 @@ class ShipmentItemStoreCollection
 
 		foreach ($plusList as $barcode)
 		{
+			if ($barcode['ID'] <= 0)
+				continue;
+
 			$item = $this->getItemById($barcode['ID']);
 			if ($item)
 			{

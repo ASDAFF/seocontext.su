@@ -27,6 +27,7 @@ class CBPRequestInformationActivity
 			"TaskButtonMessage" => "",
 			"CommentLabelMessage" => "",
 			"ShowComment" => "Y",
+			'CommentRequired' => 'N',
 			"StatusMessage" => "",
 			"SetStatusMessage" => "Y",
 			"AccessControl" => "N",
@@ -108,6 +109,8 @@ class CBPRequestInformationActivity
 		$arParameters["ShowComment"] = $this->IsPropertyExists("ShowComment") ? $this->ShowComment : "Y";
 		if ($arParameters["ShowComment"] != "Y" && $arParameters["ShowComment"] != "N")
 			$arParameters["ShowComment"] = "Y";
+
+		$arParameters["CommentRequired"] = $this->IsPropertyExists("CommentRequired") ? $this->CommentRequired : "N";
 		$arParameters["AccessControl"] = $this->IsPropertyExists("AccessControl") && $this->AccessControl == 'Y' ? 'Y' : 'N';
 
 		$requestedInformation = $this->RequestedInformation;
@@ -286,10 +289,10 @@ class CBPRequestInformationActivity
 					continue;
 
 				$form .=
-					'<tr><td valign="top" width="40%" align="right" class="bizproc-field-name">'.($parameter["Required"] ? '<span class="required">*</span><span class="adm-required-field">'.$parameter["Title"].':</span>' : $parameter["Title"].":")
+					'<tr><td valign="top" width="30%" align="right" class="bizproc-field-name">'.($parameter["Required"] ? '<span class="required">*</span><span class="adm-required-field">'.$parameter["Title"].':</span>' : $parameter["Title"].":")
 					.($parameter["Description"]? '<br/><span class="bizproc-field-description">'.$parameter["Description"].'</span>' : '')
 					.'</td>'.
-					'<td valign="top" width="60%" class="bizproc-field-value">';
+					'<td valign="top" width="70%" class="bizproc-field-value">';
 
 				if ($arRequest === null)
 					$realValue = $parameter["Default"];
@@ -311,9 +314,18 @@ class CBPRequestInformationActivity
 
 		if (!array_key_exists("ShowComment", $arTask["PARAMETERS"]) || ($arTask["PARAMETERS"]["ShowComment"] != "N"))
 		{
+			$required = '';
+			if (isset($arTask['PARAMETERS']['CommentRequired']) && $arTask['PARAMETERS']['CommentRequired'] == 'Y')
+			{
+				$required = '<span style="color: red">*</span>';
+			}
+
 			$form .=
-				'<tr><td valign="top" width="40%" align="right" class="bizproc-field-name">'.(strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPRIA_ACT_COMMENT")).':</td>'.
-				'<td valign="top" width="60%" class="bizproc-field-value">'.
+				'<tr><td valign="top" width="30%" align="right" class="bizproc-field-name">'
+					.(strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPRIA_ACT_COMMENT"))
+					.$required
+				.':</td>'.
+				'<td valign="top" width="70%" class="bizproc-field-value">'.
 				'<textarea rows="3" cols="50" name="task_comment"></textarea>'.
 				'</td></tr>';
 		}
@@ -357,7 +369,7 @@ class CBPRequestInformationActivity
 				"USER_ID" => $userId,
 				"REAL_USER_ID" => $realUserId,
 				"USER_NAME" => $userName,
-				"COMMENT" => $arRequest["task_comment"],
+				"COMMENT" => isset($arRequest["task_comment"]) ? trim($arRequest["task_comment"]) : '',
 				"RESPONCE" => array(),
 				//"RESPONCE_TYPES" => array(),
 			);
@@ -374,6 +386,8 @@ class CBPRequestInformationActivity
 						if (is_array($v["name"]))
 						{
 							$ks = array_keys($v["name"]);
+							if (!is_array($arRequest[$k]))
+								$arRequest[$k] = array();
 							for ($i = 0, $cnt = count($ks); $i < $cnt; $i++)
 							{
 								$ar = array();
@@ -417,6 +431,22 @@ class CBPRequestInformationActivity
 						throw new CBPArgumentNullException($parameter["Name"], str_replace("#PARAM#", htmlspecialcharsbx($parameter["Title"]), GetMessage("BPRIA_ARGUMENT_NULL")));
 				}
 			}
+
+			if (
+				isset($arTask['PARAMETERS']['CommentRequired'])
+				&& empty($arEventParameters['COMMENT'])
+				&& $arTask['PARAMETERS']['CommentRequired'] == 'Y'
+			)
+			{
+				$label = strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPAR_ACT_COMMENT");
+				throw new CBPArgumentNullException(
+					'task_comment',
+					GetMessage("BPRIA_ACT_COMMENT_ERROR", array(
+						'#COMMENT_LABEL#' => $label
+					))
+				);
+			}
+
 
 			CBPRuntime::SendExternalEvent($arTask["WORKFLOW_ID"], $arTask["ACTIVITY_NAME"], $arEventParameters);
 
@@ -513,6 +543,7 @@ class CBPRequestInformationActivity
 			"TaskButtonMessage" => "task_button_message",
 			"CommentLabelMessage" => "comment_label_message",
 			"ShowComment" => "show_comment",
+			'CommentRequired' => 'comment_required',
 			"StatusMessage" => "status_message",
 			"SetStatusMessage" => "set_status_message",
 			'AccessControl' => 'access_control',
@@ -614,6 +645,7 @@ class CBPRequestInformationActivity
 			"task_button_message" => "TaskButtonMessage",
 			"comment_label_message" => "CommentLabelMessage",
 			"show_comment" => "ShowComment",
+			'comment_required' => 'CommentRequired',
 			"status_message" => "StatusMessage",
 			"set_status_message" => "SetStatusMessage",
 			'access_control' => 'AccessControl',

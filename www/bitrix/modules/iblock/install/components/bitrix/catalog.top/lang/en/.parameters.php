@@ -72,4 +72,8 @@ $MESS["HIDE_NOT_AVAILABLE_TIP"] = "If checked: the products whose stock at all t
 $MESS["COMPARE_PATH_TIP"] = "Specifies the path to a page that includes the product comparison component. If empty, a current page will be used.";
 $MESS["USE_PRICE_COUNT_TIP"] = "If checked, all existing price ranges will be selected.";
 $MESS["SHOW_PRICE_COUNT_TIP"] = "If the \"Use price ranges\" option is unchecked (meaning only one price is shown for the product) but there are quantity based pricing products, specify the quantity to pick a correct price. This option has no effect for products with fixed price.";
+$MESS["CP_BCT_HIDE_NOT_AVAILABLE_EXT"] = "Products out of stock across all warehouses";
+$MESS["CP_BCT_HIDE_NOT_AVAILABLE_HIDE"] = "don't show";
+$MESS["CP_BCT_HIDE_NOT_AVAILABLE_LAST"] = "move to the bottom";
+$MESS["CP_BCT_HIDE_NOT_AVAILABLE_SHOW"] = "show as usual";
 ?>

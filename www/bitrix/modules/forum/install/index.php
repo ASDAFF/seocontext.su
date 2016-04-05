@@ -489,6 +489,34 @@ Class forum extends CModule
 				}
 			}
 		}
+		$fields = array(
+			array(
+				"ENTITY_ID" => "FORUM_MESSAGE",
+				"FIELD_NAME" => "UF_FORUM_MES_URL_PRV"
+			),
+		);
+
+		$uf = new CUserTypeEntity;
+		foreach($fields as $field)
+		{
+			$fieldData = CUserTypeEntity::GetList(array($by=>$order), $field);
+			if(!$fieldData->Fetch())
+			{
+				$uf->add(array(
+					"ENTITY_ID" => $field["ENTITY_ID"],
+					"FIELD_NAME" => $field["FIELD_NAME"],
+					"XML_ID" => $field["FIELD_NAME"],
+					"USER_TYPE_ID" => 'url_preview',
+					"SORT" => 100,
+					"MULTIPLE" => 'N',
+					"MANDATORY" => "N",
+					"SHOW_FILTER" => "N",
+					"SHOW_IN_LIST" => "N",
+					"EDIT_IN_LIST" => "Y",
+					"IS_SEARCHABLE" => "N"
+				), false);
+			}
+		}
 		return $errors;
 	}
 

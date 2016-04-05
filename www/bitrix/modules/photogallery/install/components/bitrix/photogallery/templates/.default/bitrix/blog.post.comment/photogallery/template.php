@@ -316,7 +316,7 @@ else
 	{
 		?>
 		<div id="captcha_del">
-		<script>
+		<script data-skip-moving="true">
 			<!--
 			var cc;
 			if(document.cookie.indexOf('<?echo session_name()?>'+'=') == -1)

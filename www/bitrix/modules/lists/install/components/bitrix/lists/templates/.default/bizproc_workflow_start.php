@@ -43,8 +43,8 @@ if($arParams["IBLOCK_TYPE_ID"] == COption::GetOptionString("lists", "livefeed_ib
 }
 else
 {
-	$moduleId = "iblock";
-	$entity = "CIBlockDocument";
+	$moduleId = "lists";
+	$entity = 'Bitrix\Lists\BizprocDocumentLists';
 }
 $APPLICATION->IncludeComponent("bitrix:bizproc.workflow.start", ".default", array(
 	"MODULE_ID" => $moduleId,

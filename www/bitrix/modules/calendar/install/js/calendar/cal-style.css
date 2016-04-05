@@ -58,9 +58,16 @@ border-left: 1px solid #C9C9C9!important; border-right: 1px solid #C9C9C9!import
 /* DAY - WEEK - View*/
 table.BXEC-Calendar-week td {padding: 0;}
 table.BXEC-Calendar-week td.bxec-pad, table.BXEC-Calendar-week td.bxec-pad2{border-width: 0 !important;padding: 0 !important;}
-
 table.BXEC-Calendar-week td.bxec-pad {width: 40px;}
+
+/*
 table.BXEC-Calendar-week td.bxec-pad2 {width: 16px;}
+*/
+table.BXEC-Calendar-week td.bxec-pad2 {
+	width: 1px !important;
+	/*display: none !important;*/
+}
+table.BXEC-Calendar-week td.bxec-pad2 img{display: none !important;}
 
 tr.bxec-days-tbl-more-ev td {border-bottom:  3px double #C9C9C9 !important;}
 tr.bxec-days-tbl-more-ev td.bxec-pad, tr.bxec-days-tbl-more-ev td.bxec-pad2{background: url(/bitrix/images/calendar/title_wd_bg.gif) repeat-x !important;}
@@ -95,7 +102,7 @@ table.BXEC-Calendar-week tr.bxec-days-tbl-title td.bxec-day-t-selected {backgrou
 table.BXEC-Calendar-week tr.bxec-days-tbl-more-ev td.bxec-day-t-selected {background-color: #FFFFC7 !important;}
 
 table.BXEC-Calendar-week tr.bxec-days-tbl-grid td.bxec-cont{overflow: auto; overflow-x: hidden; height: 460px; border-width: 0;}
-table.BXEC-Calendar-week tr.bxec-days-tbl-grid td.bxec-cont div.bxec-timeline-div{overflow: auto; overflow-x: hidden; height: 460px; width: 100%; position: relative; border-color: #D9D9D9; border-style: solid; border-width: 0 1px 1px 1px;}
+table.BXEC-Calendar-week tr.bxec-days-tbl-grid td.bxec-cont div.bxec-timeline-div{overflow: auto; overflow-x: hidden; height: 460px; width: 100%; position: relative; border-color: #D9D9D9; border-style: solid; border-width: 0 1px 1px 0;}
 
 table.bxec-wdv-timeline-tbl {width: 100%; height: 800px; border-collapse: collapse; border-width: 0 !important;}
 table.bxec-wdv-timeline-tbl td {padding: 0; border: 1px solid #C9C9C9;}
@@ -334,7 +341,9 @@ div.bxec-view-selector-cont {/*height: 35px;*/ position: absolute; left: 40%; to
 
 /*EVENT POPUPS*/
 .bxec-popup {margin: 7px 5px 0 5px;}
-.bxec-popup input,.bxec-popup select,.bxec-popup *{font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 13px;}
+.bxec-popup input,
+.bxec-popup select,
+.bxec-popup *{font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; font-size: 13px;}
 .bxec-popup .bxec-popup-row{margin: 0 0 8px;}
 .bxec-popup .bxec-popup-row-2
 {
@@ -376,18 +385,40 @@ div.bxec-view-selector-cont {/*height: 35px;*/ position: absolute; left: 40%; to
 .bxec-popup .bxec-field-label-3 label{font-size: 13px; color: #1F1F1F!important;}
 .bxec-popup .bxec-popup-row-checkbox label{display: inline-block; vertical-align: top; margin: 1px 0 0 0;}
 
-.bxec-popup-link-icon{background: none!important;}
-.bxec-popup-link-icon .popup-window-button-left{background: url("/bitrix/images/calendar/sprite.png") repeat scroll transparent !important;display: inline-block;height: 22px; width: 17px;}
+
+.bxec-popup-link-icon {
+	padding-left: 10px !important;
+}
+
+.bxec-popup-link-icon:before {
+	background: url("/bitrix/images/calendar/sprite.png") repeat scroll transparent !important;
+	border-radius: 0;
+	content: '';
+	display: inline-block!important;
+	height: 18px;
+	margin: -1px 8px 0 0;
+	vertical-align: middle;
+	width: 17px;
+}
 .bxec-popup-link-icon .popup-window-button-right{background: none!important; display: none!important;}
-.bxec-popup-link-icon .popup-window-button-text{padding: 0 5px!important; text-decoration: underline!important;}
-.bxec-popup-add-ex{position: absolute; left: 0px; top: 0px;}
-.bxec-popup-add-ex .popup-window-button-left{background-position: -20px -43px!important;}
+.bxec-popup-link-icon .popup-window-button-text {
+	vertical-align: middle;
+}
+
+.bxec-popup-add-ex{
+	/*position: absolute;
+	left: 0;
+	top: 0;*/
+}
+.bxec-popup-add-ex:before{background-position: -20px -47px!important;}
 .bxec-popup-del-ex{position: absolute; left: 0px; top: 0px;}
-.bxec-popup-del-ex .popup-window-button-left{background-position: 0px -43px!important;}
+.bxec-popup-del-ex:before{background-position: 0px -47px!important;}
 .bxec-popup-del-ev{float: left;}
-.bxec-popup-del-ev .popup-window-button-left{background-position: 0px -43px!important;}
+.bxec-popup-del-ev:before {background-position: 0px -47px!important;}
 .bxec-popup-ed-ev{float: left;}
-.bxec-popup-ed-ev .popup-window-button-left{background-position: -20px -43px!important;}
+.bxec-popup-ed-ev:before{background-position: -20px -47px!important;}
+
+
 
 .bxec-popup .bxec-popup-row-title{
 	font-family:"Helvetica Neue", Helvetica, Arial, sans-serif !important;
@@ -543,18 +574,180 @@ div.bxec-dialog input, div.bxec-dialog select, div.bxec-dialog textarea{font-fam
 .feed-cal-full-day .bxec-time, .feed-cal-full-day .bxec-date-label{display: none!important;}
 .feed-cal-full-day .bxec-date-label-full-day{display: block!important;}
 .feed-cal-full-day .bxec-date-label{display: none;}
+
+
+
+.feed-cal-full-day .bxec-tz-wrap{display: none;}
+.bxec-popup-hidden-wrap {
+	height: 31px;
+	overflow: hidden;
+	-webkit-transition: height 0.2s linear;
+	transition: height 0.2s linear;
+}
+
+.bxec-popup-cell-hidden-open .bxec-popup-hidden-wrap {
+	height: 0;
+}
+
+
+.bxec-popup-tip-wrap {
+	padding-right: 25px;
+	position: relative;
+}
+
+.bxec-popup-dashed-link {
+	border-bottom: 1px dashed #d2d8d9;
+	color: #898a8a;
+	cursor: pointer;
+	display: inline-block;
+	font-size: 12px;
+	line-height: 13px;
+	margin-left: 10px;
+	position: relative;
+	vertical-align: middle;
+}
+
+.bxec-popup-dashed-link:hover {
+	border-color: #898a8a;
+}
+
+.bxec-popup-tip-btn-grey {
+	background: url(/bitrix/images/calendar/calendar-sprite.png) no-repeat center -424px;
+	border: 1px solid #dde4e6;
+	border-radius: 50%;
+	cursor: pointer;
+	height: 18px;
+	top: -2px;
+	right: 0;
+	position: absolute;
+	width: 18px;
+}
+
+
+.bxec-popup-tip-btn {
+	background: url(/bitrix/images/calendar/calendar-sprite.png) no-repeat center -424px;
+	border: 1px solid #dde4e6;
+	border-radius: 50%;
+	cursor: pointer;
+	height: 18px;
+	top: -2px;
+	right: 0;
+	position: absolute;
+	width: 18px;
+}
+
+.bxec-popup-tip-btn:hover {
+	border-color: #a5b5ba;
+}
+
+
+.bxec-popup-timezone {
+	background-color: #eff6d6;
+	border-radius: 2px;
+	display: inline-block;
+	margin-bottom: 12px;
+	padding: 8px 10px 5px 15px;
+	position: relative;
+}
+
+.bxec-popup-timezone .bxec-popup-tip-btn {
+	background-position: center -447px;
+	border-color: #cadb98;
+	right: -31px;
+	top: 13px;
+}
+
+.bxec-popup-timezone-simple .bxec-popup-tip-btn {
+	right: 55px;
+	top: 29px;
+}
+
+.bxec-popup-timezone .bxec-popup-tip-btn:hover {
+	border-color: #91b443;
+}
+
+.bxec-popup .bxec-popup-timezone .bxec-field-label-edev {
+	width: auto;
+}
+
+.bxec-timezone-link {
+	border-bottom: 1px dashed #d1deed;
+	color: #2887d7;
+	cursor: pointer;
+	display: inline-block;
+	margin: 5px 0 0 10px;
+}
+
+.bxec-timezone-link:hover {
+	border-color: #2887d7;
+}
+
+.bxec-timezone-hidden-wrap {
+	height: 0;
+	overflow: hidden;
+	-webkit-transition: height 0.2s linear;
+	transition: height 0.2s linear;
+	margin-left: 8px;
+}
+
+.bxec-timezone-hidden-item {
+	margin: 5px 0 7px;
+	display: inline-block;
+	position: relative;
+}
+
+.bxec-timezone-hidden {
+	overflow: hidden;
+}
+
+.bxec-timezone-hidden-item .bxecpl-loc-cont {
+	position: relative;
+}
+.bxec-timezone-hidden-item .bxec-popup-tip-btn {
+	right: -28px;
+	top: 5px;
+}
+
+.bxec-popup .bxec-timezone-hidden-item .bxec-field-label-edev {
+	width: auto;
+}
+
+.bxec-popup .bxec-timezone-outer-wrap
+{
+	margin-top: 7px;
+	background-color: transparent;
+}
+
+.bxec-popup .bxec-timezone-outer-wrap-opened{
+	background-color: #f2f5f9;
+}
+
+.bxec-popup .bxec-timezone-outer-wrap .bxec-timezone-link .bxec-tz-open{display: inline-block;}
+.bxec-popup .bxec-timezone-outer-wrap .bxec-timezone-link .bxec-tz-close{display: none;}
+.bxec-popup .bxec-timezone-outer-wrap-opened .bxec-timezone-link .bxec-tz-open{display: none !important;}
+.bxec-popup .bxec-timezone-outer-wrap-opened .bxec-timezone-link .bxec-tz-close{display: inline-block !important;}
+
+.bx-cal-view-timezon-icon {
+	background: url(/bitrix/images/calendar/calendar-sprite.png) no-repeat -10px -482px;
+	cursor: pointer;
+	display: inline-block;
+	height: 15px;
+	vertical-align: middle;
+	width: 17px;
+}
+
 /*.bxec-time a{display: none;}*/
-.bxec-full-day{margin-top: 12px;}
+.bxec-full-day{display: inline-block;vertical-align: bottom; margin: 0 0 4px 5px;}
 .bxec-date{position: relative;}
 .bxec-date label{white-space: nowrap;}
-.bxec-from-to-reminder{margin-bottom: 10px; margin-top: 24px; height: 70px;}
+.bxec-from-to-reminder{margin-bottom: 10px; margin-top: 24px;}
 .bxec-from-to-reminder-inner{position: relative;}
 .bxec-mdash{display: inline-block; margin: 0 10px;}
 
 /*Reminder container */
-.bxec-reminder-collapsed, .bxec-reminder{position: absolute; top: 36px; left: 175px;}
+.bxec-reminder-collapsed, .bxec-reminder{/*position: absolute; top: 36px; left: 175px; */ min-height: 33px;}
 .bxec-reminder-collapsed *, .bxec-reminder *{vertical-align: top;}
-.bxec-rem-value{display: inline-block; margin: 2px 0 0 5px;}
+.bxec-rem-value{display: inline-block; margin: 2px 0 0 0;}
 .bxec-reminder-collapsed label, .bxec-reminder label{display: none; margin-top: 8px;}
 .bxec-reminder-collapsed .bxec-check, .bxec-reminder .bxec-check{margin-top: 10px;}
 .bxec-reminder .bxec-rem-lbl-for{display: inline-block!important;}
@@ -813,8 +1006,8 @@ a.bxex-planner-link i{display: inline-block; background: url(/bitrix/images/cale
 .bxec-plan-field-dest .event-grid-dest-block{padding: 7px 0 10px;}
 .bxec-plan-field-dest .event-grid-dest-label{color: #000000;}
 
-.bxec-plan-from-to{margin-bottom: 10px; position: relative;}
-.bxec-plan-from-to .bxec-date, .bxec-plan-from-to .bxec-val-cnt {display: inline-block!important; padding-top: 20px;}
+.bxec-plan-from-to{position: relative;}
+.bxec-plan-from-to .bxec-date, .bxec-plan-from-to .bxec-val-cnt {display: inline-block!important; padding-top: 20px; vertical-align: top;}
 .bxec-val-cnt{margin-left: 10px;}
 .bxec-plan-from-to .bxec-date-label, .bxec-val-cnt-label{position: absolute; top: 2px; left: 2px;}
 .bxec-val-cnt{position: relative;}
@@ -846,19 +1039,9 @@ table.bxec-user-list{width: 180px !important; border-collapse: collapse; positio
 table.bxec-user-list tr td{height: 20px; background-image: url(/bitrix/images/calendar/planner/tr_bg.gif);}
 table.bxec-user-list tr.bx-grey td{background-color: #F3F3F3 !important;}
 .bxec-user-list .bxec-user-name{display: inline-block;margin-left: 10px;overflow: hidden;padding-left: 10px;white-space: nowrap;width: 160px;}
-/*
-.bxplan-del{display: none; width: 10px; height: 18px; background: url(/bitrix/images/calendar/iconkit.gif) -81px -46px; cursor: pointer;}
-.bxex-pl-u-over .bxplan-del{display: inline-block!important;}
-.bxplan-del-all {position: absolute; right: 7px; top: -1px; display: inline-block!important;}
-*/
-
-/* table.bxec-user-list tr td.bxex-pl-u-over img.bxecp-del-d{background: url(/bitrix/images/calendar/iconkit.gif) -94px -46px !important;} */
 table.bxec-user-list tr td div{width: 160px; white-space: nowrap; overflow: hidden; margin-left: 10px;}
 table.bxec-user-list tr td div a{text-decoration: none !important;}
-
 table.bxec-grid-cont-tbl{border-collapse: collapse; position: absolute; top: 0; left: 0;}
-/*table.bxec-grid-cont-tbl td{border: 1px solid #C8C8C8;}*/
-
 table.bxec-grid-cont-tbl tr.bxec-plan-grid-day-row td{text-align: center; height: 27px; background: url(/bitrix/images/calendar/planner/day_title_bg.gif) -1px 10px repeat-x/* #ff0080*/; border-bottom: 1px solid #C8C8C8;}
 table.bxec-grid-cont-tbl tr.bxec-plan-grid-day-row td.cur-day{background: url(/bitrix/images/calendar/planner/day_title_bg.gif) -1px 5px repeat-x;}
 table.bxec-grid-cont-tbl tr.bxec-plan-grid-day-row td.hol-day{background: url(/bitrix/images/calendar/planner/day_title_bg_hol.gif) -1px 10px  repeat-x;}
@@ -966,6 +1149,12 @@ span.bxec-pl-clear-all{font-weight: normal !important;}
 div.bxecpl-empty div.bxec-empty-list, div.bxecpl-empty div.bxec-empty-list2{display: block !important;}
 div.bxecpl-empty div.bxec-grid-cont, div.bxecpl-empty table.bxec-user-list, div.bxecpl-empty div.bxecp-selection, div.bxecpl-empty span.bxec-pl-clear-all{display: none !important;}
 div.bxex-sbs {overflow: scroll; width: 60px; height: 60px; position: absolute; top: 1000px; left: 1000px;}
+
+.bxc-planner .bxec-timezone-outer-wrap{display: block;}
+.bxc-planner .bxec-time{margin-top: 20px; display: inline-block;}
+.bxc-planner .bxec-timezone-outer-wrap-opened{background-color: #dde5e8 !important;}
+.bxc-planner .bxec-timezone-hidden-wrap{margin:0 9px !important;}
+/* PLANNER END*/
 
 /* Outlook banner*/
 div.bxec-outlook-banner{padding:  5px;background: url(/bitrix/images/calendar/outlook_import.jpg) no-repeat;}
@@ -1326,7 +1515,7 @@ td.bx-cal-view-text-cell-r{
 	display:inline-block;
 }
 .bxcal-user-avatar, .bxcal-att-popup-avatar, .bx-cal-view-meeting-cnt .bxcal-att-popup-avatar{
-	background: url("/bitrix/images/calendar/calendar-sprite.png") no-repeat scroll -6px -379px transparent;
+	background: url(/bitrix/images/calendar/calendar-sprite.png) no-repeat scroll -6px -379px transparent;
 	display: block;
 	float: left;
 	height: 21px;
@@ -1566,6 +1755,11 @@ td.bx-cal-view-text-cell-r{
 	color: #2067b0;
 	text-decoration: underline;
 }
+
+.bxc-popup-window-loader{
+	background-color: #fff !important;
+}
+
 .bxc-popup-window .feed-com-file-size {
 	color:#7e838c;
 	font-size:12px;
@@ -1755,6 +1949,10 @@ td.bx-cal-view-text-cell-r{
 .event-grid-dest-hover.event-grid-dest-department {background-color:#f2f7f9; background:linear-gradient(top, #f5f9fa, #eef4f7); background:-moz-linear-gradient(top, #f5f9fa, #eef4f7); background:-o-linear-gradient(top, #f5f9fa, #eef4f7); background:-ms-linear-gradient(top, #f5f9fa, #eef4f7); background:-webkit-gradient(linear, left top, left bottom, from(#f5f9fa), to(#eef4f7));}
 .event-grid-dest-hover.event-grid-dest-department .feed-event-del-but {background-position:-58px -61px;}
 .feed-add-destination-inp {background:#fff; border:none; color:#555; display:inline-block; font-size:12px; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; margin:0 9px 9px 0; height:20px; min-width:108px; outline:none; padding:0; vertical-align:middle;}
+.event-grid-dest-wrap .feed-add-destination-link {
+	margin: 3px 7px 7px 18px !important;
+	text-decoration: none;
+}
 /*.feed-add-destination-link {background:url("/bitrix/images/calendar/calendar-sprite-mpf.png") no-repeat -148px -475px; color:#2067b0; display:inline-block; font-weight:bold; font-size:12px; margin:0 9px 9px 0; line-height:20px; vertical-align:middle; padding-left:14px;}*/
 .feed-add-destination-input-box {display: none;}
 .event-grid-dest-add {border-bottom:1px #2067b0 dashed; color:#2067b0; display:inline-block; cursor:pointer; font-size:12px; line-height:12px; vertical-align:middle;}
@@ -1812,7 +2010,7 @@ td.bx-cal-view-text-cell-r{
 .bxec-popup .calendar-inp-cal, .bxec-popup .bxecpl-loc-cont input{
 	background-position: right 6px;
 	padding-right: 30px;
-	width: 97px;
+	width: 120px;
 }
 
 .bxec-popup .calendar-inp-time,
@@ -1832,6 +2030,10 @@ td.bx-cal-view-text-cell-r{
 	padding-top: 5px;
 }
 
+.bxec-popup .calendar-tz-select{
+	width: 245px;
+	font-size: 11pt !important;
+}
 
 /*
 .bxecpl-loc-cont input{background:url(/bitrix/images/calendar/iconkit2.png) no-repeat right -43px transparent ; padding-right: 14px;}
@@ -1861,7 +2063,7 @@ td.bx-cal-view-text-cell-r{
 	-webkit-appearance: none;
 }
 
-.bx-firefox .bxec-popup .calendar-select { background: none; }
+.bx-firefox .bxec-popup .calendar-select { background: #FFF; }
 
 @media all and (-webkit-min-device-pixel-ratio:0) {
 	.calendar-select {padding-right: 24px!important;}
@@ -2001,3 +2203,52 @@ div.bxec-dav-list div.bxec-dav-item-edited div.bxec-dav-item-name,
 	padding-top: 12px !important;
 	margin-top: 0 !important;
 }
+
+/* ================== popup loader ======================*/
+
+.bxce-popup-loader {
+	background: url('/bitrix/images/calendar/cloud-anim.png') no-repeat 27px 36px;
+	height: 160px;
+	margin: 0 auto;
+	overflow: hidden;
+	opacity: 1;
+	position: relative;
+	top: 50%;
+	transform: translate(0, -50%);
+	width: 160px;
+
+	-webkit-transition: all 0.3s linear;
+	transition: all 0.3s linear;
+}
+
+
+.bxce-popup-loader .bxce-loader-curtain {
+	background: url('/bitrix/images/calendar/cloud-anim-curtain.png') no-repeat 0 0;
+	height: 175px;
+	left: -9px;
+	top: -5px;
+	position: absolute;
+	width: 175px;
+}
+
+.bxce-popup-loader .bxce-loader-curtain {
+	-webkit-animation: load 0.9s cubic-bezier(0.32,0.31,0.7,0.55) infinite 0.3s;
+	animation: load 0.9s cubic-bezier(0.32,0.31,0.7,0.55) infinite 0.3s;
+}
+
+
+@-webkit-keyframes load {
+	0%   { transform: rotate(240deg);}
+	100% { transform: rotate(600deg)}
+
+	0%   { -webkit-transform: rotate(240deg); }
+	100% { -webkit-transform: rotate(600deg) }
+}
+
+@keyframes load {
+	0%   { transform: rotate(240deg); }
+	100% { transform: rotate(600deg); }
+}
+
+
+/* ================== popup loader ======================*/

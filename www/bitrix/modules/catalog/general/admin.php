@@ -416,7 +416,7 @@ class CCatalogAdmin
 			$arItems[] = array(
 				"text" => GetMessage("CM_DISCOUNTS3"),
 				"title" => GetMessage("CM_DISCOUNTS_ALT2"),
-				"items_id" => "menu_sale_discount",
+				"items_id" => "menu_catalog_discount",
 				"items" => array(
 					array(
 						"text" => Loc::getMessage("CM_DISCOUNTS3"),
@@ -649,4 +649,3 @@ class CCatalogAdmin
 		return $arProfileList;
 	}
 }
-?>

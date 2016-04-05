@@ -3,6 +3,7 @@
 
 namespace Bitrix\Sale\Compatible\Internals;
 
+use Bitrix\Main\Application;
 use Bitrix\Main\ArgumentNullException;
 use Bitrix\Main\ArgumentOutOfRangeException;
 use Bitrix\Main\Entity;
@@ -70,22 +71,51 @@ abstract class EntityCompatibility
 	}
 
 	/**
+	 * @param $id
+	 * @return Compatible\CDBResult
+	 */
+	public static function getById($id)
+	{
+		/** @var EntityCompatibility $compatibility */
+		$compatibility = new static();
+		return static::setGetListParameters($compatibility);
+	}
+
+	/**
 	 * @param $sort
 	 * @param $filter
-	 * @param $group
+	 * @param null|array $group
 	 * @param $nav
 	 * @param $select
 	 * @param $callback
 	 * @return Compatible\CDBResult
 	 */
-	public static function getList($sort = array(), $filter = array(), $group = array(), $nav = array(), $select = array(), $callback = false)
+	public static function getList($sort = array(), $filter = array(), $group = null, $nav = array(), $select = array(), $callback = false)
+	{
+		/** @var EntityCompatibility $compatibility */
+		$compatibility = new static();
+		return static::setGetListParameters($compatibility, $sort, $filter, $group, $nav, $select, $callback);
+	}
+
+	/**
+	 * @param EntityCompatibility $compatibility
+	 * @param array $sort
+	 * @param array $filter
+	 * @param null $group
+	 * @param array $nav
+	 * @param array $select
+	 * @param bool $callback
+	 *
+	 * @return Compatible\CDBResult|int
+	 */
+	protected static function setGetListParameters(EntityCompatibility $compatibility, $sort = array(), $filter = array(), $group = null, $nav = array(), $select = array(), $callback = false)
 	{
 		if (empty($select))
 		{
 			$select = array('*');
 		}
 
-		$compatibility = new static();
+
 		if (!empty($filter))
 		{
 			$compatibility->setFilter($filter);
@@ -96,8 +126,7 @@ abstract class EntityCompatibility
 			$compatibility->setSelect($select);
 		}
 
-
-		if (!empty($group))
+		if ($group !== null)
 		{
 			$compatibility->setGroup($group);
 		}
@@ -235,17 +264,28 @@ abstract class EntityCompatibility
 	/**
 	 * @param array $group
 	 */
-	public function setGroup(array $group = array())
+	public function setGroup($group = null)
 	{
-		foreach($group as $fieldName => $fieldValue)
+		if (is_array($group))
 		{
-			if ($propKey = $this->parseField($fieldName))
+			if (empty($group))
 			{
-				$this->group[$propKey] = $fieldValue;
+				$this->select = array();
+				$this->group = $group;
 			}
 			else
 			{
-				$this->group[$fieldName] = $fieldValue;
+				foreach($group as $fieldName => $fieldValue)
+				{
+					if ($propKey = $this->parseField($fieldName))
+					{
+						$this->group[$propKey] = $fieldValue;
+					}
+					else
+					{
+						$this->group[$fieldName] = $fieldValue;
+					}
+				}
 			}
 		}
 	}
@@ -418,13 +458,18 @@ abstract class EntityCompatibility
 	}
 
 	/**
-	 * @return Compatible\CDBResult
+	 * @return Compatible\CDBResult|int
 	 */
 	public function execute()
 	{
-		$this->query->prepare($this->sort, $this->filter, $this->group, $this->select);
-
+		/** @var Compatible\CDBResult $result */
 		$result = new Compatible\CDBResult();
+		$this->query->prepare($this->sort, $this->filter, $this->group, $this->select);
+		if ($this->query->counted())
+		{
+			return $this->query->exec()->getSelectedRowsCount();
+		}
+
 		return $this->query->compatibleExec($result, $this->nav);
 	}
 
@@ -528,6 +573,8 @@ abstract class EntityCompatibility
 			return $value;
 		}
 
+		$nowDate = Application::getConnection()->getSqlHelper()->getCurrentDateTimeFunction();
+
 		if (!($value instanceof DateTime)
 			&& !($value instanceof Date))
 		{
@@ -536,7 +583,7 @@ abstract class EntityCompatibility
 
 			$setValue = null;
 
-			if (ToUpper($value) != "NOW()")
+			if (ToLower($value) != ToLower($nowDate))
 			{
 				$setValue = $value;
 			}
@@ -567,13 +614,6 @@ abstract class EntityCompatibility
 		{
 			$valueString = static::convertDateFieldToOldFormat($value);
 			$resultList[$k] = $valueString;
-
-			if (($value instanceof DateTime)
-				|| ($value instanceof Date))
-			{
-				$resultList['~'.$k] = $value;
-			}
-
 		}
 
 		return $resultList;
@@ -649,9 +689,11 @@ abstract class EntityCompatibility
 
 
 	/**
+	 * @internal
+	 *
 	 * @return array
 	 */
-	protected static function getAvailableFields()
+	public static function getAvailableFields()
 	{
 		return array();
 	}

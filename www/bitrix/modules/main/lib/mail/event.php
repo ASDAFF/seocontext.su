@@ -13,6 +13,7 @@ use Bitrix\Main\EventResult as SystemEventResult;
 use Bitrix\Main\SystemException;
 use Bitrix\Main\Mail\Internal as MailInternal;
 use Bitrix\Main\Config as Config;
+use Bitrix\Main\Application;
 
 class Event
 {
@@ -40,6 +41,12 @@ class Event
 	 */
 	public static function send(array $data)
 	{
+		$manageCache = Application::getInstance()->getManagedCache();
+		if(CACHED_b_event !== false && $manageCache->read(CACHED_b_event, "events"))
+		{
+			$manageCache->clean('events');
+		}
+
 		$arFiles = array();
 		if(isset($data['FILE']))
 		{
@@ -101,15 +108,17 @@ class Event
 			return $flag;
 
 
-		// get charset for languages of event
+		// get charset and server name for languages of event
 		$charset = false;
+		$serverName = null;
 		$siteDb = Main\SiteTable::getList(array(
-			'select'=>array('CULTURE_CHARSET'=>'CULTURE.CHARSET'),
+			'select'=>array('SERVER_NAME', 'CULTURE_CHARSET'=>'CULTURE.CHARSET'),
 			'filter' => array('LID' => $arSites)
 		));
 		if($arSiteDb = $siteDb->fetch())
 		{
 			$charset = $arSiteDb['CULTURE_CHARSET'];
+			$serverName = $arSiteDb['SERVER_NAME'];
 		}
 
 		if(!$charset)
@@ -176,7 +185,17 @@ class Event
 				'CHARSET' => $charset,
 			);
 			$message = EventMessageCompiler::createInstance($arMessageParams);
-			$message->compile();
+			try
+			{
+				$message->compile();
+			}
+			catch(StopException $e)
+			{
+				$arResult["Was"] = true;
+				$arResult["Fail"] = true;
+				continue;
+			}
+
 
 			// send mail
 			$result = Main\Mail\Mail::send(array(
@@ -189,7 +208,9 @@ class Event
 				'MESSAGE_ID' => $message->getMailId(),
 				'ATTACHMENT' => $message->getMailAttachment(),
 				'TRACK_READ' => $trackRead,
-				'TRACK_CLICK' => $trackClick
+				'TRACK_CLICK' => $trackClick,
+				'LINK_PROTOCOL' => \Bitrix\Main\Config\Option::get("main", "mail_link_protocol", ''),
+				'LINK_DOMAIN' => $serverName
 			));
 			if($result)
 				$arResult["Success"] = true;

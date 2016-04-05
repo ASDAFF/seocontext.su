@@ -98,9 +98,10 @@ abstract class Entity
 
 						if ($eventResultData = $eventResult->getParameters())
 						{
-							if (isset($eventResultData['ERROR']) && $eventResultData['ERROR'] instanceof ResultError)
+							if (isset($eventResultData) && $eventResultData instanceof ResultError)
 							{
-								$errorMsg = $eventResultData['ERROR'];
+								/** @var ResultError $errorMsg */
+								$errorMsg = $eventResultData;
 							}
 						}
 
@@ -308,9 +309,10 @@ abstract class Entity
 
 						if ($eventResultData = $eventResult->getParameters())
 						{
-							if (isset($eventResultData['ERROR']) && $eventResultData['ERROR'] instanceof ResultError)
+							if (isset($eventResultData) && $eventResultData instanceof ResultError)
 							{
-								$errorMsg = $eventResultData['ERROR'];
+								/** @var ResultError $errorMsg */
+								$errorMsg = $eventResultData;
 							}
 						}
 
@@ -466,9 +468,11 @@ abstract class Entity
 	}
 
 	/**
+	 * @internal
+	 *
 	 * @return null|string
 	 */
-	protected static function getEntityEventName()
+	public static function getEntityEventName()
 	{
 		$eventName = null;
 		$className = static::getClassName();
@@ -503,6 +507,14 @@ abstract class Entity
 	public function isChanged()
 	{
 		return (($changed = $this->fields->getChangedValues()) && !empty($changed));
+	}
+
+	/**
+	 * @return Result
+	 */
+	public function verify()
+	{
+		return new Result();
 	}
 
 }

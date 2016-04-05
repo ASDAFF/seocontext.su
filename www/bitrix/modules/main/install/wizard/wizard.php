@@ -110,7 +110,7 @@ class WelcomeStep extends CWizardStep
 			$this->content .= '<div class="inst-cont-text-block"><div class="inst-cont-text">'.(isset($arWizardConfig["welcomeText"]) ? $arWizardConfig["welcomeText"] : InstallGetMessage("FIRST_PAGE")).'</div></div>';
 	}
 
-	function unformat($str)
+	public static function unformat($str)
 	{
 		$str = strtolower(trim($str));
 		$res = intval($str);
@@ -749,7 +749,7 @@ class RequirementStep extends CWizardStep
 		$htaccessTest = $_SERVER["DOCUMENT_ROOT"]."/bitrix/httest";
 		$rootTest = $_SERVER["DOCUMENT_ROOT"]."/bxtest";
 
-		if (!file_exists($htaccessTest) && @mkdir($htaccessTest, 0770) === false)
+		if (!file_exists($htaccessTest) && @mkdir($htaccessTest) === false)
 		{
 			$this->arCheckFiles[]= Array(
 				"PATH" => $htaccessTest,
@@ -760,7 +760,7 @@ class RequirementStep extends CWizardStep
 			return false;
 		}
 
-		if (!file_exists($rootTest) && @mkdir($rootTest, 0770) === false)
+		if (!file_exists($rootTest) && @mkdir($rootTest) === false)
 		{
 			$this->arCheckFiles[]= Array(
 				"PATH" => $rootTest,
@@ -1409,18 +1409,30 @@ class CreateDBStep extends CWizardStep
 		if (!$this->CreateAfterConnect())
 			return;
 
-		$application = \Bitrix\Main\HttpApplication::getInstance();
-		$application->initializeBasicKernel();
-		$conPool = $application->getConnectionPool();
-
 		$DBType = strtolower($this->dbType);
 		if ($DBType == 'mysql')
-			$dbClassName = "\\Bitrix\\Main\\DB\\MysqlConnection";
+		{
+			if(extension_loaded('mysqli'))
+			{
+				$dbClassName = "\\Bitrix\\Main\\DB\\MysqliConnection";
+				define("BX_USE_MYSQLI", true);
+			}
+			else
+			{
+				$dbClassName = "\\Bitrix\\Main\\DB\\MysqlConnection";
+			}
+		}
 		elseif ($DBType == 'mssql')
+		{
 			$dbClassName = "\\Bitrix\\Main\\DB\\MssqlConnection";
+		}
 		else
+		{
 			$dbClassName = "\\Bitrix\\Main\\DB\\OracleConnection";
+		}
 
+		$application = \Bitrix\Main\HttpApplication::getInstance();
+		$conPool = $application->getConnectionPool();
 		$conPool->setConnectionParameters(
 			\Bitrix\Main\Data\ConnectionPool::DEFAULT_CONNECTION_NAME,
 			array(
@@ -1429,7 +1441,7 @@ class CreateDBStep extends CWizardStep
 				'database' => $this->dbName,
 				'login' => $this->dbUser,
 				'password' => $this->dbPassword,
-				'options' => (function_exists("mysql_pconnect") ? 1 : 0) | 2
+				'options' => 2
 			)
 		);
 
@@ -1444,9 +1456,6 @@ class CreateDBStep extends CWizardStep
 		$this->DB =& $DB;
 
 		$DB->DebugToFile = false;
-
-		if (!function_exists("mysql_pconnect"))
-			define("DBPersistent", false);
 
 		if (!$DB->Connect($this->dbHost, $this->dbName, $this->dbUser, $this->dbPassword))
 		{
@@ -1492,21 +1501,54 @@ class CreateDBStep extends CWizardStep
 
 	function CreateMySQL()
 	{
-		if ($this->createDatabase || $this->createUser)
-			$dbConn = @mysql_connect($this->dbHost, $this->rootUser, $this->rootPassword);
-		else
-			$dbConn = @mysql_connect($this->dbHost, $this->dbUser, $this->dbPassword);
-
-		if (!$dbConn)
+		if(preg_match("/[\\x0\\xFF\\/\\\\\\.]/", $this->dbName) || preg_match("/\\s$/", $this->dbName) || strlen($this->dbName) > 64)
 		{
-			$this->SetError(InstallGetMessage("ERR_CONNECT2MYSQL")." ".mysql_error());
+			/*
+			There are some restrictions on the characters that may appear in identifiers:
+			No identifier can contain ASCII 0 (0x00) or a byte with a value of 255.
+			Database, table, and column names should not end with space characters.
+			Database and table names cannot contain "/", "\", ".", or characters that are not allowed in filenames.
+			*/
+			$this->SetError(InstallGetMessage("ERR_DATABASE_NAME"));
+			return false;
+		}
+
+		$config = array(
+			'host' => $this->dbHost,
+		);
+		if ($this->createDatabase || $this->createUser)
+		{
+			$config['login'] = $this->rootUser;
+			$config['password'] = $this->rootPassword;
+		}
+		else
+		{
+			$config['login'] = $this->dbUser;
+			$config['password'] = $this->dbPassword;
+		}
+
+		if(extension_loaded('mysqli'))
+		{
+			$conn = new \Bitrix\Main\DB\MysqliConnection($config);
+		}
+		else
+		{
+			$conn = new \Bitrix\Main\DB\MysqlConnection($config);
+		}
+
+		try
+		{
+			$conn->connect();
+		}
+		catch(\Bitrix\Main\DB\ConnectionException $e)
+		{
+			$this->SetError(InstallGetMessage("ERR_CONNECT2MYSQL")." ".$e->getDatabaseMessage());
 			return false;
 		}
 
 		//Check MySQL version
-		$mysqlVersion = false;
-		$dbResult = @mysql_query("select VERSION() as ver", $dbConn);
-		if ($arVersion = mysql_fetch_assoc($dbResult))
+		$dbResult = $conn->query("select VERSION() as ver");
+		if ($arVersion = $dbResult->fetch())
 		{
 			$mysqlVersion = trim($arVersion["ver"]);
 			if (!BXInstallServices::VersionCompare($mysqlVersion, "5.0.0"))
@@ -1525,8 +1567,8 @@ class CreateDBStep extends CWizardStep
 		}
 
 		//SQL mode
-		$dbResult = @mysql_query("SELECT @@sql_mode", $dbConn);
-		if ($arResult = @mysql_fetch_row($dbResult))
+		$dbResult = $conn->query("SELECT @@sql_mode");
+		if ($arResult = $dbResult->fetch())
 		{
 			$sqlMode = trim($arResult[0]);
 			if ($sqlMode <> "")
@@ -1537,14 +1579,14 @@ class CreateDBStep extends CWizardStep
 
 		if ($this->createDatabase)
 		{
-			if (mysql_select_db($this->dbName, $dbConn))
+			if ($conn->selectDatabase($this->dbName))
 			{
 				$this->SetError(str_replace("#DB#", $this->dbName, InstallGetMessage("ERR_EXISTS_DB1")));
 				return false;
 			}
 
-			@mysql_query("CREATE DATABASE ".$this->dbName, $dbConn);
-			if (!mysql_select_db($this->dbName, $dbConn))
+			$conn->queryExecute("CREATE DATABASE ".$conn->getSqlHelper()->quote($this->dbName));
+			if (!$conn->selectDatabase($this->dbName))
 			{
 				$this->SetError(str_replace("#DB#", $this->dbName, InstallGetMessage("ERR_CREATE_DB1")));
 				return false;
@@ -1552,7 +1594,7 @@ class CreateDBStep extends CWizardStep
 		}
 		else
 		{
-			if (!mysql_select_db($this->dbName, $dbConn))
+			if (!$conn->selectDatabase($this->dbName))
 			{
 				$this->SetError(str_replace("#DB#", $this->dbName, InstallGetMessage("ERR_CONNECT_DB1")));
 				return false;
@@ -1560,9 +1602,11 @@ class CreateDBStep extends CWizardStep
 
 			if (defined("DEBUG_MODE") || (isset($_COOKIE["clear_db"]) && $_COOKIE["clear_db"] == "Y") )
 			{
-				$result = @mysql_query("SHOW TABLES LIKE 'b_%'");
-				while ($arTable = mysql_fetch_row($result))
-					@mysql_query("DROP TABLE ".$arTable[0]);
+				$result = $conn->query("SHOW TABLES LIKE 'b_%'");
+				while ($arTable = $result->fetch())
+				{
+					$conn->queryExecute("DROP TABLE ".reset($arTable));
+				}
 			}
 		}
 
@@ -1575,24 +1619,27 @@ class CreateDBStep extends CWizardStep
 			if ($this->createUser)
 			{
 				$query = "GRANT ALL ON `".addslashes($this->dbName)."`.* TO '".addslashes($this->dbUser)."'@'".$host."' IDENTIFIED BY '".addslashes($this->dbPassword)."'";
-				@mysql_query($query, $dbConn);
-				$error = mysql_error();
-
-				if ($error != "")
+				try
 				{
-					$this->SetError(InstallGetMessage("ERR_CREATE_USER")." ".$error);
+					$conn->queryExecute($query);
+				}
+				catch(\Bitrix\Main\DB\SqlQueryException $e)
+				{
+					$this->SetError(InstallGetMessage("ERR_CREATE_USER")." ".$e->getDatabaseMessage());
 					return false;
 				}
+
 			}
 			elseif ($this->createDatabase)
 			{
 				$query = "GRANT ALL ON `".addslashes($this->dbName)."`.* TO '".addslashes($this->dbUser)."'@'".$host."' ";
-				@mysql_query($query, $dbConn);
-				$error=mysql_error();
-
-				if ($error != "")
+				try
 				{
-					$this->SetError(InstallGetMessage("ERR_GRANT_USER")." ".$error);
+					$conn->queryExecute($query);
+				}
+				catch(\Bitrix\Main\DB\SqlQueryException $e)
+				{
+					$this->SetError(InstallGetMessage("ERR_GRANT_USER")." ".$e->getDatabaseMessage());
 					return false;
 				}
 			}
@@ -1611,22 +1658,21 @@ class CreateDBStep extends CWizardStep
 
 			if ($codePage)
 			{
-				if ($codePage == "utf8")
-					@mysql_query("ALTER DATABASE `".$this->dbName."` CHARACTER SET UTF8 COLLATE utf8_unicode_ci", $dbConn);
-				else
-					@mysql_query("ALTER DATABASE `".$this->dbName."` CHARACTER SET ".$codePage, $dbConn);
-
-				$error = mysql_error();
-				if ($error != "")
+				try
+				{
+					if ($codePage == "utf8")
+						$conn->queryExecute("ALTER DATABASE ".$conn->getSqlHelper()->quote($this->dbName)." CHARACTER SET UTF8 COLLATE utf8_unicode_ci");
+					else
+						$conn->queryExecute("ALTER DATABASE ".$conn->getSqlHelper()->quote($this->dbName)." CHARACTER SET ".$codePage);
+				}
+				catch(\Bitrix\Main\DB\SqlQueryException $e)
 				{
 					$this->SetError(InstallGetMessage("ERR_ALTER_DB"));
 					return false;
 				}
-
-				@mysql_query("SET NAMES '".$codePage."'", $dbConn);
+				$conn->queryExecute("SET NAMES '".$codePage."'");
 			}
 		}
-
 		return true;
 	}
 
@@ -1912,7 +1958,6 @@ class CreateDBStep extends CWizardStep
 			(extension_loaded('mysqli')? "define(\"BX_USE_MYSQLI\", true);\n": '').
 			"define(\"DBPersistent\", false);\n".
 			"$"."DBType = \"".$this->dbType."\";\n".
-			($this->dbType == "mssql"? "\$DBSQLServerType = 'NATIVE';\n" : "").
 			"$"."DBHost = \"".$this->dbHost."\";\n".
 			"$"."DBLogin = \"".$this->dbUser."\";\n".
 			"$"."DBPassword = \"".EscapePHPString($this->dbPassword)."\";\n".
@@ -2404,10 +2449,15 @@ class CreateModulesStep extends CWizardStep
 
 		$this->arSteps = array_merge($this->GetModuleList(), array_keys($this->singleSteps));
 
+		$arSkipInstallModules = array();
 		if($GLOBALS["arWizardConfig"]["skipInstallModules"]!='')
+		{
 			$arSkipInstallModules = preg_split('/[\s,]+/', $GLOBALS["arWizardConfig"]["skipInstallModules"], -1, PREG_SPLIT_NO_EMPTY);
-		else
-			$arSkipInstallModules = false;
+		}
+		if(defined("BX_COMPRESSION_DISABLED") && BX_COMPRESSION_DISABLED == true)
+		{
+			$arSkipInstallModules[] = "compression";
+		}
 
 		$searchIndex = array_search($currentStep, $this->arSteps);
 		if ($searchIndex === false || $searchIndex === null)
@@ -2417,7 +2467,7 @@ class CreateModulesStep extends CWizardStep
 			$success = $this->InstallSingleStep($currentStep);
 		else
 		{
-			if($arSkipInstallModules!==false && in_array($currentStep, $arSkipInstallModules) && $currentStepStage!="utf8")
+			if(in_array($currentStep, $arSkipInstallModules) && $currentStepStage!="utf8")
 				$success = true;
 			else
 				$success = $this->InstallModule($currentStep, $currentStepStage);
@@ -2982,7 +3032,7 @@ class SelectWizardStep extends CWizardStep
 
 	function OnPostForm()
 	{
-		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER, $DBSQLServerType;
+		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER;
 
 		require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include.php");
 
@@ -3150,7 +3200,7 @@ class LoadModuleStep extends CWizardStep
 
 	function OnPostForm()
 	{
-		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER, $DBSQLServerType;
+		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER;
 		require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include.php");
 		require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/classes/general/update_client_partner.php");
 
@@ -3461,7 +3511,7 @@ class LoadModuleActionStep extends CWizardStep
 
 	function OnPostForm()
 	{
-		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER, $DBSQLServerType;
+		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER;
 		require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include.php");
 
 		@set_time_limit(3600);
@@ -3719,7 +3769,7 @@ class SelectWizard1Step extends SelectWizardStep
 
 	function OnPostForm()
 	{
-		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER, $DBSQLServerType;
+		global $DB, $DBType, $DBHost, $DBLogin, $DBPassword, $DBName, $DBDebug, $DBDebugToFile, $APPLICATION, $USER;
 		require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include.php");
 
 		$wizard =& $this->GetWizard();

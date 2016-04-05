@@ -7,7 +7,7 @@ class CBPSetStateActivity
 	public function __construct($name)
 	{
 		parent::__construct($name);
-		$this->arProperties = array("Title" => "", "TargetStateName" => "");
+		$this->arProperties = array("Title" => "", "TargetStateName" => "", 'CancelCurrentState' => 'N');
 	}
 
 	public function Execute()
@@ -17,7 +17,11 @@ class CBPSetStateActivity
 			$stateActivity = $stateActivity->parent;
 
 		if ($stateActivity != null && ($stateActivity instanceof CBPStateActivity))
+		{
 			$stateActivity->SetNextStateName($this->TargetStateName);
+			if ($this->CancelCurrentState == 'Y')
+				$stateActivity->Cancel();
+		}
 
 		return CBPActivityExecutionStatus::Closed;
 	}
@@ -45,6 +49,8 @@ class CBPSetStateActivity
 			$arCurrentActivity = &CBPWorkflowTemplateLoader::FindActivityByName($arWorkflowTemplate, $activityName);
 			if (is_array($arCurrentActivity["Properties"]) && array_key_exists("TargetStateName", $arCurrentActivity["Properties"]))
 				$arCurrentValues["target_state_name"] = $arCurrentActivity["Properties"]["TargetStateName"];
+			if (is_array($arCurrentActivity["Properties"]) && array_key_exists("CancelCurrentState", $arCurrentActivity["Properties"]))
+				$arCurrentValues["cancel_current_state"] = $arCurrentActivity["Properties"]["CancelCurrentState"];
 		}
 
 		return $runtime->ExecuteResourceFile(
@@ -64,7 +70,8 @@ class CBPSetStateActivity
 		$runtime = CBPRuntime::GetRuntime();
 
 		$state = ((strlen($arCurrentValues["target_state_name_1"]) > 0) ? $arCurrentValues["target_state_name_1"] : $arCurrentValues["target_state_name"]);
-		$arProperties = array("TargetStateName" => $state);
+		$cancelCurrentState = isset($arCurrentValues['cancel_current_state']) && $arCurrentValues['cancel_current_state'] == 'Y' ? 'Y' : 'N';
+		$arProperties = array('TargetStateName' => $state, 'CancelCurrentState' => $cancelCurrentState);
 
 		$arErrors = self::ValidateProperties($arProperties, new CBPWorkflowTemplateUser(CBPWorkflowTemplateUser::CurrentUser));
 		if (count($arErrors) > 0)

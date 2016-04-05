@@ -744,7 +744,7 @@ if ($str_AD_TYPE == 'template')
 	$arCurVal = isset($str_TEMPLATE['PROPS']) ? $str_TEMPLATE['PROPS'] : $_POST['TEMPLATE_PROP'];
 	$templateName = $str_TEMPLATE["NAME"] ? $str_TEMPLATE["NAME"] : $_POST['TEMPLATE_NAME'];
 	$templateMode = $str_TEMPLATE['MODE'] ? $str_TEMPLATE['MODE'] : $_POST['EXTENDED_MODE'];
-	if (count($arCurVal) > 0)
+	if (is_array($arCurVal) && !empty($arCurVal))
 	{
 		foreach ($arCurVal as $id => $prop)
 		{
@@ -755,47 +755,105 @@ if ($str_AD_TYPE == 'template')
 	}
 	else
 	{
-		if (empty($arCurVal))
-			$arCurVal = array('EXTENDED_MODE' => $templateMode);
+		$arCurVal = array('EXTENDED_MODE' => $templateMode);
 		$arPropsTemplate[0] = CComponentUtil::GetTemplateProps('bitrix:advertising.banner.view', $templateName, '', $arCurVal);
-		uasort($arPropsTemplate[0]["PARAMETERS"], 'pr_comp');
+		if (is_array($arPropsTemplate[0]["PARAMETERS"]) && !empty($arPropsTemplate[0]["PARAMETERS"]))
+			uasort($arPropsTemplate[0]["PARAMETERS"], 'pr_comp');
 	}
 
 	$defaultProps = array();
 	foreach ($arPropsTemplate as $i => $k)
 	{
-		foreach ($k['PARAMETERS'] as $name => $prop)
+		if (is_array($k["PARAMETERS"]) && !empty($k["PARAMETERS"]))
 		{
-			$html = '';
-			$defaultProps[$name] = $prop['DEFAULT'];
-			if ($prop['TYPE'] == 'IMAGE')
+			foreach ($k['PARAMETERS'] as $name => $prop)
 			{
-				$file_ID = (is_array($str_TEMPLATE_FILES) && isset($str_TEMPLATE_FILES[$i][$name]) && $str_TEMPLATE_FILES[$i][$name] !== 'null') ? intVal($str_TEMPLATE_FILES[$i][$name]) : 0;
-				if ($bCopy)
+				$html = '';
+				$defaultProps[$name] = $prop['DEFAULT'];
+				if ($prop['TYPE'] == 'IMAGE')
 				{
-					$html .= '<input type=\'hidden\' name=\'TEMPLATE_FILES_copy['.$i.'_'.$name.']\' value=\''.$file_ID.'\'>';
+					$file_ID = (is_array($str_TEMPLATE_FILES) && isset($str_TEMPLATE_FILES[$i][$name]) && $str_TEMPLATE_FILES[$i][$name] !== 'null') ? intVal($str_TEMPLATE_FILES[$i][$name]) : 0;
+					if ($bCopy)
+					{
+						$html .= '<input type=\'hidden\' name=\'TEMPLATE_FILES_copy['.$i.'_'.$name.']\' value=\''.$file_ID.'\'>';
+					}
+					ob_start();
+					if (class_exists('\Bitrix\Main\UI\FileInput', true))
+					{
+						echo \Bitrix\Main\UI\FileInput::createInstance(array(
+								"name" => "TEMPLATE_FILES[".$i.'_'.$name."]",
+								"description" => true,
+								"allowUpload" => "I",
+								"maxCount" => 1
+							) + ($isEditMode ? array(
+								"medialib" => true,
+								"fileDialog" => true,
+								"cloud" => true,
+								"upload" => true
+							) : array(
+								"delete" => false,
+								"edit" => false
+							)
+							))->show($file_ID);
+					}
+					else
+					{
+						echo CFileInput::Show("TEMPLATE_FILES[".$i.'_'.$name."]", $file_ID,
+							array(
+								"IMAGE" => "Y",
+								"PATH" => "Y",
+								"FILE_SIZE" => "Y",
+								"DIMENSIONS" => "Y",
+								"IMAGE_POPUP" => "Y",
+								"MAX_SIZE" => array(
+									"W" => 200,
+									"H" => 200,
+								)
+							), array(
+								'upload' => $isEditMode,
+								'medialib' => $isEditMode,
+								'file_dialog' => $isEditMode,
+								'cloud' => $isEditMode,
+								'del' => $isEditMode,
+								'description' => $isEditMode
+							)
+						);
+					}
+					$html .= ob_get_contents();
+					ob_end_clean();
 				}
-				ob_start();
-				if (class_exists('\Bitrix\Main\UI\FileInput', true))
+				if ($prop['TYPE'] == 'HTML')
 				{
-					echo \Bitrix\Main\UI\FileInput::createInstance(array(
-						"name" => "TEMPLATE_FILES[".$i.'_'.$name."]",
-						"description" => true,
-						"allowUpload" => "I",
-						"maxCount" => 1
-					) + ($isEditMode ? array(
-							"medialib" => true,
-							"fileDialog" => true,
-							"cloud" => true,
-							"upload" => true
-						) : array(
-							"delete" => false,
-							"edit" => false
-						)
-					))->show($file_ID);
+					$strVal = isset($str_TEMPLATE['PROPS'][$i][$name]['CODE']) ? $str_TEMPLATE['PROPS'][$i][$name]['CODE'] : $defaultProps[$name];
+					if ($isEditMode)
+					{
+						$codeType = isset($str_TEMPLATE['PROPS'][$i][$name]['TYPE']) ? $str_TEMPLATE['PROPS'][$i][$name]['TYPE'] : 'html';
+						ob_start();
+						if (COption::GetOptionString("advertising", "USE_HTML_EDIT", "Y")=="Y" && CModule::IncludeModule("fileman")):
+							if (defined('BX_PUBLIC_MODE') && BX_PUBLIC_MODE == 1)
+								CFileMan::AddHTMLEditorFrame("TEMPLATE_EDITOR_".$i.'_'.$name, $strVal, "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]", $codeType, array('height' => 200, 'width' => '100%'), "N", 0, "", "", false, true, false, array('setFocusAfterShow' => false, 'minHeight' => 200));
+							else
+								CFileMan::AddHTMLEditorFrame("TEMPLATE_EDITOR_".$i.'_'.$name, $strVal, "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]", $codeType, array('height' => 200, 'width' => '100%'), "N", 0, "", "", false, true, false, array('setFocusAfterShow' => false, 'minHeight' => 200));
+						else:?>
+							<div align="center" style="vertical-align:top;">
+								<?=InputType("radio", "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]","text",$codeType,false)?>&nbsp;<?=GetMessage("AD_TEXT")?>&nbsp;<?=InputType("radio","TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]","html",$codeType,false)?>&nbsp;HTML
+								<textarea style="width:100%" rows="30" name="<?='TEMPLATE_EDITOR_'.$i.'_'.$name?>"><?echo $strVal?></textarea>
+							</div>
+						<?endif;
+						$html = ob_get_contents();
+						ob_end_clean();
+					}
+					else
+						$html = $strVal;
 				}
-				else
+				if ($prop['TYPE'] == 'FILE')
 				{
+					$file_ID = (is_array($str_TEMPLATE_FILES) && isset($str_TEMPLATE_FILES[$i][$name]) && $str_TEMPLATE_FILES[$i][$name] !== 'null') ? intVal($str_TEMPLATE_FILES[$i][$name]) : 0;
+					if ($bCopy)
+					{
+						$html .= '<input type=\'hidden\' name=\'TEMPLATE_FILES_copy['.$i.'_'.$name.']\' value=\''.$file_ID.'\'>';
+					}
+					ob_start();
 					echo CFileInput::Show("TEMPLATE_FILES[".$i.'_'.$name."]", $file_ID,
 						array(
 							"IMAGE" => "Y",
@@ -816,67 +874,12 @@ if ($str_AD_TYPE == 'template')
 							'description' => $isEditMode
 						)
 					);
-				}
-				$html .= ob_get_contents();
-				ob_end_clean();
-			}
-			if ($prop['TYPE'] == 'HTML')
-			{
-				$strVal = isset($str_TEMPLATE['PROPS'][$i][$name]['CODE']) ? $str_TEMPLATE['PROPS'][$i][$name]['CODE'] : $defaultProps[$name];
-				if ($isEditMode)
-				{
-					$codeType = isset($str_TEMPLATE['PROPS'][$i][$name]['TYPE']) ? $str_TEMPLATE['PROPS'][$i][$name]['TYPE'] : 'html';
-					ob_start();
-					if (COption::GetOptionString("advertising", "USE_HTML_EDIT", "Y")=="Y" && CModule::IncludeModule("fileman")):
-						if (defined('BX_PUBLIC_MODE') && BX_PUBLIC_MODE == 1)
-							CFileMan::AddHTMLEditorFrame("TEMPLATE_EDITOR_".$i.'_'.$name, $strVal, "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]", $codeType, array('height' => 200, 'width' => '100%'), "N", 0, "", "", false, true, false, array('setFocusAfterShow' => false, 'minHeight' => 200));
-						else
-							CFileMan::AddHTMLEditorFrame("TEMPLATE_EDITOR_".$i.'_'.$name, $strVal, "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]", $codeType, array('height' => 200, 'width' => '100%'), "N", 0, "", "", false, true, false, array('setFocusAfterShow' => false, 'minHeight' => 200));
-					else:?>
-						<div align="center" style="vertical-align:top;">
-							<?=InputType("radio", "TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]","text",$codeType,false)?>&nbsp;<?=GetMessage("AD_TEXT")?>&nbsp;<?=InputType("radio","TEMPLATE_EDITOR[".$i.'_'.$name."_CODE_TYPE]","html",$codeType,false)?>&nbsp;HTML
-							<textarea style="width:100%" rows="30" name="<?='TEMPLATE_EDITOR_'.$i.'_'.$name?>"><?echo $strVal?></textarea>
-						</div>
-					<?endif;
-					$html = ob_get_contents();
+					$html .= ob_get_contents();
 					ob_end_clean();
 				}
-				else
-					$html = $strVal;
+				$arPropsTemplate[$i]['PARAMETERS'][$name]['HTML'] = $html;
+				$arPropsTemplate[$i]['BANNER_NAME'] = $str_TEMPLATE['PROPS'][$i]['BANNER_NAME'];
 			}
-			if ($prop['TYPE'] == 'FILE')
-			{
-				$file_ID = (is_array($str_TEMPLATE_FILES) && isset($str_TEMPLATE_FILES[$i][$name]) && $str_TEMPLATE_FILES[$i][$name] !== 'null') ? intVal($str_TEMPLATE_FILES[$i][$name]) : 0;
-				if ($bCopy)
-				{
-					$html .= '<input type=\'hidden\' name=\'TEMPLATE_FILES_copy['.$i.'_'.$name.']\' value=\''.$file_ID.'\'>';
-				}
-				ob_start();
-				echo CFileInput::Show("TEMPLATE_FILES[".$i.'_'.$name."]", $file_ID,
-					array(
-						"IMAGE" => "Y",
-						"PATH" => "Y",
-						"FILE_SIZE" => "Y",
-						"DIMENSIONS" => "Y",
-						"IMAGE_POPUP" => "Y",
-						"MAX_SIZE" => array(
-							"W" => 200,
-							"H" => 200,
-						)
-					), array(
-						'upload' => $isEditMode,
-						'medialib' => $isEditMode,
-						'file_dialog' => $isEditMode,
-						'cloud' => $isEditMode,
-						'del' => $isEditMode,
-						'description' => $isEditMode
-					)
-				);
-				$html .= ob_get_contents();
-				ob_end_clean();
-			}
-			$arPropsTemplate[$i]['PARAMETERS'][$name]['HTML'] = $html;
-			$arPropsTemplate[$i]['BANNER_NAME'] = $str_TEMPLATE['PROPS'][$i]['BANNER_NAME'];
 		}
 	}
 }

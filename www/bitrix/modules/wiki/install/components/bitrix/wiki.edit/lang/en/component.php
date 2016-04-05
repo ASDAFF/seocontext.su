@@ -28,4 +28,11 @@ $MESS["WIKI_SONET_IM_ADD"] = "A new Wiki page \"#title#\" added to #group_name#.
 $MESS["WIKI_SONET_IM_EDIT"] = "Wiki page \"#title#\" updated in #group_name#.";
 $MESS["WIKI_SONET_IM_DELETE"] = "Wiki page \"#title#\" removed in #group_name#.";
 $MESS["WIKI_SONET_IM_RENAME"] = "Wiki page \"#title_old#\" renamed to \"#title_new#\" in #group_name#.";
+$MESS["WIKI_DIALOG_RENAME_PAGE_NAME"] = "New name";
+$MESS["WIKI_DIALOG_RENAME_TITLE"] = "Rename";
+$MESS["WIKI_DIALOG_RENAME_BUT_RENAME"] = "Rename";
+$MESS["WIKI_DIALOG_RENAME_ERROR"] = "Cannot rename.";
+$MESS["WIKI_DELETE_CONFIRM"] = "Are you sure you want to delete it?";
+$MESS["WIKI_DELETE_PAGE"] = "Are you sure you want to delete the page and the changelog entirely?";
+$MESS["WIKI_BUTTON_DELETE"] = "Delete";
 ?>

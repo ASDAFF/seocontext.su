@@ -52,6 +52,7 @@
 .bx-finder-box-tab-selected:after { background: url(/bitrix/js/main/core/images/controls-sprite.png) no-repeat -12px -599px; }
 
 .bx-finder-box-tabs-content { margin: 7px 0 0 0; height: 315px; overflow:auto; position:relative; background-color: #FFFFFF; z-index: 100;}
+.bx-finder-box-tabs-content .bx-finder-box-tabs-content-search { overflow:visible; }
 .bx-finder-box-tab-content { display: none; }
 .bx-finder-box-tab-content-selected { display: block;}
 
@@ -248,7 +249,7 @@
 	vertical-align: middle;
 }
 .bx-finder-box-item-t7:hover,
-.bx-finder-box-item-t7-hover { outline: #dddddd solid 1px; }
+.bx-finder-box-item-t7-hover { background-color: #eef2f4; border-radius: 2px; }
 
 .bx-finder-box-item-t7-selected { background-color: #f0f0f0; }
 .bx-finder-box-item-t7-selected.bx-finder-box-item-t7:hover,
@@ -319,3 +320,22 @@
 .bx-finder-groupbox-name {padding: 3px 0 5px 5px; font: normal normal normal 12px/normal Arial, Helvetica, sans-serif; font-weight: bold; color: #666666; display: block; vertical-align: top;}
 
 .bx-finder-groupbox-content { display: block;}
+
+.bx-finder-groupbox-content { display: block;}
+.bx-finder-search-block {
+	border-spacing: 0;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	display: table;
+	margin-bottom: 11px;
+	padding: 6px 17px 0 0;
+	width: 100%;
+}
+
+.bx-finder-search-block-cell {
+	border: 1px solid #e7e7e7;
+	display: table-cell;
+	padding: 10px 10px 4px 10px;
+	width: 450px;
+}

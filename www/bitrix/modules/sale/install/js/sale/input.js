@@ -197,7 +197,7 @@ BX.Sale.Input = (function () {
 	})();
 
 	Utils.globalValueAttributes = {
-		ACCESSKEY:1, CLASS:1, CONTEXTMENU:1, DIR:1, DROPZONE:1, LANG:1, STYLE:1, TABINDEX:1, TITLE:1,
+		ACCESSKEY:1, CLASS:1, CONTEXTMENU:1, DIR:1, DROPZONE:1, LANG:1, STYLE:1, TABINDEX:1, TITLE:1, DATA:1,
 		'XML:LANG':1, 'XML:SPACE':1, 'XML:BASE':1
 	};
 
@@ -206,7 +206,22 @@ BX.Sale.Input = (function () {
 		var callback = function (element, name, value, whiteValue)
 		{
 			if (value)
-				element.setAttribute(name, value);
+			{
+				if (name == 'DATA')
+				{
+					if (value !== null && typeof value === 'object')
+					{
+						var n;
+						for (n in value)
+							if (value.hasOwnProperty(n))
+								element.setAttribute('data-' + n, value[n]); // TODO dataset
+					}
+				}
+				else
+				{
+					element.setAttribute(name, value);
+				}
+			}
 		};
 
 		return function () {Utils.applyAttributesTo(arguments, callback);};
@@ -1080,7 +1095,7 @@ BX.Sale.Input = (function () {
 				if (value.constructor === Object)
 					this.createEditorOptions(group(key), value, selected, group, option);
 				else
-					option(container, key, selected.hasOwnProperty(key), value);
+					option(container, key, selected.hasOwnProperty(key), value || key);
 			}
 		}
 	};

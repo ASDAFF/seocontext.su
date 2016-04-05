@@ -171,11 +171,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && check_bitrix_sessid())
 			$arFields["PICTURE"]["del"] = "Y";
 
 		if(is_array($_POST["RIGHTS"]))
-			$arPOSTRights = CIBlockRights::Post2Array($_POST["RIGHTS"]);
+			$postRights = CIBlockRights::Post2Array($_POST["RIGHTS"]);
 		else
-			$arPOSTRights = array();
+			$postRights = array();
 
-		$arDBRights = array();
+		$rights = array();
 		if($arIBlock)
 		{
 			$RIGHTS_MODE = CIBlock::GetArrayByID($arIBlock["ID"], "RIGHTS_MODE");
@@ -186,7 +186,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && check_bitrix_sessid())
 				foreach($arIBlockPerms as $group_id => $letter)
 				{
 					if($letter > "W")
-						$arDBRights['n_'.($i++)] = array(
+						$rights['n_'.($i++)] = array(
 							"GROUP_CODE" => "G".$group_id,
 							"IS_INHERITED" => "N",
 							"TASK_ID" => CIBlockRights::LetterToTask($letter),
@@ -196,17 +196,20 @@ if($_SERVER["REQUEST_METHOD"] == "POST" && check_bitrix_sessid())
 			else
 			{
 				$obIBlockRights = new CIBlockRights($arIBlock["ID"]);
-				$arDBRights = $obIBlockRights->GetRights();
+				$rights = $obIBlockRights->GetRights();
 			}
 		}
 
 		//For existing iblock add rights to rule
 		$arFields["RIGHTS_MODE"] = "E";
-		$arFields["RIGHTS"] = CListPermissions::MergeRights(
-			$arParams["~IBLOCK_TYPE_ID"],
-			$arDBRights,
-			$arPOSTRights
-		);
+		$arFields["RIGHTS"] = array();
+		foreach($rights as $rightId => $right)
+		{
+			if(array_key_exists($rightId, $postRights))
+				$arFields["RIGHTS"][$rightId] = $right;
+		}
+		foreach($postRights as $rightId => $right)
+			$arFields["RIGHTS"][$rightId] = $right;
 
 		//Update existing or add new
 		$ob = new CIBlock;
@@ -385,28 +388,6 @@ else
 	$RIGHTS_MODE = 'E';
 
 $arResult["RIGHTS"] = array();
-$arResult["SELECTED"] = array();
-if (IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
-{
-	if ($arParams["SOCNET_GROUP_ID"])
-		$arResult["HIGHLIGHT"] = array(
-			"socnetgroup" => array("group_id" => $arParams["SOCNET_GROUP_ID"]),
-			"groups" => array("disabled" => true),
-		);
-	else
-		$arResult["HIGHLIGHT"] = array(
-			"groups" => array("disabled" => true),
-		);
-}
-else
-{
-	if ($arParams["SOCNET_GROUP_ID"])
-		$arResult["HIGHLIGHT"] = array(
-			"socnetgroup" => array("group_id" => $arParams["SOCNET_GROUP_ID"]),
-		);
-	else
-		$arResult["HIGHLIGHT"] = null;
-}
 if($RIGHTS_MODE != 'E')
 {
 	$i = 0;
@@ -462,46 +443,8 @@ elseif($arResult["IBLOCK_ID"] > 0)
 	$arResult["RIGHTS"] = $obIBlockRights->GetRights(array("count_overwrited" => true));
 }
 
-$arListsPerm = CLists::GetPermission($arParams["~IBLOCK_TYPE_ID"]);
-foreach($arResult["RIGHTS"] as $RIGHT_ID => $arRight)
-{
-	//1) protect groups from module settings
-	if(
-		preg_match("/^G(\\d)\$/", $arRight["GROUP_CODE"], $match)
-		&& is_array($arListsPerm) && in_array($match[1], $arListsPerm)
-	)
-	{
-		unset($arResult["RIGHTS"][$RIGHT_ID]);
-		$arResult["SELECTED"][$arRight["GROUP_CODE"]] = true;
-	}
-	else
-	{
-		//2) protect groups with iblock_% operations
-		$arOperations = CTask::GetOperations($arRight['TASK_ID'], true);
-		foreach($arOperations as $operation)
-		{
-			if(preg_match("/^iblock_(?!admin)/", $operation))
-			{
-				unset($arResult["RIGHTS"][$RIGHT_ID]);
-				$arResult["SELECTED"][$arRight["GROUP_CODE"]] = true;
-				break;
-			}
-		}
-	}
-}
-
 $arResult["TASKS"] = CIBlockRights::GetRightsList();
-foreach($arResult["TASKS"] as $TASK_ID => $label)
-{
-	//2) protect tasks with iblock_% operations
-	$arOperations = CTask::GetOperations($TASK_ID, true);
-	foreach($arOperations as $operation)
-		if(preg_match("/^iblock_(?!admin)/", $operation))
-		{
-			unset($arResult["TASKS"][$TASK_ID]);
-			break;
-		}
-}
+$arResult['RAND_STRING'] = $this->randString();
 
 $this->IncludeComponentTemplate();
 

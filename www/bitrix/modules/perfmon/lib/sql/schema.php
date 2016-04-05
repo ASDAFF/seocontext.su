@@ -3,8 +3,9 @@ namespace Bitrix\Perfmon\Sql;
 
 use Bitrix\Main\NotSupportedException;
 
-/* Sample usage:
-CModule::IncludeModule('perfmon');
+//Sample usage:
+/*
+\Bitrix\Main\Loader::includeModule('perfmon');
 $dir = new \Bitrix\Main\IO\Directory("/opt/php03.cp1251.www/mercurial/bitrix/modules");
 foreach ($dir->getChildren()  as $child)
 {
@@ -15,15 +16,15 @@ foreach ($dir->getChildren()  as $child)
 		foreach (array("mysql"=>";", "mssql"=>"GO", "oracle"=>"/") as $db=>$delimiter)
 		{
 			$path = $child->getPath()."/install/db/$db/install.sql";
-			if (!file_exists($path))
+			if (!\Bitrix\Main\IO\File::isFileExists($path))
 				$path = $child->getPath()."/install/$db/install.sql";
-			if (!file_exists($path))
+			if (!\Bitrix\Main\IO\File::isFileExists($path))
 				continue;
 			//echo "<br>$path<br>";
-			$sql = file_get_contents($path);
+			$sql = \Bitrix\Main\IO\File::getFileContents($path);
 			$s = new \Bitrix\Perfmon\Sql\Schema;
 			$s->createFromString($sql, $delimiter);
-			//print_r($s->tables);
+			// p r i n t _ r ($s->tables);
 			echo count($s->tables->getList())," ";
 		}
 		echo "\n";
@@ -86,14 +87,14 @@ class Schema
 			if (
 				$token->text === $delimiter
 				&& $prevToken
-				&& substr($prevToken->text, -1) === "\n"
+				&& strpos($prevToken->text, "\n") !== false
 			)
 			{
 				$index++;
 				$result[$index] = array();
 			}
 			elseif (
-				substr($token->text , -1) === "\n"
+				strpos($token->text , "\n") !== false
 				&& $prevToken
 				&& $prevToken->text === $delimiter
 			)

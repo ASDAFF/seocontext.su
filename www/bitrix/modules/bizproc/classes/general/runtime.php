@@ -26,6 +26,7 @@ class CBPRuntime
 	private $arLoadedActivities = array();
 
 	private $arActivityFolders = array();
+	private $workflowChains = array();
 
 	/*********************  SINGLETON PATTERN  **************************************************/
 
@@ -126,14 +127,19 @@ class CBPRuntime
 	/*******************  PROCESS WORKFLOWS  *********************************************************/
 
 	/**
-	* Creates new workflow instance from the specified template.
-	* 
-	* @param int $workflowTemplateId - ID of the workflow template
-	* @param string $documentId - ID of the document
-	* @param mixed $workflowParameters - Optional parameters of the created workflow instance
-	* @return CBPWorkflow
-	*/
-	public function CreateWorkflow($workflowTemplateId, $documentId, $workflowParameters = array())
+	 * Creates new workflow instance from the specified template.
+	 *
+	 * @param int $workflowTemplateId - ID of the workflow template
+	 * @param string $documentId - ID of the document
+	 * @param mixed $workflowParameters - Optional parameters of the created workflow instance
+	 * @param array|null $parentWorkflow - Parent Workflow information.
+	 * @return CBPWorkflow
+	 * @throws CBPArgumentNullException
+	 * @throws CBPArgumentOutOfRangeException
+	 * @throws Exception
+	 * @throws \Bitrix\Main\ArgumentNullException
+	 */
+	public function CreateWorkflow($workflowTemplateId, $documentId, $workflowParameters = array(), $parentWorkflow = null)
 	{
 		$workflowTemplateId = intval($workflowTemplateId);
 		if ($workflowTemplateId <= 0)
@@ -153,6 +159,13 @@ class CBPRuntime
 
 		$workflowId = uniqid("", true);
 
+		if ($parentWorkflow)
+		{
+			$this->addWorkflowToChain($workflowId, $parentWorkflow);
+			if ($this->checkWorkflowRecursion($workflowId, $workflowTemplateId))
+				throw new Exception(GetMessage("BPCGDOC_WORKFLOW_RECURSION_LOCK"));
+		}
+
 		$workflow = new CBPWorkflow($workflowId, $this);
 
 		$loader = CBPWorkflowTemplateLoader::GetLoader();
@@ -170,8 +183,8 @@ class CBPRuntime
 		$workflow->Initialize($rootActivity, $arDocumentId, $workflowParameters, $workflowVariablesTypes, $workflowParametersTypes, $workflowTemplateId);
 
 		$starterUserId = 0;
-		if (array_key_exists("TargetUser", $workflowParameters))
-			$starterUserId = intval(substr($workflowParameters["TargetUser"], strlen("user_")));
+		if (isset($workflowParameters[CBPDocument::PARAM_TAGRET_USER]))
+			$starterUserId = intval(substr($workflowParameters[CBPDocument::PARAM_TAGRET_USER], strlen("user_")));
 
 		$this->arServices["StateService"]->AddWorkflow($workflowId, $workflowTemplateId, $arDocumentId, $starterUserId);
 
@@ -180,12 +193,14 @@ class CBPRuntime
 	}
 
 	/**
-	* Returns existing workflow instance by its ID
-	* 
-	* @param mixed $instanceId - ID of the workflow instance
-	* @return CBPWorkflow
-	*/
-	public function GetWorkflow($workflowId)
+	 * Returns existing workflow instance by its ID
+	 *
+	 * @param string $workflowId ID of the workflow instance.
+	 * @param bool $silent
+	 * @return CBPWorkflow
+	 * @throws Exception
+	 */
+	public function GetWorkflow($workflowId, $silent = false)
 	{
 		if (strlen($workflowId) <= 0)
 			throw new Exception("workflowId");
@@ -199,7 +214,7 @@ class CBPRuntime
 		$workflow = new CBPWorkflow($workflowId, $this);
 
 		$persister = CBPWorkflowPersister::GetPersister();
-		$rootActivity = $persister->LoadWorkflow($workflowId);
+		$rootActivity = $persister->LoadWorkflow($workflowId, $silent);
 		if ($rootActivity == null)
 			throw new Exception("Empty root activity");
 
@@ -318,12 +333,9 @@ class CBPRuntime
 				'filter' => array('=INTERNAL_CODE' => $code)
 			));
 			$activity = $result->fetch();
-			if ($activity)
-			{
-				eval('class CBP'.static::REST_ACTIVITY_PREFIX.$code.' extends CBPRestActivity {const REST_ACTIVITY_ID = '.$activity['ID'].';}');
-				$this->arLoadedActivities[] = static::REST_ACTIVITY_PREFIX.$code;
-				return true;
-			}
+			eval('class CBP'.static::REST_ACTIVITY_PREFIX.$code.' extends CBPRestActivity {const REST_ACTIVITY_ID = '.($activity? $activity['ID'] : 0).';}');
+			$this->arLoadedActivities[] = static::REST_ACTIVITY_PREFIX.$code;
+			return true;
 		}
 
 		return false;
@@ -594,22 +606,24 @@ class CBPRuntime
 		return false;
 	}
 
-//	public function GetAvailableStateEvents($workflowId, $workflowTemplateId)
-//	{
-//		$workflowId = trim($workflowId);
+	private function addWorkflowToChain($childId, $parent)
+	{
+		$this->workflowChains[$childId] = $parent;
+		return $this;
+	}
 
-//		if (strlen($workflowId) > 0)
-//		{
-//			$workflow = $this->GetWorkflow($workflowId);
-//			$arResult = $workflow->GetAvailableStateEvents();
-//		}
-//		else
-//		{
-//			$loader = CBPWorkflowTemplateLoader::GetLoader();
-//			$arResult = $loader->GetAvailableStateEvents($workflowTemplateId);
-//		}
-
-//		return $arResult;
-//	}
+	private function checkWorkflowRecursion($workflowId, $currentTemplateId)
+	{
+		$templates = array($currentTemplateId);
+		while (isset($this->workflowChains[$workflowId]))
+		{
+			$parent = $this->workflowChains[$workflowId];
+			if (in_array($parent['templateId'], $templates))
+				return true;
+			$templates[] = $parent['templateId'];
+			$workflowId = $parent['workflowId'];
+		}
+		return false;
+	}
 }
 ?>

@@ -253,13 +253,13 @@ function setThousandsVariant(lang)
 		<td width="60%"><? echo ($currency['BASE'] == 'Y' ? GetMessage('BASE_CURRENCY_YES') : GetMessage('BASE_CURRENCY_NO')); ?></td>
 	</tr>
 	<tr class="adm-detail-required-field">
-		<td width="40%"><?echo GetMessage("currency_rate_cnt")?>:</td>
+		<td width="40%"><?echo GetMessage("currency_rate_cnt")?>: <span class="required" style="vertical-align: super; font-size: smaller;">1</span></td>
 		<td width="60%">
 			<input type="text" size="10" name="AMOUNT_CNT" value="<?=(int)$currency['AMOUNT_CNT']; ?>"<? echo ($currency['BASE'] == 'Y' ? ' disabled' : ''); ?>>
 		</td>
 	</tr>
 	<tr class="adm-detail-required-field">
-		<td width="40%"><?echo GetMessage("currency_rate")?>:</td>
+		<td width="40%"><?echo GetMessage("currency_rate")?>: <span class="required" style="vertical-align: super; font-size: smaller;">1</span></td>
 		<td width="60%">
 			<input type="text" size="20" name="AMOUNT" value="<?=htmlspecialcharsbx($currency['AMOUNT'])?>" maxlength="20"<? echo ($currency['BASE'] == 'Y' ? ' disabled' : ''); ?>>
 		</td>
@@ -322,11 +322,11 @@ function setThousandsVariant(lang)
 			</td>
 		</tr>
 		<tr>
-			<td width="40%"><?echo GetMessage("DECIMALS_DESC")?>: <span class="required" style="vertical-align: super; font-size: smaller;">1</span></td>
+			<td width="40%"><?echo GetMessage("DECIMALS_DESC")?>: <span class="required" style="vertical-align: super; font-size: smaller;">2</span></td>
 			<td width="60%"><input title="<?echo GetMessage("DECIMALS_DESC")?>" type="text" maxlength="5" size="5" name="LANG_<? echo $lang; ?>[DECIMALS]" value="<?=htmlspecialcharsbx($settings['DECIMALS']);?>"></td>
 		</tr>
 		<tr>
-			<td width="40%"><? echo GetMessage('HIDE_ZERO_DECIMALS'); ?>: <span class="required" style="vertical-align: super; font-size: smaller;">2</span></td>
+			<td width="40%"><? echo GetMessage('HIDE_ZERO_DECIMALS'); ?>: <span class="required" style="vertical-align: super; font-size: smaller;">3</span></td>
 			<td width="60%">
 				<input type="hidden" name="LANG_<? echo $lang; ?>[HIDE_ZERO]" value="N">
 				<input type="checkbox" name="LANG_<? echo $lang; ?>[HIDE_ZERO]" value="Y" <? echo ($settings['HIDE_ZERO'] == 'Y' ? 'checked' : ''); ?>>
@@ -343,9 +343,12 @@ echo BeginNote();
 echo GetMessage('CURRENCY_CODES_ISO_STANDART', array('#ISO_LINK#' => CURRENCY_ISO_STANDART_URL));
 ?><br><br>
 <span class="required" style="vertical-align: super; font-size: smaller;">1</span> - <?
-echo GetMessage('DECIMALS_COMMENTS');
+echo GetMessage('BX_CURRENCY_EDIT_MESS_AMOUNT');
 ?><br><br>
 <span class="required" style="vertical-align: super; font-size: smaller;">2</span> - <?
+echo GetMessage('DECIMALS_COMMENTS');
+?><br><br>
+<span class="required" style="vertical-align: super; font-size: smaller;">3</span> - <?
 echo GetMessage('HIDE_ZERO_DECIMALS_DESCR_EXT');
 echo EndNote();
 ?>

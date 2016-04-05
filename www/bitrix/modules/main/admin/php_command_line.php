@@ -35,7 +35,13 @@ function fancy_output($content)
 {
 	if (isTextMode())
 	{
-		return sprintf('<pre>%s</pre>', htmlspecialcharsbx($content));
+		$flags = ENT_COMPAT;
+		if (defined('ENT_SUBSTITUTE'))
+			$flags |= ENT_SUBSTITUTE;
+		else
+			$flags |= ENT_IGNORE;
+
+		return sprintf('<pre>%s</pre>', htmlspecialcharsbx($content, $flags));
 	}
 
 	return sprintf('<p>%s</e>', $content);
@@ -85,6 +91,7 @@ if(
 
 		ob_start('fancy_output');
 		$query = rtrim($_POST['query'], ";\x20\n").";\n";
+
 		eval($query);
 		ob_end_flush();
 	}
@@ -143,7 +150,7 @@ $editTab->End();
 		{
 			var resultAsText = BX('result_as_text').checked? 'y': 'n';
 			if (resultAsText != BX.localStorage.get('result_as_text'))
-				BX.localStorage.set('result_as_text', resultAsText);
+				BX.localStorage.set('result_as_text', resultAsText, 31104000);
 
 			window.scrollTo(0, 500);
 			ShowWaitWindow();

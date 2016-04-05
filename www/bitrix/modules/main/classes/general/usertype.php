@@ -130,7 +130,7 @@ class CAllUserTypeEntity extends CDBResult
 	 * @return array ≈сли свойство не найдено, то возвращаетс€ false
 	 * @static
 	 */
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 		static $arLabels = array("EDIT_FORM_LABEL", "LIST_COLUMN_LABEL", "LIST_FILTER_LABEL", "ERROR_MESSAGE", "HELP_MESSAGE");
@@ -166,7 +166,7 @@ class CAllUserTypeEntity extends CDBResult
 	 * @return CDBResult
 	 * @static
 	 */
-	function GetList($aSort=array(), $aFilter=array())
+	public static function GetList($aSort=array(), $aFilter=array())
 	{
 		global $DB, $CACHE_MANAGER;
 
@@ -432,6 +432,7 @@ class CAllUserTypeEntity extends CDBResult
 			return false;
 		}
 
+		unset($arFields["ID"]);
 		if(intval($arFields["SORT"]) <= 0)
 			$arFields["SORT"]=100;
 		if($arFields["MULTIPLE"]!=="Y")
@@ -1301,7 +1302,7 @@ class CAllUserTypeManager
 
 		if($this->GetRights($entity_id) >= "W")
 		{
-			echo "<tr colspan=\"2\"><td align=\"left\"><a href=\"/bitrix/admin/userfield_edit.php?lang=".LANG."&ENTITY_ID=".urlencode($entity_id)."&back_url=".urlencode($APPLICATION->GetCurPageParam()."&tabControl_active_tab=user_fields_tab")."\">".GetMessage("USER_TYPE_EDIT_TAB_HREF")."</a></td></tr>";
+			echo "<tr colspan=\"2\"><td align=\"left\"><a href=\"/bitrix/admin/userfield_edit.php?lang=".LANG."&ENTITY_ID=".urlencode($entity_id)."&back_url=".urlencode($APPLICATION->GetCurPageParam("", array("bxpublic"))."&tabControl_active_tab=user_fields_tab")."\">".GetMessage("USER_TYPE_EDIT_TAB_HREF")."</a></td></tr>";
 		}
 
 		$arUserFields = $this->GetUserFields($entity_id, $ID, LANGUAGE_ID);
@@ -1315,9 +1316,22 @@ class CAllUserTypeManager
 		}
 	}
 
-	function EditFormAddFields($entity_id, &$arFields)
+	function EditFormAddFields($entity_id, &$arFields, array $options = null)
 	{
+		if(!is_array($options))
+		{
+			$options = array();
+		}
+
+		if(!is_array($arFields))
+		{
+			$arFields = array();
+		}
+
 		global $HTTP_POST_FILES;
+		$files = isset($options['FILES']) ? $options['FILES'] : $HTTP_POST_FILES;
+		$form = isset($options['FORM']) && is_array($options['FORM']) ? $options['FORM'] : $GLOBALS;
+
 		$arUserFields = $this->GetUserFields($entity_id);
 		foreach($arUserFields as $arUserField)
 		{
@@ -1325,25 +1339,25 @@ class CAllUserTypeManager
 			{
 				if($arUserField["USER_TYPE"]["BASE_TYPE"]=="file")
 				{
-					if (isset($HTTP_POST_FILES[$arUserField["FIELD_NAME"]]))
+					if (isset($files[$arUserField["FIELD_NAME"]]))
 					{
-						if(is_array($HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["name"]))
+						if(is_array($files[$arUserField["FIELD_NAME"]]["name"]))
 						{
 							$arFields[$arUserField["FIELD_NAME"]] = array();
-							foreach($HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["name"] as $key => $value)
+							foreach($files[$arUserField["FIELD_NAME"]]["name"] as $key => $value)
 							{
-								$old_id = $GLOBALS[$arUserField["FIELD_NAME"]."_old_id"][$key];
+								$old_id = $form[$arUserField["FIELD_NAME"]."_old_id"][$key];
 								$arFields[$arUserField["FIELD_NAME"]][$key] = array(
-									"name" => $HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["name"][$key],
-									"type" => $HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["type"][$key],
-									"tmp_name" => $HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["tmp_name"][$key],
-									"error" => $HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["error"][$key],
-									"size" => $HTTP_POST_FILES[$arUserField["FIELD_NAME"]]["size"][$key],
-									"del" => is_array($GLOBALS[$arUserField["FIELD_NAME"]."_del"]) &&
-											(	in_array($old_id, $GLOBALS[$arUserField["FIELD_NAME"]."_del"]) ||
+									"name" => $files[$arUserField["FIELD_NAME"]]["name"][$key],
+									"type" => $files[$arUserField["FIELD_NAME"]]["type"][$key],
+									"tmp_name" => $files[$arUserField["FIELD_NAME"]]["tmp_name"][$key],
+									"error" => $files[$arUserField["FIELD_NAME"]]["error"][$key],
+									"size" => $files[$arUserField["FIELD_NAME"]]["size"][$key],
+									"del" => is_array($form[$arUserField["FIELD_NAME"]."_del"]) &&
+											(	in_array($old_id, $form[$arUserField["FIELD_NAME"]."_del"]) ||
 												(
-													array_key_exists($key, $GLOBALS[$arUserField["FIELD_NAME"]."_del"]) &&
-													$GLOBALS[$arUserField["FIELD_NAME"]."_del"][$key] == "Y"
+													array_key_exists($key, $form[$arUserField["FIELD_NAME"]."_del"]) &&
+													$form[$arUserField["FIELD_NAME"]."_del"][$key] == "Y"
 												)
 											),
 									"old_id" => $old_id
@@ -1352,26 +1366,26 @@ class CAllUserTypeManager
 						}
 						else
 						{
-							$arFields[$arUserField["FIELD_NAME"]] = $HTTP_POST_FILES[$arUserField["FIELD_NAME"]];
-							$arFields[$arUserField["FIELD_NAME"]]["del"] = $GLOBALS[$arUserField["FIELD_NAME"]."_del"];
-							$arFields[$arUserField["FIELD_NAME"]]["old_id"] = $GLOBALS[$arUserField["FIELD_NAME"]."_old_id"];
+							$arFields[$arUserField["FIELD_NAME"]] = $files[$arUserField["FIELD_NAME"]];
+							$arFields[$arUserField["FIELD_NAME"]]["del"] = $form[$arUserField["FIELD_NAME"]."_del"];
+							$arFields[$arUserField["FIELD_NAME"]]["old_id"] = $form[$arUserField["FIELD_NAME"]."_old_id"];
 						}
 					}
 					else
 					{
-						if(isset($GLOBALS[$arUserField["FIELD_NAME"]]))
+						if(isset($form[$arUserField["FIELD_NAME"]]))
 						{
-							if(!is_array($GLOBALS[$arUserField["FIELD_NAME"]]))
+							if(!is_array($form[$arUserField["FIELD_NAME"]]))
 							{
-								if(intval($GLOBALS[$arUserField["FIELD_NAME"]]) > 0)
+								if(intval($form[$arUserField["FIELD_NAME"]]) > 0)
 								{
-									$arFields[$arUserField["FIELD_NAME"]] = intval($GLOBALS[$arUserField["FIELD_NAME"]]);
+									$arFields[$arUserField["FIELD_NAME"]] = intval($form[$arUserField["FIELD_NAME"]]);
 								}
 							}
 							else
 							{
 								$fields = array();
-								foreach($GLOBALS[$arUserField["FIELD_NAME"]] as $val)
+								foreach($form[$arUserField["FIELD_NAME"]] as $val)
 								{
 									if(intval($val) > 0)
 									{
@@ -1385,21 +1399,21 @@ class CAllUserTypeManager
 				}
 				else
 				{
-					if (isset($HTTP_POST_FILES[$arUserField["FIELD_NAME"]]))
+					if (isset($files[$arUserField["FIELD_NAME"]]))
 					{
 						$arFile = array();
-						CFile::ConvertFilesToPost($HTTP_POST_FILES[$arUserField["FIELD_NAME"]], $arFile);
+						CFile::ConvertFilesToPost($files[$arUserField["FIELD_NAME"]], $arFile);
 
-						if(isset($GLOBALS[$arUserField["FIELD_NAME"]]))
+						if(isset($form[$arUserField["FIELD_NAME"]]))
 						{
 							if($arUserField["MULTIPLE"] == "Y")
 							{
-								foreach($_REQUEST[$arUserField["FIELD_NAME"]] as $key => $value)
+								foreach($form[$arUserField["FIELD_NAME"]] as $key => $value)
 									$arFields[$arUserField["FIELD_NAME"]][$key] = array_merge($value, $arFile[$key]);
 							}
 							else
 							{
-								$arFields[$arUserField["FIELD_NAME"]] = array_merge($_REQUEST[$arUserField["FIELD_NAME"]], $arFile);
+								$arFields[$arUserField["FIELD_NAME"]] = array_merge($form[$arUserField["FIELD_NAME"]], $arFile);
 							}
 						}
 						else
@@ -1409,10 +1423,9 @@ class CAllUserTypeManager
 					}
 					else
 					{
-						if(isset($GLOBALS[$arUserField["FIELD_NAME"]]))
-							$arFields[$arUserField["FIELD_NAME"]] = $GLOBALS[$arUserField["FIELD_NAME"]];
+						if(isset($form[$arUserField["FIELD_NAME"]]))
+							$arFields[$arUserField["FIELD_NAME"]] = $form[$arUserField["FIELD_NAME"]];
 					}
-
 				}
 			}
 		}
@@ -1551,7 +1564,7 @@ class CAllUserTypeManager
 		if($arUserField["USER_TYPE"])
 		{
 			if($this->GetRights($arUserField["ENTITY_ID"]) >= "W")
-				$edit_link = ($arUserField["HELP_MESSAGE"]? htmlspecialcharsex($arUserField["HELP_MESSAGE"]).'<br>': '').'<a href="'.htmlspecialcharsbx('/bitrix/admin/userfield_edit.php?lang='.LANG.'&ID='.$arUserField["ID"].'&back_url='.urlencode($APPLICATION->GetCurPageParam().'&tabControl_active_tab=user_fields_tab')).'">'.htmlspecialcharsex(GetMessage("MAIN_EDIT")).'</a>';
+				$edit_link = ($arUserField["HELP_MESSAGE"]? htmlspecialcharsex($arUserField["HELP_MESSAGE"]).'<br>': '').'<a href="'.htmlspecialcharsbx('/bitrix/admin/userfield_edit.php?lang='.LANG.'&ID='.$arUserField["ID"].'&back_url='.urlencode($APPLICATION->GetCurPageParam("", array("bxpublic")).'&tabControl_active_tab=user_fields_tab')).'">'.htmlspecialcharsex(GetMessage("MAIN_EDIT")).'</a>';
 			else
 				$edit_link = '';
 
@@ -1862,7 +1875,7 @@ class CAllUserTypeManager
 							),
 						)
 					).'</td></tr>';
-					$html .= '<tr><td><input type="button" value="'.GetMessage("USER_TYPE_PROP_ADD").'" onClick="addNewRow(\'table_'.$arUserField["FIELD_NAME"].'_'.$row->id.'\', /'.'FIELDS\['.$row->id.'\]\['.$arUserField["FIELD_NAME"].'\]'.'\[([0-9]*)\]/g, 1)"></td></tr>'.
+					$html .= '<tr><td><input type="button" value="'.GetMessage("USER_TYPE_PROP_ADD").'" onClick="addNewRow(\'table_'.$arUserField["FIELD_NAME"].'_'.$row->id.'\', \'FIELDS\['.$row->id.'\]\['.$arUserField["FIELD_NAME"].'\]\')"></td></tr>'.
 					'</table>';
 					$row->AddEditField($arUserField["FIELD_NAME"], $html.$js.CAdminCalendar::ShowScript());
 				}
@@ -2795,7 +2808,7 @@ class CAllSQLWhere
 		$this->AddFields($arFields);
 	}
 
-	function MakeOperation($key)
+	public function MakeOperation($key)
 	{
 		if(isset(self::$triple_char[$op = substr($key,0,3)]))
 			return Array("FIELD"=>substr($key,3), "OPERATION"=>self::$triple_char[$op]);
@@ -2807,7 +2820,7 @@ class CAllSQLWhere
 			return Array("FIELD"=>$key, "OPERATION"=>"E"); // field LIKE val
 	}
 
-	function getOperationByCode($code)
+	public static function getOperationByCode($code)
 	{
 		$all_operations = array_flip(self::$single_char + self::$double_char + self::$triple_char);
 

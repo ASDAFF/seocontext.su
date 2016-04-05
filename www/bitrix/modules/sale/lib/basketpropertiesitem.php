@@ -17,6 +17,8 @@ Loc::loadMessages(__FILE__);
 class BasketPropertyItem
 	extends Internals\CollectableEntity
 {
+	protected static $mapFields = array();
+
 	protected function __construct(array $fields = array())
 	{
 		parent::__construct($fields);
@@ -43,10 +45,11 @@ class BasketPropertyItem
 	 */
 	public static function getAllFields()
 	{
-		static $fields = null;
-		if ($fields == null)
-			$fields = array_keys(Internals\BasketPropertyTable::getMap());
-		return $fields;
+		if (empty(static::$mapFields))
+		{
+			static::$mapFields = parent::getAllFieldsByMap(Internals\BasketPropertyTable::getMap());
+		}
+		return static::$mapFields;
 	}
 
 	/**
@@ -74,7 +77,7 @@ class BasketPropertyItem
 	 */
 	public function save()
 	{
-
+		$result = new Result();
 		$id = $this->getId();
 		$fields = $this->fields->getValues();
 
@@ -86,10 +89,14 @@ class BasketPropertyItem
 			{
 				$r = Internals\BasketPropertyTable::update($id, $fields);
 				if (!$r->isSuccess())
-					return $r;
-			}
+				{
+					$result->addErrors($r->getErrors());
+					return $result;
+				}
 
-			$result = new Entity\UpdateResult();
+				if ($resultData = $r->getData())
+					$result->setData($resultData);
+			}
 
 		}
 		else
@@ -99,16 +106,26 @@ class BasketPropertyItem
 
 			$r = Internals\BasketPropertyTable::add($fields);
 			if (!$r->isSuccess())
-				return $r;
+			{
+				$result->addErrors($r->getErrors());
+				return $result;
+			}
+
+			if ($resultData = $r->getData())
+				$result->setData($resultData);
 
 			$id = $r->getId();
 			$this->setFieldNoDemand('ID', $id);
 
-			$result = new Entity\AddResult();
+		}
 
+		if ($id > 0)
+		{
+			$result->setId($id);
 		}
 
 		return $result;
 
 	}
+
 }

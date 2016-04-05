@@ -28,4 +28,11 @@ $MESS["WIKI_SONET_IM_ADD"] = "Добавлена новая статья Wiki \"
 $MESS["WIKI_SONET_IM_EDIT"] = "Изменена статья Wiki \"#title#\" в группе #group_name#.";
 $MESS["WIKI_SONET_IM_DELETE"] = "Удалена статья Wiki \"#title#\" в группе #group_name#.";
 $MESS["WIKI_SONET_IM_RENAME"] = "Статья Wiki \"#title_old#\" в группе #group_name# переименована в \"#title_new#\".";
+$MESS["WIKI_DIALOG_RENAME_PAGE_NAME"] = "Новое название";
+$MESS["WIKI_DIALOG_RENAME_TITLE"] = "Переименование";
+$MESS["WIKI_DIALOG_RENAME_BUT_RENAME"] = "Переименовать";
+$MESS["WIKI_DIALOG_RENAME_ERROR"] = "Переименовать не удалось.";
+$MESS["WIKI_DELETE_CONFIRM"] = "Вы уверены что хотите удалить?";
+$MESS["WIKI_DELETE_PAGE"] = "Вы уверены, что хотите полностью удалить страницу и историю ее изменений?";
+$MESS["WIKI_BUTTON_DELETE"] = "Удалить";
 ?>

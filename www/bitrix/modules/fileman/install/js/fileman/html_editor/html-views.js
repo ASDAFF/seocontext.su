@@ -751,6 +751,17 @@ var focusWithoutScrolling = function(element)
 			editor.selection.SaveRange();
 			editor.On('OnIframeKeyup', [e, keyCode, target]);
 
+			// Mantis:#67998
+			if (keyCode === editor.KEY_CODES['backspace'] && BX.browser.IsChrome()
+				&& target && target.nodeType == '3' && target.nextSibling && target.nextSibling.nodeType == '3')
+			{
+				_this.editor.selection.ExecuteAndRestoreSimple(function()
+				{
+					_this.editor.util.SetTextContent(target, _this.editor.util.GetTextContent(target) + _this.editor.util.GetTextContent(target.nextSibling));
+					target.nextSibling.parentNode.removeChild(target.nextSibling);
+				});
+			}
+
 			if (!editor.util.FirstLetterSupported() && _this.editor.parser.firstNodeCheck)
 			{
 				_this.editor.parser.FirstLetterCheckNodes('', '', true);
@@ -1286,7 +1297,7 @@ var focusWithoutScrolling = function(element)
 			if (
 				node.nodeType == 3 && node.length == range.endOffset
 				&& parentNode && parentNode.nodeName !== 'BODY'
-				&& !nextNode
+				&& (!nextNode || (nextNode && nextNode.nodeName == 'BR' && !nextNode.nextSibling))
 				&& (this.editor.util.IsBlockElement(parentNode) || this.editor.util.IsBlockNode(parentNode))
 				)
 			{
@@ -1310,6 +1321,18 @@ var focusWithoutScrolling = function(element)
 				}
 				return BX.PreventDefault(e);
 			}
+			else if (
+					node.nodeType == 3 && node.length == range.endOffset
+					&& parentNode && parentNode.nodeName !== 'BODY'
+					&& nextNode && nextNode.nodeName == 'BR'
+					&& !nextNode.nextSibling
+					&& (this.editor.util.IsBlockElement(parentNode) || this.editor.util.IsBlockNode(parentNode))
+			)
+			{
+				this.editor.selection.SetInvisibleTextAfterNode(parentNode, true);
+				return BX.PreventDefault(e);
+			}
+
 		}
 		else if (keyCode === KC['left'] || keyCode === KC['up'])
 		{
@@ -1698,6 +1721,11 @@ var focusWithoutScrolling = function(element)
 
 				_this.editor.synchro.lastIframeValue = false;
 
+				// Paste control: show menu after pasting content
+				// to let user select weather insert rich content or plain text
+				_this.editor.pasteControl.SaveIframeContent(_this.GetValue());
+				_this.editor.pasteControl.Show();
+
 				_this.editor.synchro.FromIframeToTextarea(true, true);
 
 				_this.editor.pasteHandleMode = false;
@@ -1840,6 +1868,7 @@ var focusWithoutScrolling = function(element)
 				if (realUrl.substr(0, 4) === "www.")
 					realUrl = "http://" + realUrl;
 
+				BX.onCustomEvent(_this.editor, 'OnAfterUrlConvert', [realUrl]);
 				return '<a href="' + realUrl + '">' + displayUrl + '</a>' + punctuation;
 			});
 		}

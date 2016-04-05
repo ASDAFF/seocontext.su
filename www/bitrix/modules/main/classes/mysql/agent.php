@@ -10,7 +10,7 @@ require($_SERVER["DOCUMENT_ROOT"].BX_ROOT."/modules/main/classes/general/agent.p
 
 class CAgent extends CAllAgent
 {
-	function CheckAgents()
+	public static function CheckAgents()
 	{
 		global $CACHE_MANAGER;
 
@@ -38,7 +38,7 @@ class CAgent extends CAllAgent
 		return CAgent::ExecuteAgents($str_crontab);
 	}
 
-	function ExecuteAgents($str_crontab)
+	public static function ExecuteAgents($str_crontab)
 	{
 		global $DB, $CACHE_MANAGER, $pPERIOD;
 

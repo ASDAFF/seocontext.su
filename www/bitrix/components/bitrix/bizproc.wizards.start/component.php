@@ -193,7 +193,7 @@ if (strlen($arResult["FatalErrorMessage"]) <= 0)
 					$arErrorsTmp
 				);
 
-				if ($arParameter["Required"] && ($arParameter["Multiple"] && count($arWorkflowParameters[$parameterKey]) <= 0 || !$arParameter["Multiple"] && $arWorkflowParameters[$parameterKey] === null))
+				if (CBPHelper::getBool($arParameter["Required"]) && CBPHelper::isEmptyValue($arWorkflowParameters[$parameterKey]))
 				{
 					$arErrorsTmp[] = array(
 						"code" => "RequiredValue",

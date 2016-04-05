@@ -101,13 +101,13 @@ CURRENCYCELL;
 function __showPopup($element_id, $items)
 {
 	echo
-		"<script type=\"text/javascript\">
+		'<script type="text/javascript">
 			top.BX.ready(function(){
-				top.BX.bind(top.BX('".$element_id."'), 'click', function() {
-					top.BX.adminShowMenu(this, ".CAdminPopup::PhpToJavaScript($items).");
+				top.BX.bind(top.BX("'.$element_id.'"), "click", function() {
+					top.BX.adminShowMenu(this, '.CAdminPopup::PhpToJavaScript($items).');
 				});
 			});
-		</script>";
+		</script>';
 }
 /**
  * @param $intRangeID
@@ -161,7 +161,7 @@ $arAllProperties = $arAllParentProperties = array();
 $arFileProperties = array();
 $arFilePropertiesExt = array();
 $arDirProperties = array();
-$dbIBlockProperty = CIBlockProperty::GetList(array("ID" => "ASC"), array("IBLOCK_ID" => $subIBlockId, "ACTIVE" => 'Y'));
+$dbIBlockProperty = CIBlockProperty::GetList(array("SORT" => "ASC", "NAME" => "ASC"), array("IBLOCK_ID" => $subIBlockId, "ACTIVE" => 'Y'));
 while($arIBlockProperty = $dbIBlockProperty->Fetch())
 {
 	$arIBlockProperty['ID'] = (int)$arIBlockProperty['ID'];
@@ -238,50 +238,12 @@ while($arIBlockProperty = $dbIBlockProperty->Fetch())
 	}
 }
 
-$dbParentIBlockProperty = CIBlockProperty::GetList(array("ID" => "ASC"), array("IBLOCK_ID" => $iBlockId, "ACTIVE" => 'Y'));
+$dbParentIBlockProperty = CIBlockProperty::GetList(array("SORT" => "ASC", "NAME" => "ASC"), array("IBLOCK_ID" => $iBlockId, "ACTIVE" => 'Y'));
 while($arParentIBlockProperty = $dbParentIBlockProperty->Fetch())
 {
 	if($arParentIBlockProperty['PROPERTY_TYPE'] == 'L' || $arParentIBlockProperty['PROPERTY_TYPE'] == 'S')
 		$arAllParentProperties[] = $arParentIBlockProperty;
 }
-$arPropertyPopup = array();
-foreach($arResult as $key => $property)
-{
-	$arPropertyPopup[] = array(
-		"TEXT" => htmlspecialcharsbx($property["NAME"]),
-		"ONCLICK" => "obPropertyTable.addPropertyTable('".$key."')",
-	);
-}
-if(count($arPropertyPopup) > 0)
-	__showPopup("mnu_ADD_PROPERTY",	$arPropertyPopup);
-
-$arPropertyPopupIB1 = array();
-foreach($arResult as $key => $property)
-{
-	$arPropertyPopupIB1[$property["CODE"]] = array(
-		"TEXT" => htmlspecialcharsbx($property["NAME"]),
-		"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.".$property["ID"]."}')",
-		"CODE" => $property["CODE"],
-	);
-}
-if(!empty($arPropertyPopupIB1))
-	__showPopup("IB_SEG_ADD_PROP_IN_TITLE",	$arPropertyPopupIB1);
-
-$arPropertyPopupIB2 = array("NAME" => array(
-	"TEXT" => GetMessage("IB_SEG_TITLE"),
-	"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.CML2_LINK.NAME}')",
-	"CODE" => 'NAME',
-));
-foreach($arAllParentProperties as $key => $property)
-{
-	$arPropertyPopupIB2[$property["CODE"]] = array(
-		"TEXT" => htmlspecialcharsbx($property["NAME"]),
-		"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.CML2_LINK.property.".$property["CODE"]."}')",
-		"CODE" => $property["CODE"],
-	);
-}
-if(!empty($arPropertyPopupIB2))
-	__showPopup("IB_SEG_ADD_PROP_IN_TITLE2", $arPropertyPopupIB2);
 
 $errorMessage = '';
 
@@ -391,18 +353,21 @@ if(!$bReadOnly && check_bitrix_sessid())
 
 			$arPropertySaveValues[$arSKUInfo['SKU_PROPERTY_ID']] = $parentElementId;
 
-			foreach($arPropertyPopup as $action => $acValue)
+			if (!empty($arPropertyPopup) && is_array($arPropertyPopup))
 			{
-				if($action == 'CODE')
+				foreach ($arPropertyPopup as $action => $acValue)
 				{
-					foreach($arAllProperties as $key => $value)
+					if ($action != 'CODE')
+						continue;
+					foreach ($arAllProperties as $key => $value)
 					{
-						if($value["CODE"] == $acValue["CODE"])
-						{
-							$arReplace['#'.$acValue["CODE"].'#'] = $arPropertySaveValues[$arAllProperties[$key]['ID']];
-						}
+						if ($value["CODE"] != $acValue["CODE"])
+							continue;
+						$arReplace['#'.$acValue["CODE"].'#'] = $arPropertySaveValues[$arAllProperties[$key]['ID']];
 					}
+					unset($key, $value);
 				}
+				unset($action, $acValue);
 			}
 
 			$arIBlockElementAdd = array("NAME" => null, "IBLOCK_ID" => $subIBlockId, "ACTIVE" => "Y");
@@ -540,6 +505,46 @@ if(!$bReadOnly && check_bitrix_sessid())
 }
 
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
+
+$arPropertyPopup = array();
+foreach($arResult as $key => $property)
+{
+	$arPropertyPopup[] = array(
+			"TEXT" => htmlspecialcharsbx($property["NAME"]),
+			"ONCLICK" => "obPropertyTable.addPropertyTable('".$key."')",
+	);
+}
+if(count($arPropertyPopup) > 0)
+	__showPopup("mnu_ADD_PROPERTY",	$arPropertyPopup);
+
+$arPropertyPopupIB1 = array();
+foreach($arResult as $key => $property)
+{
+	$arPropertyPopupIB1[$property["CODE"]] = array(
+			"TEXT" => htmlspecialcharsbx($property["NAME"]),
+			"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.".$property["ID"]."}')",
+			"CODE" => $property["CODE"],
+	);
+}
+if(!empty($arPropertyPopupIB1))
+	__showPopup("IB_SEG_ADD_PROP_IN_TITLE",	$arPropertyPopupIB1);
+
+$arPropertyPopupIB2 = array("NAME" => array(
+		"TEXT" => GetMessage("IB_SEG_TITLE"),
+		"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.CML2_LINK.NAME}')",
+		"CODE" => 'NAME',
+));
+foreach($arAllParentProperties as $key => $property)
+{
+	$arPropertyPopupIB2[$property["CODE"]] = array(
+			"TEXT" => htmlspecialcharsbx($property["NAME"]),
+			"ONCLICK" => "obPropertyTable.addPropertyInTitle('{=this.property.CML2_LINK.property.".$property["CODE"]."}')",
+			"CODE" => $property["CODE"],
+	);
+}
+if(!empty($arPropertyPopupIB2))
+	__showPopup("IB_SEG_ADD_PROP_IN_TITLE2", $arPropertyPopupIB2);
+
 if($errorMessage)
 {
 	CAdminMessage::ShowMessage($errorMessage);
@@ -556,7 +561,6 @@ else
 	);
 
 	CAdminMessage::ShowMessage($errorMessage);
-
 	?>
 	<form enctype="multipart/form-data" method="POST" action="<?echo $APPLICATION->GetCurPage()?>?" name="iblock_generator_form" id="iblock_generator_form">
 	<input type="hidden" name="lang" value="<?echo LANGUAGE_ID; ?>">
@@ -569,12 +573,7 @@ else
 	<?=bitrix_sessid_post();
 
 	$tabControl = new CAdminTabControl("tabControl", $aTabs, true, true);
-	$strFormAction = $APPLICATION->GetCurPage();
-
-	$tabControl->Begin(array(
-		"FORM_ACTION" => $strFormAction,
-	));
-
+	$tabControl->Begin();
 	$tabControl->BeginNextTab();
 	?>
 <script type="text/javascript">
@@ -615,9 +614,8 @@ else
 
 	function addProperty(arFileProperties)
 	{
-		var fileProperties = eval(arFileProperties);
-		var id = 0;
-		var needAdd = true;
+		var fileProperties = eval(arFileProperties),
+			id = 0;
 		if(BX('ib_seg_max_property_id'))
 		{
 			id = BX('ib_seg_max_property_id').value;
@@ -627,15 +625,7 @@ else
 			}
 			BX('ib_seg_max_property_id').value = Number(BX('ib_seg_max_property_id').value) + 1;
 		}
-		for(var eachValue in obPropertyTable.SELECTED_PROPERTIES)
-		{
-			if(obPropertyTable.SELECTED_PROPERTIES.hasOwnProperty(eachValue) && obPropertyTable.SELECTED_PROPERTIES[eachValue] == 'DETAIL')
-			{
-				needAdd = false;
-			}
-		}
-		if(needAdd)
-			obPropertyTable.SELECTED_PROPERTIES[id] = 'DETAIL';
+		obPropertyTable.SELECTED_PROPERTIES[id] = 'DETAIL';
 
 		var propertySpan = BX('ib_seg_property_span');
 		if(propertySpan)
@@ -668,13 +658,6 @@ else
 				'events': {
 					change : function()
 					{
-						for(eachValue in obPropertyTable.SELECTED_PROPERTIES)
-						{
-							if(obPropertyTable.SELECTED_PROPERTIES.hasOwnProperty(eachValue) && obPropertyTable.SELECTED_PROPERTIES[eachValue] == this.value)
-							{
-								return;
-							}
-						}
 						obPropertyTable.SELECTED_PROPERTIES[id] = this.value;
 					}
 				}
@@ -824,7 +807,7 @@ else
 	</td>
 </tr>
 	<?
-	$properties = CIBlockProperty::GetList(Array("ID"=>"asc", "name"=>"asc"), Array("ACTIVE"=>"Y", "PROPERTY_TYPE"=>'F', "MULTIPLE" => 'Y', "CHECK_PERMISSIONS"=>"N"));
+	$properties = CIBlockProperty::GetList(Array("SORT" => "ASC", "NAME" => "ASC"), Array("ACTIVE"=>"Y", "PROPERTY_TYPE"=>'F', "MULTIPLE" => 'Y', "CHECK_PERMISSIONS"=>"N"));
 	if($prop_fields = $properties->Fetch())
 	{
 		echo '<tr><td colspan="2"><div style="display: none;">';
@@ -833,7 +816,7 @@ else
 		_ShowPropertyField('PROP['.$prop_fields["ID"].']', $prop_fields, $prop_fields["VALUE"], false, false, 50000, 'iblock_generator_form');
 		echo '</div></td></tr>';
 	}
-	$properties = CIBlockProperty::GetList(Array("ID"=>"asc", "name"=>"asc"), Array("ACTIVE"=>"Y", "PROPERTY_TYPE"=>'F', "MULTIPLE" => 'N', "CHECK_PERMISSIONS"=>"N"));
+	$properties = CIBlockProperty::GetList(Array("SORT" => "ASC", "NAME" => "ASC"), Array("ACTIVE"=>"Y", "PROPERTY_TYPE"=>'F', "MULTIPLE" => 'N', "CHECK_PERMISSIONS"=>"N"));
 	if($prop_fields = $properties->Fetch())
 	{
 		echo '<tr><td colspan="2"><div style="display: none;">';

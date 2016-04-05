@@ -12,12 +12,21 @@ class CSocServOAuthTransport
 
 	protected $scope = '';
 
+	protected $userId;
+
 	public function __construct($appID, $appSecret, $code = false)
 	{
+		global $USER;
+
 		$this->httpTimeout = SOCSERV_DEFAULT_HTTP_TIMEOUT;
 		$this->appID = $appID;
 		$this->appSecret = $appSecret;
 		$this->code = $code;
+
+		if(is_object($USER) && $USER->IsAuthorized())
+		{
+			$this->userId = $USER->GetID();
+		}
 	}
 
 	public function getAppID()
@@ -84,19 +93,22 @@ class CSocServOAuthTransport
 		$this->code = $code;
 	}
 
+	public function setUser($userId)
+	{
+		$this->userId = $userId;
+	}
+
 	protected function getStorageTokens()
 	{
-		global $USER;
-
 		$accessToken = '';
-		if(is_object($USER) && $USER->IsAuthorized())
+		if($this->userId > 0)
 		{
 			$dbSocservUser = CSocServAuthDB::GetList(
 				array(),
 				array(
-					'USER_ID' => $USER->GetID(),
+					'USER_ID' => $this->userId,
 					"EXTERNAL_AUTH_ID" => static::SERVICE_ID
-				), false, false, array("USER_ID", "XML_ID", "OATOKEN", "OATOKEN_EXPIRES", "REFRESH_TOKEN")
+				), false, false, array("USER_ID", "XML_ID", "OATOKEN", "OATOKEN_EXPIRES", "REFRESH_TOKEN", "PERMISSIONS")
 			);
 
 			$accessToken = $dbSocservUser->Fetch();
@@ -106,21 +118,19 @@ class CSocServOAuthTransport
 
 	protected function deleteStorageTokens()
 	{
-		global $USER;
-
-		if(is_object($USER) && $USER->IsAuthorized())
+		if($this->userId > 0)
 		{
-			$dbSocservUser = CSocServAuthDB::GetList(
-				array(),
-				array(
-					'USER_ID' => $USER->GetID(),
-					"EXTERNAL_AUTH_ID" => static::SERVICE_ID
-				), false, false, array("ID")
-			);
+			$dbSocservUser = \Bitrix\Socialservices\UserTable::getList(array(
+				'filter' => array(
+					'=USER_ID' => $this->userId,
+					"=EXTERNAL_AUTH_ID" => static::SERVICE_ID
+				),
+				'select' => array("ID")
+			));
 
-			while($accessToken = $dbSocservUser->Fetch())
+			while($accessToken = $dbSocservUser->fetch())
 			{
-				CSocServAuthDB::Delete($accessToken['ID']);
+				\Bitrix\Socialservices\UserTable::delete($accessToken['ID']);
 			}
 		}
 	}

@@ -36,7 +36,8 @@ IfElseBranchActivity = function()
 		*/
 
 		var t = d.childNodes[0].childNodes[0].childNodes[0].childNodes[0].appendChild(_crt(1, 2));
-		t.rows[0].cells[0].innerHTML = ob.Properties['Title'];
+		t.rows[0].cells[0].innerHTML = BX.util.htmlspecialchars(ob.Properties['Title']);
+		t.rows[0].cells[0].title = ob.Properties['Title'];
 		t.rows[0].cells[0].width = '100%';
 		t.rows[0].cells[0].style.fontSize = '11px';
 		var setimg = t.rows[0].cells[1].appendChild(document.createElement('IMG'));

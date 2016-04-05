@@ -42,14 +42,15 @@ class CSocServVKontakte extends CSocServAuth
 		if(IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
 		{
 			$redirect_uri = self::CONTROLLER_URL."/redirect.php";
-			$state = CSocServUtil::ServerName()."/bitrix/tools/oauth/liveid.php?state=";
+			// error, but this code is not working at all
+			$state = \CHTTP::URN2URI("/bitrix/tools/oauth/liveid.php")."?state=";
 			$backurl = urlencode($APPLICATION->GetCurPageParam('check_key='.$_SESSION["UNIQUE_KEY"], array("logout", "auth_service_error", "auth_service_id", "backurl")));
 			$state .= urlencode(urlencode("backurl=".$backurl));
 		}
 		else
 		{
 			//$redirect_uri = CSocServUtil::GetCurUrl('auth_service_id='.self::ID);
-			$redirect_uri = CSocServUtil::ServerName().$APPLICATION->GetCurPage().'?auth_service_id='.self::ID;
+			$redirect_uri = \CHTTP::URN2URI($APPLICATION->GetCurPage()).'?auth_service_id='.self::ID;
 
 			$backurl = $APPLICATION->GetCurPageParam(
 				'check_key='.$_SESSION["UNIQUE_KEY"],
@@ -151,7 +152,7 @@ class CSocServVKontakte extends CSocServAuth
 			if(IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
 				$redirect_uri = self::CONTROLLER_URL."/redirect.php";
 			else
-				$redirect_uri = CSocServUtil::ServerName().$GLOBALS['APPLICATION']->GetCurPage().'?auth_service_id='.self::ID;
+				$redirect_uri = \CHTTP::URN2URI($GLOBALS['APPLICATION']->GetCurPage()).'?auth_service_id='.self::ID;
 
 			$this->entityOAuth = $this->getEntityOAuth($_REQUEST['code']);
 			if($this->entityOAuth->GetAccessToken($redirect_uri) !== false)
@@ -217,12 +218,17 @@ window.close();
 		die();
 	}
 
+	public function setUser($userId)
+	{
+		$this->getEntityOAuth()->setUser($userId);
+	}
+
 	public function getFriendsList($limit, &$next)
 	{
 		if(IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
 			$redirect_uri = self::CONTROLLER_URL."/redirect.php";
 		else
-			$redirect_uri = CSocServUtil::ServerName().$GLOBALS['APPLICATION']->GetCurPage().'?auth_service_id='.self::ID;
+			$redirect_uri = \CHTTP::URN2URI($GLOBALS['APPLICATION']->GetCurPage()).'?auth_service_id='.self::ID;
 
 		$vk = $this->getEntityOAuth();
 		if($vk->GetAccessToken($redirect_uri) !== false)
@@ -235,7 +241,6 @@ window.close();
 					$res['response'][$key]['name'] = $contact["first_name"];
 					$res['response'][$key]['url'] = "https://vk.com/id".$contact["uid"];
 					$res['response'][$key]['picture'] = $contact['photo_200_orig'];
-
 				}
 
 				return $res['response'];
@@ -252,7 +257,7 @@ window.close();
 		if(IsModuleInstalled('bitrix24') && defined('BX24_HOST_NAME'))
 			$redirect_uri = self::CONTROLLER_URL."/redirect.php";
 		else
-			$redirect_uri = CSocServUtil::ServerName().$GLOBALS['APPLICATION']->GetCurPage().'?auth_service_id='.self::ID;
+			$redirect_uri = \CHTTP::URN2URI($GLOBALS['APPLICATION']->GetCurPage()).'?auth_service_id='.self::ID;
 
 		if($vk->GetAccessToken($redirect_uri) !== false)
 		{

@@ -8,15 +8,15 @@ class CPullWatch extends CAllPullWatch
 	{
 		global $DB, $pPERIOD;
 		if (!CPullOptions::ModuleEnable())
-			return false;
+			return "CPullWatch::CheckExpireAgent();";
 
 		$pPERIOD = 1200;
 
-		$strSql = "SELECT count(ID) CNT FROM b_pull_watch WHERE DATE_CREATE < DATE_SUB(NOW(), INTERVAL 30 MINUTE)";
+		$strSql = "SELECT count(ID) CNT FROM b_pull_watch WHERE DATE_CREATE < DATE_SUB(NOW(), INTERVAL 32 MINUTE)";
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 		if ($arRes = $dbRes->Fetch())
 		{
-			$strSql = "DELETE FROM b_pull_watch WHERE DATE_CREATE < DATE_SUB(NOW(), INTERVAL 30 MINUTE) LIMIT 1000";
+			$strSql = "DELETE FROM b_pull_watch WHERE DATE_CREATE < DATE_SUB(NOW(), INTERVAL 32 MINUTE) LIMIT 1000";
 			$DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 
 			if ($arRes['CNT'] > 1000)

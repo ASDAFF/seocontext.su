@@ -1,7 +1,7 @@
 <?
-use Bitrix\Main\Loader;
-use Bitrix\Main\Config\Option;
-use Bitrix\Catalog;
+use Bitrix\Main\Loader,
+	Bitrix\Main\Config\Option,
+	Bitrix\Catalog;
 
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/catalog/general/product.php");
 
@@ -50,6 +50,8 @@ class CCatalogProduct extends CAllCatalogProduct
 			// strange copy-paste bug
 			foreach (GetModuleEvents("sale", "OnProductAdd", true) as $arEvent)
 				ExecuteModuleEventEx($arEvent, array($arFields["ID"], $arFields));
+
+			Catalog\Product\Sku::updateAvailable($arFields['ID'], 0, $arFields);
 		}
 
 		return true;
@@ -110,6 +112,8 @@ class CCatalogProduct extends CAllCatalogProduct
 				CCatalogProductSet::recalculateSetsByProduct($ID);
 			}
 
+			Catalog\Product\Sku::updateAvailable($ID, 0, $arFields);
+
 			if (isset(self::$arProductCache[$ID]))
 			{
 				unset(self::$arProductCache[$ID]);
@@ -123,9 +127,7 @@ class CCatalogProduct extends CAllCatalogProduct
 		}
 
 		foreach (GetModuleEvents("catalog", "OnProductUpdate", true) as $arEvent)
-		{
 			ExecuteModuleEventEx($arEvent, array($ID, $arFields));
-		}
 
 		//call subscribe
 		if ($boolSubscribe)
@@ -168,6 +170,7 @@ class CCatalogProduct extends CAllCatalogProduct
 
 	public static function GetQueryBuildArrays($arOrder, $arFilter, $arSelect)
 	{
+		/** @var CStackCacheManager $stackCacheManager */
 		global $DB, $USER, $stackCacheManager;
 
 		$strDefQuantityTrace = ((string)Option::get('catalog', 'default_quantity_trace') == 'Y' ? 'Y' : 'N');
@@ -190,7 +193,8 @@ class CCatalogProduct extends CAllCatalogProduct
 			'CURRENCY' => true,
 			'SHOP_QUANTITY' => true,
 			'PRICE' => true,
-			'STORE_AMOUNT' => true
+			'STORE_AMOUNT' => true,
+			'PRICE_SCALE' => true
 		);
 
 		$arOrderTmp = array();
@@ -211,7 +215,8 @@ class CCatalogProduct extends CAllCatalogProduct
 					switch ($by)
 					{
 						case 'PRICE':
-							$res = " ".CIBlock::_Order("CAT_P".$inum.".PRICE", $order, "asc")." ";
+						case 'PRICE_SCALE':
+							$res = " ".CIBlock::_Order("CAT_P".$inum.".PRICE_SCALE", $order, "asc")." ";
 							break;
 						case 'CURRENCY':
 							$res = " ".CIBlock::_Order("CAT_P".$inum.".CURRENCY", $order, "asc")." ";
@@ -225,11 +230,15 @@ class CCatalogProduct extends CAllCatalogProduct
 							$join = false;
 							break;
 						case 'AVAILABLE':
-							$arResOrder[$key] = " ".CIBlock::_Order("CATALOG_AVAILABLE", $order, "desc", false)." ";
+							$arResOrder[$key] = " ".CIBlock::_Order("CAT_PR.AVAILABLE", $order, "desc", false)." ";
 							$join = false;
 							break;
 						case 'TYPE':
 							$arResOrder[$key] = " ".CIBlock::_Order("CAT_PR.TYPE", $order, "asc", false)." ";
+							$join = false;
+							break;
+						case 'BUNDLE':
+							$arResOrder[$key] = " ".CIBlock::_Order("CAT_PR.BUNDLE", $order, "asc", false)." ";
 							$join = false;
 							break;
 						case 'PURCHASING_PRICE':
@@ -307,6 +316,19 @@ class CCatalogProduct extends CAllCatalogProduct
 							" ((CAT_P".$inum.".QUANTITY_FROM <= ".$val." OR CAT_P".$inum.".QUANTITY_FROM IS NULL) AND (CAT_P".$inum.".QUANTITY_TO >= ".$val." OR CAT_P".$inum.".QUANTITY_TO IS NULL)) ";
 						break;
 					case "PRICE":
+						$scale = static::getQueryBuildCurrencyScale($arFilter, $inum);
+						if (empty($scale))
+						{
+							$res = CIBlock::FilterCreate("CAT_P".$inum.".PRICE", $val, "number", $cOperationType);
+						}
+						else
+						{
+							$val = static::getQueryBuildPriceScaled($val, $scale['BASE_RATE']);
+							$res = CIBlock::FilterCreate("CAT_P".$inum.".PRICE_SCALE", $val, "number", $cOperationType);
+						}
+						unset($scale);
+						break;
+					case "PRICE_SCALE":
 						$res = CIBlock::FilterCreate("CAT_P".$inum.".PRICE", $val, "number", $cOperationType);
 						break;
 					case "QUANTITY":
@@ -316,13 +338,7 @@ class CCatalogProduct extends CAllCatalogProduct
 					case "AVAILABLE":
 						if ('N' !== $val)
 							$val = 'Y';
-						$res =
-							" (IF (
-					CAT_PR.QUANTITY > 0 OR
-					IF (CAT_PR.QUANTITY_TRACE = 'D', '".$strDefQuantityTrace."', CAT_PR.QUANTITY_TRACE) = 'N' OR
-					IF (CAT_PR.CAN_BUY_ZERO = 'D', '".$strDefCanBuyZero."', CAT_PR.CAN_BUY_ZERO) = 'Y',
-					'Y', 'N'
-					) ".(($cOperationType=="N") ? "<>" : "=")." '".$val."') ";
+						$res = CIBlock::FilterCreate("CAT_PR.AVAILABLE", $val, "string_equal", $cOperationType);
 						$join = false;
 						break;
 					case "WEIGHT":
@@ -331,6 +347,12 @@ class CCatalogProduct extends CAllCatalogProduct
 						break;
 					case 'TYPE':
 						$res = CIBlock::FilterCreate("CAT_PR.TYPE", $val, "number", $cOperationType);
+						$join = false;
+						break;
+					case "BUNDLE":
+						if ('N' !== $val)
+							$val = 'Y';
+						$res = CIBlock::FilterCreate("CAT_PR.BUNDLE", $val, "string_equal", $cOperationType);
 						$join = false;
 						break;
 					case 'PURCHASING_PRICE':
@@ -399,7 +421,7 @@ class CCatalogProduct extends CAllCatalogProduct
 
 			$cacheTime = CATALOG_CACHE_DEFAULT_TIME;
 			if (defined("CATALOG_CACHE_TIME"))
-				$cacheTime = intval(CATALOG_CACHE_TIME);
+				$cacheTime = (int)CATALOG_CACHE_TIME;
 
 			$stackCacheManager->SetLength("catalog_GetQueryBuildArrays", 50);
 			$stackCacheManager->SetTTL("catalog_GetQueryBuildArrays", $cacheTime);
@@ -422,6 +444,7 @@ class CCatalogProduct extends CAllCatalogProduct
 				$arResult = array();
 				while ($arRes = $dbRes->Fetch())
 					$arResult[] = $arRes;
+				unset($arRes, $dbRes);
 
 				$stackCacheManager->Set("catalog_GetQueryBuildArrays", $strCacheKey, $arResult);
 			}
@@ -431,14 +454,13 @@ class CCatalogProduct extends CAllCatalogProduct
 				$i = (int)$row["ID"];
 
 				if (!empty($arWhereTmp[$i]) && is_array($arWhereTmp[$i]))
-				{
 					$sResWhere .= ' AND '.implode(' AND ', $arWhereTmp[$i]);
-				}
 
 				if (!empty($arOrderTmp[$i]) && is_array($arOrderTmp[$i]))
 				{
 					foreach($arOrderTmp[$i] as $k=>$v)
 						$arResOrder[$k] = $v;
+					unset($k, $v);
 				}
 
 				$sResSelect .= ", CAT_P".$i.".ID as CATALOG_PRICE_ID_".$i.", ".
@@ -470,28 +492,22 @@ class CCatalogProduct extends CAllCatalogProduct
 			" CAT_PR.NEGATIVE_AMOUNT_TRACE as CATALOG_NEGATIVE_AMOUNT_ORIG, ".
 			" IF (CAT_PR.SUBSCRIBE = 'D', '".$strSubscribe."', CAT_PR.SUBSCRIBE) as CATALOG_SUBSCRIBE, ".
 			" CAT_PR.SUBSCRIBE as CATALOG_SUBSCRIBE_ORIG, ".
-			" IF (
-				CAT_PR.QUANTITY > 0 OR
-				IF (CAT_PR.QUANTITY_TRACE = 'D', '".$strDefQuantityTrace."', CAT_PR.QUANTITY_TRACE) = 'N' OR
-				IF (CAT_PR.CAN_BUY_ZERO = 'D', '".$strDefCanBuyZero."', CAT_PR.CAN_BUY_ZERO) = 'Y',
-				'Y', 'N'
-			) as CATALOG_AVAILABLE, ".
+			" CAT_PR.AVAILABLE as CATALOG_AVAILABLE, ".
 			" CAT_PR.WEIGHT as CATALOG_WEIGHT, CAT_PR.WIDTH as CATALOG_WIDTH, CAT_PR.LENGTH as CATALOG_LENGTH, CAT_PR.HEIGHT as CATALOG_HEIGHT, ".
 			" CAT_PR.MEASURE as CATALOG_MEASURE, ".
 			" CAT_VAT.RATE as CATALOG_VAT, CAT_PR.VAT_INCLUDED as CATALOG_VAT_INCLUDED, ".
 			" CAT_PR.PRICE_TYPE as CATALOG_PRICE_TYPE, CAT_PR.RECUR_SCHEME_TYPE as CATALOG_RECUR_SCHEME_TYPE, ".
 			" CAT_PR.RECUR_SCHEME_LENGTH as CATALOG_RECUR_SCHEME_LENGTH, CAT_PR.TRIAL_PRICE_ID as CATALOG_TRIAL_PRICE_ID, ".
 			" CAT_PR.WITHOUT_ORDER as CATALOG_WITHOUT_ORDER, CAT_PR.SELECT_BEST_PRICE as CATALOG_SELECT_BEST_PRICE, ".
-			" CAT_PR.PURCHASING_PRICE as CATALOG_PURCHASING_PRICE, CAT_PR.PURCHASING_CURRENCY as CATALOG_PURCHASING_CURRENCY, CAT_PR.TYPE as CATALOG_TYPE ";
+			" CAT_PR.PURCHASING_PRICE as CATALOG_PURCHASING_PRICE, CAT_PR.PURCHASING_CURRENCY as CATALOG_PURCHASING_CURRENCY, ".
+			" CAT_PR.TYPE as CATALOG_TYPE, CAT_PR.BUNDLE as CATALOG_BUNDLE ";
 
 		$sResFrom .= " left join b_catalog_product CAT_PR on (CAT_PR.ID = BE.ID) ";
 		$sResFrom .= " left join b_catalog_iblock CAT_IB on ((CAT_PR.VAT_ID IS NULL OR CAT_PR.VAT_ID = 0) AND CAT_IB.IBLOCK_ID = BE.IBLOCK_ID) ";
 		$sResFrom .= " left join b_catalog_vat CAT_VAT on (CAT_VAT.ID = IF((CAT_PR.VAT_ID IS NULL OR CAT_PR.VAT_ID = 0), CAT_IB.VAT_ID, CAT_PR.VAT_ID)) ";
 
 		if (!empty($productWhere))
-		{
 			$sResWhere .= ' and '.implode(' and ', $productWhere);
-		}
 		unset($productWhere);
 
 		if (!empty($arStore))
@@ -501,6 +517,7 @@ class CCatalogProduct extends CAllCatalogProduct
 				$sResFrom .= " left join b_catalog_store_product CAT_SP".$inum." on (CAT_SP".$inum.".PRODUCT_ID = BE.ID and CAT_SP".$inum.".STORE_ID = ".$inum.") ";
 				$sResSelect  .= ", CAT_SP".$inum.".AMOUNT as CATALOG_STORE_AMOUNT_".$inum." ";
 			}
+			unset($inum);
 
 			if (!empty($arStoreOrder))
 			{
@@ -561,12 +578,8 @@ class CCatalogProduct extends CAllCatalogProduct
 			"NEGATIVE_AMOUNT_TRACE" => array("FIELD" => "IF (CP.NEGATIVE_AMOUNT_TRACE = 'D', '".$defaultNegativeAmount."', CP.NEGATIVE_AMOUNT_TRACE)", "TYPE" => "char"),
 			"SUBSCRIBE_ORIG" => array("FIELD" => "CP.SUBSCRIBE", "TYPE" => "char"),
 			"SUBSCRIBE" => array("FIELD" => "IF (CP.SUBSCRIBE = 'D', '".$defaultSubscribe."', CP.SUBSCRIBE)", "TYPE" => "char"),
-			"AVAILABLE" => array("FIELD" => "IF (
-				CP.QUANTITY <= 0 AND
-				IF (CP.QUANTITY_TRACE = 'D', '".$defaultQuantityTrace."', CP.QUANTITY_TRACE) = 'Y' AND
-				IF (CP.CAN_BUY_ZERO = 'D', '".$defaultCanBuyZero."', CP.CAN_BUY_ZERO) = 'N',
-				'N', 'Y'
-			)", "TYPE" => "char"),
+			"AVAILABLE" => array("FIELD" => "CP.AVAILABLE", "TYPE" => "char"),
+			"BUNDLE" => array("FIELD" => "CP.BUNDLE", "TYPE" => "char"),
 			"WEIGHT" => array("FIELD" => "CP.WEIGHT", "TYPE" => "double"),
 			"WIDTH" => array("FIELD" => "CP.WIDTH", "TYPE" => "double"),
 			"LENGTH" => array("FIELD" => "CP.LENGTH", "TYPE" => "double"),
@@ -663,7 +676,7 @@ class CCatalogProduct extends CAllCatalogProduct
 * @deprecated deprecated since catalog 8.5.1
 * @see CCatalogProduct::GetList()
 */
-	function GetListEx($arOrder=array("SORT"=>"ASC"), $arFilter=array())
+	public static function GetListEx($arOrder=array("SORT"=>"ASC"), $arFilter=array())
 	{
 		return false;
 	}
@@ -684,7 +697,7 @@ AND CAT_VAT.ACTIVE='Y'
 		return $DB->Query($query);
 	}
 
-	public function SetProductType($intID, $intTypeID)
+	public static function SetProductType($intID, $intTypeID)
 	{
 		global $DB;
 		$intID = intval($intID);

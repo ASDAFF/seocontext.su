@@ -19,14 +19,18 @@ else
 		<?
 	}
 
-	if (CModule::IncludeModule('extranet') && CExtranet::IsExtranetSite())
-		$sSiteID = "_extranet";
-	else
-		$sSiteID = "_".SITE_ID;
-		
-	$bCanEdit = false;		
-	if ($arParams['CAN_OWNER_EDIT_DESKTOP']	!= "N" || $GLOBALS["USER"]->IsAdmin() || CSocNetUser::IsCurrentUserModuleAdmin())
-		$bCanEdit = true;
+	$sSiteID = "_".(
+		CModule::IncludeModule('extranet')
+		&& CExtranet::IsExtranetSite()
+			? "extranet"
+			: SITE_ID
+	);
+
+	$bCanEdit = (
+		$arParams['CAN_OWNER_EDIT_DESKTOP']	!= "N"
+		|| $GLOBALS["USER"]->IsAdmin()
+		|| CSocNetUser::IsCurrentUserModuleAdmin()
+	);
 
 	$arDesktopParams = Array(
 			"MODE" => "SU",
@@ -68,8 +72,13 @@ else
 			"G_SONET_USER_LINKS_IS_ABSENT" => $arResult['IS_ABSENT'],
 			"G_SONET_USER_LINKS_IS_HONOURED" => $arResult['IS_HONOURED'],
 			"G_SONET_USER_LINKS_IS_CURRENT_USER" => $arResult["CurrentUserPerms"]["IsCurrentUser"],
-			"G_SONET_USER_LINKS_RELATION" => $arResult["CurrentUserPerms"]["Relation"],			
-			"G_SONET_USER_LINKS_CAN_MESSAGE" => $arResult["CurrentUserPerms"]["Operations"]["message"],
+			"G_SONET_USER_LINKS_RELATION" => $arResult["CurrentUserPerms"]["Relation"],
+			"G_SONET_USER_LINKS_CAN_MESSAGE" => (
+				!IsModuleInstalled('mail')
+				|| $arResult["User"]["EXTERNAL_AUTH_ID"] != 'email'
+					? $arResult["CurrentUserPerms"]["Operations"]["message"]
+					: false
+			),
 			"G_SONET_USER_LINKS_CAN_INVITE_GROUP" => $arResult["CurrentUserPerms"]["Operations"]["invitegroup"],
 			"G_SONET_USER_LINKS_CAN_VIEW_PROFILE" => $arResult["CurrentUserPerms"]["Operations"]["viewprofile"],
 			"G_SONET_USER_LINKS_CAN_MODIFY_USER" => $arResult["CurrentUserPerms"]["Operations"]["modifyuser"],
@@ -150,6 +159,7 @@ else
 		$arDesktopParams["G_SONET_USER_DESC_PROPERTIES_PERSONAL_SHOW"] = $arResult["UserPropertiesPersonal"]["SHOW"];
 		$arDesktopParams["G_SONET_USER_DESC_PROPERTIES_PERSONAL_DATA"] = $arResult["UserPropertiesPersonal"]["DATA"];
 		$arDesktopParams["G_SONET_USER_DESC_OTP"] = $arResult["User"]["OTP"];
+		$arDesktopParams["G_SONET_USER_DESC_EMAIL_FORWARD_TO"] = (isset($arResult["User"]["EMAIL_FORWARD_TO"]) ? $arResult["User"]["EMAIL_FORWARD_TO"] : array());
 
 		if (
 			array_key_exists("RATING_ID_ARR", $arParams)
@@ -173,6 +183,11 @@ else
 			$arDesktopParams["G_SONET_USER_ABSENCE_IBLOCK_ID"] = $arParams["CALENDAR_USER_IBLOCK_ID"];
 			$arDesktopParams["G_SONET_USER_DESC_MANAGERS"] = $arResult["MANAGERS"];
 			$arDesktopParams["G_SONET_USER_DESC_DEPARTMENTS"] = $arResult["DEPARTMENTS"];
+		}
+
+		if (CModule::IncludeModule('mail'))
+		{
+			$arDesktopParams["G_SONET_USER_LINKS_EXTERNAL_AUTH_ID"] = $arResult["User"]["EXTERNAL_AUTH_ID"];
 		}
 
 		if($arResult["tasks"]["SHOW"])

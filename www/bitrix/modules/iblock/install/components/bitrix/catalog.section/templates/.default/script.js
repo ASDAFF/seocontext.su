@@ -1539,6 +1539,13 @@ window.JCCatalogSection.prototype.BasketResult = function(arResult)
 		if (successful)
 		{
 			BX.onCustomEvent('OnBasketChange');
+
+			//todo crunch for gifts: Zhukov's idea.
+			if(BX.findParent(this.obProduct, {className: 'bx_sale_gift_main_products'}, 10))
+			{
+				BX.onCustomEvent('onAddToBasketMainProduct', [this]);
+			}
+
 			switch(this.productType)
 			{
 			case 1://

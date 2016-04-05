@@ -10,25 +10,31 @@ IncludeModuleLangFile(__FILE__);
 if(!$USER->IsAuthorized())
 	die('<script>alert("'.GetMessage("ACCESS_DENIED").'");</script>');
 
-CUtil::DecodeUriComponent($_POST);
+CBPHelper::decodeTemplatePostData($_POST);
 
-$activityName = $_REQUEST['id'];
-$activityType = $_REQUEST['activity'];
-
-//$runtime = CBPRuntime::GetRuntime();
-//$arActivityDescription = $runtime->GetActivityDescription($activityType);
-//if ($arActivityDescription == null)
-//	die ("Bad activity type!".$activityType);
-
-$documentType = Array(MODULE_ID, ENTITY, $_POST['document_type']);
+$documentType = array(MODULE_ID, ENTITY, $_POST['document_type']);
+$documentId = !empty($_POST['document_id'])? array(MODULE_ID, ENTITY, $_POST['document_id']) : null;
 
 try
 {
-	$canWrite = CBPDocument::CanUserOperateDocumentType(
-		CBPCanUserOperateOperation::WriteDocument,
-		$GLOBALS["USER"]->GetID(),
-		$documentType
-	);
+	$canWrite = false;
+	if ($documentId)
+	{
+		$canWrite = CBPDocument::CanUserOperateDocument(
+			CBPCanUserOperateOperation::WriteDocument,
+			$GLOBALS["USER"]->GetID(),
+			$documentId
+		);
+	}
+
+	if (!$canWrite)
+	{
+		$canWrite = CBPDocument::CanUserOperateDocumentType(
+			CBPCanUserOperateOperation::WriteDocument,
+			$GLOBALS["USER"]->GetID(),
+			$documentType
+		);
+	}
 }
 catch (Exception $e)
 {
@@ -88,6 +94,8 @@ switch($_POST['fieldType'])
 	default:
 		$arFilter = false;
 }
+if (!empty($_REQUEST['load_access_lib']))
+	CJSCore::init('access');
 ?>
 <body class="dialogcontent">
 
@@ -354,7 +362,7 @@ _RecFindParams($arWorkflowTemplate, $arFilter, $arReturns);
 				$i = 0;
 				while ($i < $cnt)
 				{
-					$str = "SELECT ID, LOGIN, NAME, LAST_NAME, SECOND_NAME, EMAIL FROM b_user WHERE ID IN (0";
+					$str = "SELECT ID, LOGIN, NAME, LAST_NAME, SECOND_NAME, EMAIL, EXTERNAL_AUTH_ID FROM b_user WHERE ID IN (0";
 					$cnt1 = min($cnt, $i + $mcnt);
 					for ($j = $i; $j < $cnt1; $j++)
 						$str .= ", ".IntVal($arUsers[$j]);
@@ -363,6 +371,9 @@ _RecFindParams($arWorkflowTemplate, $arFilter, $arReturns);
 					$dbuser = $DB->Query($str);
 					while($user = $dbuser->fetch())
 					{
+						if ($user['EXTERNAL_AUTH_ID'] == 'replica' || $user['EXTERNAL_AUTH_ID'] == 'email')
+							continue;
+
 						$n = CUser::FormatName(str_replace(",","", COption::GetOptionString("bizproc", "name_template", CSite::GetNameFormat(false), SITE_ID)), $user, true, true);
 						?>
 						<option value="<?= $n ?> [<?=$user['ID']?>]; "><?=$n?> &lt;<?=$user['EMAIL']?>&gt; [<?=$user['ID']?>]</option>
@@ -371,6 +382,11 @@ _RecFindParams($arWorkflowTemplate, $arFilter, $arReturns);
 				}
 				?>
 			</select>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<a href="javascript:void(0)" onclick="BPSShowUserGropupsDialog()"><b><?echo GetMessage("BIZPROC_SEL_GROUPS_TAB")?></b></a>
 		</td>
 	</tr>
 	<?endif?>
@@ -429,6 +445,53 @@ function CloseDialog()
 {
 	<?=$popupWindow->jsPopup?>.CloseDialog();
 }
+
+var BPSShowUserGropupsDialog = function()
+{
+	BX.Access.Init({other:{disabled:true}});
+	BX.Access.ShowForm({
+		bind: '<?=RandString(4);?>',
+		callback: function (selected)
+		{
+
+			var prepareName = function(str)
+			{
+				str = str.replace(/&amp;/g, '&');
+				str = str.replace(/&quot;/g, '"');
+				str = str.replace(/&lt;/g, '<');
+				str = str.replace(/&gt;/g, '>');
+				str = str.replace(/,/g, '');
+				str = str.replace(/;/g, '');
+
+				return str;
+			};
+
+			var result = [];
+			for (var provider in selected)
+			{
+				if (selected.hasOwnProperty(provider))
+				{
+					for (var varId in selected[provider])
+					{
+						if (selected[provider].hasOwnProperty(varId))
+						{
+							var id = varId;
+							if (id.indexOf('U') === 0)
+								id = id.substr(1);
+							if (id.indexOf('IU') === 0)
+								id = id.substr(2);
+							result.push(prepareName(selected[provider][varId].name) + ' [' + id + ']');
+						}
+					}
+				}
+			}
+			if (result)
+			{
+				BPSVInsert(result.join('; ')+'; ');
+			}
+		}
+	});
+};
 
 <?if($_POST['fieldType']=='user' && $selectorMode != 'employee'):?>
 BPSHideShow('BPSId5');

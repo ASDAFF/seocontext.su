@@ -165,7 +165,6 @@ class CIMConvert
 			self::$nextConvertPerStep = $step;
 	}
 
-
 	public static function UndeliveredMessageAgent()
 	{
 		if (!CModule::IncludeModule("socialnetwork"))

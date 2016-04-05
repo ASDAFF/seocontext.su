@@ -184,9 +184,8 @@ if (strlen($fatalErrorMessage) <= 0)
 	}
 }
 
-CBPDocument::AddShowParameterInit(MODULE_ID, "only_users", $documentType[2], $documentType[1]);
-
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_after.php");
+CBPDocument::AddShowParameterInit(MODULE_ID, "only_users", $documentType[2], $documentType[1]);
 
 if (strlen($fatalErrorMessage) > 0)
 {

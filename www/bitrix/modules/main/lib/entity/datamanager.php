@@ -39,6 +39,7 @@ abstract class DataManager
 	public static function getEntity()
 	{
 		$class = get_called_class();
+		$class = Base::normalizeEntityClass($class);
 
 		if (!isset(static::$entity[$class]))
 		{
@@ -46,6 +47,17 @@ abstract class DataManager
 		}
 
 		return static::$entity[$class];
+	}
+
+	public static function unsetEntity($class)
+	{
+		$class = Base::normalizeEntityClass($class);
+
+		if (isset(static::$entity[$class]))
+		{
+			unset(static::$entity[$class]);
+			return true;
+		}
 	}
 
 	/**
@@ -692,26 +704,30 @@ abstract class DataManager
 			}
 
 			// save data
-			$connection = $entity->getConnection();
-			$helper = $connection->getSqlHelper();
-
-			$tableName = $entity->getDBTableName();
-
-			$dataReplacedColumn = static::replaceFieldName($data);
-			$update = $helper->prepareUpdate($tableName, $dataReplacedColumn);
-
-			$replacedPrimary = static::replaceFieldName($primary);
-			$id = array();
-			foreach ($replacedPrimary as $k => $v)
+			if (!empty($data))
 			{
-				$id[] = $helper->prepareAssignment($tableName, $k, $v);
+				$connection = $entity->getConnection();
+				$helper = $connection->getSqlHelper();
+
+				$tableName = $entity->getDBTableName();
+
+				$dataReplacedColumn = static::replaceFieldName($data);
+				$update = $helper->prepareUpdate($tableName, $dataReplacedColumn);
+
+				$replacedPrimary = static::replaceFieldName($primary);
+				$id = array();
+				foreach ($replacedPrimary as $k => $v)
+				{
+					$id[] = $helper->prepareAssignment($tableName, $k, $v);
+				}
+				$where = implode(' AND ', $id);
+
+				$sql = "UPDATE ".$tableName." SET ".$update[0]." WHERE ".$where;
+				$connection->queryExecute($sql, $update[1]);
+
+				$result->setAffectedRowsCount($connection);
 			}
-			$where = implode(' AND ', $id);
 
-			$sql = "UPDATE ".$tableName." SET ".$update[0]." WHERE ".$where;
-			$connection->queryExecute($sql, $update[1]);
-
-			$result->setAffectedRowsCount($connection);
 			$result->setData($data);
 			$result->setPrimary($primary);
 

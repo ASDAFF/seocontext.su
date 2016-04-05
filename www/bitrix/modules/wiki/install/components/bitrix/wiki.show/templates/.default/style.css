@@ -71,3 +71,15 @@ div#wiki_category .ilike-light .bx-ilike-text {
 {
 	font-size: medium;
 }
+
+#wiki-post-content table,
+.wiki_post_feed table {
+	border: 1px solid #B6B6B8;
+	border-collapse: collapse;
+}
+
+#wiki-post-content table td,
+.wiki_post_feed table td {
+	border: 1px solid #B6B6B8;
+	padding: 2px 5px;
+}

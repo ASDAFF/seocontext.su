@@ -177,7 +177,7 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 			// BUT the better way is to show it in template.php, as it required by MVC paradigm
 			if(!$this->arParams['AUTH_FORM_IN_TEMPLATE'])
 			{
-				$APPLICATION->AuthForm($msg);
+				$APPLICATION->AuthForm($msg, false, false, 'N', false);
 			}
 
 			throw new Main\SystemException($msg, self::E_NOT_AUTHORIZED);
@@ -1073,30 +1073,15 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 			'STATUS_ID',
 			'DATE_STATUS',
 
-			'PAY_VOUCHER_NUM',
-			'PAY_VOUCHER_DATE',
 			'EMP_STATUS_ID',
 
 			'PRICE_DELIVERY',
-			'ALLOW_DELIVERY',
-			'DATE_ALLOW_DELIVERY',
-			'EMP_ALLOW_DELIVERY_ID',
 
-			'DEDUCTED',
-			'DATE_DEDUCTED',
-			'EMP_DEDUCTED_ID',
-
-			'REASON_UNDO_DEDUCTED',
-
-			'RESERVED',
 			'PRICE',
 			'CURRENCY',
 			'DISCOUNT_VALUE',
 
-			'SUM_PAID',
 			'USER_ID',
-			'PAY_SYSTEM_ID',
-			'DELIVERY_ID',
 
 			'DATE_INSERT',
 			'DATE_INSERT_FORMAT',
@@ -1105,14 +1090,6 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 			'USER_DESCRIPTION',
 			'ADDITIONAL_INFO',
 
-			'PS_STATUS',
-			'PS_STATUS_CODE',
-			'PS_STATUS_DESCRIPTION',
-			'PS_STATUS_MESSAGE',
-			'PS_SUM',
-			'PS_CURRENCY',
-			'PS_RESPONSE_DATE',
-
 			'COMMENTS',
 
 			'TAX_VALUE',
@@ -1120,29 +1097,9 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 			'RECURRING_ID',
 			'RECOUNT_FLAG',
 
-			'USER_LOGIN',
-			'USER_NAME',
-			'USER_LAST_NAME',
-			'USER_EMAIL',
-
-			'DELIVERY_DOC_NUM',
-			'DELIVERY_DOC_DATE',
-			'DELIVERY_DATE_REQUEST',
-			'STORE_ID',
 			'ORDER_TOPIC',
 
-			'RESPONSIBLE_ID',
-			'RESPONSIBLE_LOGIN',
-			'RESPONSIBLE_NAME',
-			'RESPONSIBLE_LAST_NAME',
-			'RESPONSIBLE_SECOND_NAME',
-			'RESPONSIBLE_EMAIL',
-			'RESPONSIBLE_WORK_POSITION',
-			'RESPONSIBLE_PERSONAL_PHOTO',
-			'DATE_PAY_BEFORE',
-			'DATE_BILL',
 			'ACCOUNT_NUMBER',
-			'TRACKING_NUMBER',
 			'XML_ID',
 		);
 		$sort = array("ID" => "ASC");
@@ -1154,9 +1111,16 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 		$arOrder = false;
 		if ($this->options['USE_ACCOUNT_NUMBER']) // supporting order ACCOUNT_NUMBER or ID in the URL
 		{
-			$dbOrder = CSaleOrder::GetList($sort, $filter, false, false, $select);
-			if ($arOrder = $dbOrder->Fetch())
+
+			$res = \Bitrix\Sale\OrderTable::getList(array(
+				'filter' => $filter,
+				'select' => $select
+			 ));
+
+			if ($arOrder = $res->fetch())
+			{
 				$this->requestData["ID"] = $arOrder["ID"];
+			}
 		}
 
 		if (!$arOrder)
@@ -1166,9 +1130,20 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 				"ID" => $this->requestData["ID"],
 			);
 
-			$dbOrder = CSaleOrder::GetList($sort, $filter, false, false, $select);
-			$arOrder = $dbOrder->Fetch();
+			$res = \Bitrix\Sale\OrderTable::getList(array(
+														'filter' => $filter,
+														'select' => $select
+													));
 
+			$arOrder = $res->fetch();
+		}
+
+		if (empty($arOrder))
+		{
+			throw new Main\SystemException(
+				str_replace("#ID#", $this->requestData["ID"], Localization\Loc::getMessage("SPOD_NO_ORDER")),
+				self::E_ORDER_NOT_FOUND
+			);
 		}
 
 
@@ -1184,6 +1159,8 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 				'ID',
 				'DELIVERY_ID',
 				'TRACKING_NUMBER',
+				'TRACKING_STATUS',
+				'TRACKING_DESCRIPTION',
 				'ALLOW_DELIVERY',
 				'DATE_ALLOW_DELIVERY',
 				'EMP_ALLOW_DELIVERY_ID',
@@ -1207,10 +1184,15 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 			$shipmentItems = array();
 			while ($shipmentItem = $dbShipmentItem->fetch())
 			{
+				$shipmentItem['QUANTITY'] = \Bitrix\Sale\BasketItem::formatQuantity($shipmentItem['QUANTITY']);
 				$shipmentItems[$shipmentItem['BASKET_ID']] = $shipmentItem;
 			}
 
 			$arShipment['ITEMS'] = $shipmentItems;
+			$arShipment['TRACKING_STATUS'] = \Bitrix\Sale\Delivery\Tracking\Manager::getStatusName(
+				$arShipment['TRACKING_STATUS']
+			);
+
 			$arOShipment[] = $arShipment;
 		}
 		$arOrder['SHIPMENT'] = $arOShipment;
@@ -1298,14 +1280,6 @@ class CBitrixPersonalOrderDetailComponent extends CBitrixComponent
 					$arOrder[$paymentField] = $setFieldValue;
 				}
 			}
-		}
-
-		if (empty($arOrder))
-		{
-			throw new Main\SystemException(
-				str_replace("#ID#", $this->requestData["ID"], Localization\Loc::getMessage("SPOD_NO_ORDER")),
-				self::E_ORDER_NOT_FOUND
-			);
 		}
 
 		$this->dbResult = $arOrder;

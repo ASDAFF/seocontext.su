@@ -63,7 +63,7 @@ class Base32
 			return '';
 
 		if (!is_string($string))
-			throw new ArgumentTypeException('base32String', 'string');
+			throw new ArgumentTypeException('string', 'string');
 
 		if (self::$encodeAlphabet === null)
 			self::$encodeAlphabet = array_flip(self::$alphabet);

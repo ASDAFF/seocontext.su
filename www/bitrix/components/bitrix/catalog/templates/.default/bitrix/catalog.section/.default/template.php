@@ -108,10 +108,13 @@ if (!empty($arResult['ITEMS']))
 	$strElementEdit = CIBlock::GetArrayByID($arParams["IBLOCK_ID"], "ELEMENT_EDIT");
 	$strElementDelete = CIBlock::GetArrayByID($arParams["IBLOCK_ID"], "ELEMENT_DELETE");
 	$arElementDeleteParams = array("CONFIRM" => GetMessage('CT_BCS_TPL_ELEMENT_DELETE_CONFIRM'));
-?>
+
+	if($arParams['HIDE_SECTION_DESCRIPTION'] !== 'Y')
+	{ ?>
 <div class="bx-section-desc <? echo $templateData['TEMPLATE_CLASS']; ?>">
 	<p class="bx-section-desc-post"><?=$arResult["DESCRIPTION"]?></p>
 </div>
+<? } ?>
 <div class="bx_catalog_list_home col<? echo $arParams['LINE_ELEMENT_COUNT']; ?> <? echo $templateData['TEMPLATE_CLASS']; ?>">
 	<?
 foreach ($arResult['ITEMS'] as $key => $arItem)

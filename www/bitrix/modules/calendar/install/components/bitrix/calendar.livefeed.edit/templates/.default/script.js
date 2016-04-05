@@ -6,7 +6,15 @@
 		this.config = config;
 		this.id = this.config.id;
 		this.bAMPM = this.config.bAMPM;
-		//this.bPanelShowed = true;
+
+		this.DATE_FORMAT = BX.date.convertBitrixFormat(BX.message("FORMAT_DATE"));
+		this.DATETIME_FORMAT = BX.date.convertBitrixFormat(BX.message("FORMAT_DATETIME"));
+		if ((this.DATETIME_FORMAT.substr(0, this.DATE_FORMAT.length) == this.DATE_FORMAT))
+			this.TIME_FORMAT = BX.util.trim(this.DATETIME_FORMAT.substr(this.DATE_FORMAT.length));
+		else
+			this.TIME_FORMAT = BX.date.convertBitrixFormat(this.bAMPM ? 'H:MI:SS T' : 'HH:MI:SS');
+		this.TIME_FORMAT_SHORT = this.TIME_FORMAT.replace(':s', '');
+
 		this.bFullDay = false;
 		this.bReminder = false;
 		this.bAdditional = false;
@@ -37,8 +45,28 @@
 			this.pFromTime = BX('feed_cal_event_from_time' + this.id);
 			this.pToTime = BX('feed_cal_event_to_time' + this.id);
 			this.pFullDay = BX('event-full-day' + this.id);
-			this.pFromTs = BX('event-from-ts' + this.id);
-			this.pToTs = BX('event-to-ts' + this.id);
+			//this.pFromTs = BX('event-from-ts' + this.id);
+			//this.pToTs = BX('event-to-ts' + this.id);
+
+			// Timezones controls
+			this.pDefTimezone = BX('feed-cal-tz-def' + this.id);
+			this.pDefTimezoneWrap = BX('feed-cal-tz-def-wrap' + this.id);
+			this.pFromTz = BX('feed-cal-tz-from' + this.id);
+			this.pToTz = BX('feed-cal-tz-to' + this.id);
+			this.pDefTimezone.onchange = BX.proxy(this.DefaultTimezoneOnChange, this);
+
+			this.pTzOuterCont = BX('feed-cal-tz-cont-outer' + this.id);
+			this.pTzSwitch = BX('feed-cal-tz-switch' + this.id);
+			this.pTzCont = BX('feed-cal-tz-cont' + this.id);
+			this.pTzInnerCont = BX('feed-cal-tz-inner-cont' + this.id);
+			this.pTzSwitch.onclick = BX.proxy(this.TimezoneSwitch, this);
+
+			this.pFromTz.onchange = BX.proxy(this.TimezoneFromOnChange, this);
+			this.pToTz.onchange = BX.proxy(this.TimezoneToOnChange, this);
+			// Hints for dialog
+			new BX.CHint({parent: BX('feed-cal-tz-tip' + this.id), hint: _this.config.message.eventTzHint});
+			new BX.CHint({parent: BX('feed-cal-tz-def-tip' + this.id), hint: _this.config.message.eventTzDefHint});
+
 			//Reminder
 			this.pReminderCont = BX('feed-cal-reminder-cont' + this.id);
 			this.pReminder = BX('event-reminder' + this.id);
@@ -51,6 +79,24 @@
 			this.pSection = BX('event-section' + this.id);
 			this.pRemCount = BX('event-remind_count' + this.id);
 			this.pRemType = BX('event-remind_type' + this.id);
+
+			// Location
+			if (this.config.meetingRooms)
+ 			{
+				this.Location = new BXInputPopup({
+					id: this.id + '_loc_mr',
+					values: this.config.meetingRooms,
+					input: this.pLocation,
+					defaultValue: this.config.message.SelectMR,
+					openTitle: this.config.message.OpenMRPage,
+					className: 'calendar-inp calendar-inp-time calendar-inp-loc',
+					noMRclassName: 'calendar-inp calendar-inp-time calendar-inp-loc'
+				});
+				this.Loc = {};
+				BX.addCustomEvent(this.Location, 'onInputPopupChanged', BX.proxy(this.LocationOnChange, this));
+				BX.addClass(this.pLocation, "calendar-inp-time");
+				this.Location.Set(false, '');
+			}
 
 			// Control events
 			this.pFullDay.onclick = BX.proxy(this.FullDay, this);
@@ -152,8 +198,11 @@
 					if (F)
 					{
 						var duration = T.getTime() - prevF.getTime();
+						if (duration < 0)
+							duration = 0;
 						T = new Date(F.getTime() + duration);
-						_this.pToDate.value = bxFormatDate(T.getDate(), T.getMonth() + 1, T.getFullYear());
+						if (T)
+							_this.pToDate.value = bxFormatDate(T.getDate(), T.getMonth() + 1, T.getFullYear());
 					}
 				}
 				_this._FromDateValue = _this.pFromDate.value;
@@ -165,114 +214,73 @@
 
 			this.pFromTime.onchange = function()
 			{
-				var fromTime, toTime;
-				if (_this.pToTime.value == "")
+				var fromDate = _this.ParseDate(BX.util.trim(_this.pFromDate.value) + ' ' + BX.util.trim(_this.pFromTime.value));
+				if (_this.pToDate.value == '')
+					_this.pToDate.value = _this.pFromDate.value;
+
+				var toDate = _this.ParseDate(BX.util.trim(_this.pToDate.value) + ' ' + BX.util.trim(_this.pToTime.value));
+
+				if (_this._FromTimeValue)
 				{
-					if(BX.util.trim(_this.pFromDate.value) == BX.util.trim(_this.pToDate.value) && BX.util.trim(_this.pToDate.value) != '')
-					{
-						fromTime = _this.ParseTime(this.value);
-						if (fromTime.h >= 23)
-						{
-							_this.pToTime.value = formatTimeByNum(0, fromTime.m, _this.bAMPM);
-							var date = BX.parseDate(_this.pFromDate.value);
-							if (date)
-							{
-								date.setDate(date.getDate() + 1);
-								_this.pToDate.value = bxFormatDate(date.getDate(), date.getMonth() + 1, date.getFullYear());
-							}
-						}
-						else
-						{
-							_this.pToTime.value = formatTimeByNum(parseInt(fromTime.h, 10) + 1, fromTime.m, _this.bAMPM);
-						}
-					}
-					else
-					{
-						_this.pToTime.value = _this.pFromTime.value;
-					}
-				}
-				else if (_this.pToDate.value == '' || _this.pToDate.value == _this.pFromDate.value)
-				{
-					if (_this.pToDate.value == '')
-						_this.pToDate.value = _this.pFromDate.value;
+					var prefFromDate = _this.ParseDate(BX.util.trim(_this.pFromDate.value) + ' ' + _this._FromTimeValue);
+					var duration = toDate.getTime() - prefFromDate.getTime();
+					if (duration < 0)
+						duration = 3600000; // 1 hour
 
-					// 1. We need prev. duration
-					if(_this._FromTimeValue)
-					{
-						var
-							F = BX.parseDate(_this.pFromDate.value),
-							T = BX.parseDate(_this.pToDate.value),
-							prevFromTime = _this.ParseTime(_this._FromTimeValue);
-
-						fromTime = _this.ParseTime(_this.pFromTime.value);
-						toTime = _this.ParseTime(_this.pToTime.value);
-
-						F.setHours(prevFromTime.h);
-						F.setMinutes(prevFromTime.m);
-						T.setHours(toTime.h);
-						T.setMinutes(toTime.m);
-
-						var duration = T.getTime() - F.getTime();
-						if (duration != 0)
-						{
-							F.setHours(fromTime.h);
-							F.setMinutes(fromTime.m);
-
-							T = new Date(F.getTime() + duration);
-							_this.pToDate.value = bxFormatDate(T.getDate(), T.getMonth() + 1, T.getFullYear());
-							_this.pToTime.value = formatTimeByNum(T.getHours(), T.getMinutes(), _this.bAMPM);
-						}
-					}
+					var newToDate = new Date(fromDate.getTime() + duration);
+					_this.pToDate.value = _this.FormatDate(newToDate);
+					_this.pToTime.value = _this.FormatTime(newToDate);
 				}
 
 				_this._FromTimeValue = _this.pFromTime.value;
 			};
 		},
 
-		OnSubmit: function()
+		OnSubmit: function(e)
 		{
-
-			// Datetime limits
-			var fd = BX.parseDate(this.pFromDate.value);
-			var td = BX.parseDate(this.pToDate.value);
-
-			if (!fd)
-				fd = getUsableDateTime(new Date().getTime()).oDate;
-
-			if (this.pFromTime.value == '' && this.pToTime.value == '')
-				this.pFullDay.checked = true;
-
-			if (this.pFullDay.checked)
-				this.pFromTime.value = this.pToTime.value = '';
-
-			var fromTime = this.ParseTime(this.pFromTime.value);
-			fd.setHours(fromTime.h);
-			fd.setMinutes(fromTime.m);
-			var
-				to,
-				from = BX.date.getServerTimestamp(fd.getTime());
-
-			if (td)
+			// Check Meeting and Video Meeting rooms accessibility
+			if (this.Loc.NEW.substr(0, 5) == 'ECMR_' && !this.bLocationChecked && window.setBlogPostFormSubmitted)
 			{
-				var toTime = this.ParseTime(this.pToTime.value);
-				td.setHours(toTime.h);
-				td.setMinutes(toTime.m);
-				to = BX.date.getServerTimestamp(td.getTime());
+				var
+					_this = this,
+					fromDate = this.ParseDate(BX.util.trim(this.pFromDate.value) + ' ' + BX.util.trim(this.pFromTime.value)),
+					toDate = this.ParseDate(BX.util.trim(this.pToDate.value) + ' ' + BX.util.trim(this.pToTime.value));
 
-				if (from == to && toTime.h == 0 && toTime.m == 0)
-				{
-					fd.setHours(0);
-					fd.setMinutes(0);
-					td.setHours(0);
-					td.setMinutes(0);
+				top.BXCRES_Check = null;
+				this.CheckMeetingRoom(
+					{
+						from : this.FormatDateTime(fromDate),
+						to : this.FormatDateTime(toDate),
+						location : this.Loc.NEW
+					},
+					function()
+					{
+						setTimeout(function()
+						{
+							var check = top.BXCRES_Check;
+							if ((!check || check == 'reserved') && BX("blog-submit-button-save"))
+							{
+								setBlogPostFormSubmitted(false);
+								BX.removeClass(BX("blog-submit-button-save"), 'feed-add-button-load');
+							}
 
-					from = BX.date.getServerTimestamp(fd.getTime());
-					to = BX.date.getServerTimestamp(td.getTime());
-				}
+							if (!check)
+								return alert(_this.config.message.MRReserveErr);
+
+							if (check == 'reserved')
+								return alert(_this.config.message.MRNotReservedErr);
+
+							_this.bLocationChecked = true;
+							BX('event-location-new' + _this.id).name = _this.pLocation.name;
+							BX('event-location-new' + _this.id).value = _this.Loc.NEW;
+							_this.pLocation.name = '';
+							setBlogPostFormSubmitted(false);
+							submitBlogPostForm();
+						}, 100);
+					}
+				);
+				return BX.PreventDefault(e);
 			}
-
-			this.pFromTs.value = from;
-			this.pToTs.value = to;
 		},
 
 		HandleEvent: function(oEvent)
@@ -309,45 +317,45 @@
 			// Name
 			this.pEventName.value = oEvent.NAME || '';
 
-			// From / To
-			var fd, td;
-			if (oEvent.DT_FROM_TS || oEvent.DT_TO_TS)
+			this.linkFromToTz = true;
+			this.linkFromToDefaultTz = true;
+
+			// Default Timezone
+			if (this.config.userTimezoneName)
 			{
-				if (!(oEvent.RRULE && oEvent.RRULE.FREQ && oEvent.RRULE.FREQ != 'NONE'))
-				{
-					fd = bxGetDateFromTS(oEvent.DT_FROM_TS);
-					td = bxGetDateFromTS(oEvent.DT_TO_TS);
-				}
-				else
-				{
-					fd = bxGetDateFromTS(oEvent['~DT_FROM_TS']);
-					td = bxGetDateFromTS(oEvent['~DT_TO_TS']);
-				}
+				this.pDefTimezoneWrap.style.display = 'none';
+				this.pDefTimezone.value = this.config.userTimezoneName;
+				this.pFromTz.value = this.pToTz.value = this.config.userTimezoneName;
 			}
 			else
 			{
-				fd = getUsableDateTime(new Date().getTime());
-				td = getUsableDateTime(new Date().getTime() + 3600000 /* one hour*/);
+				this.pDefTimezoneWrap.style.display = '';
+				this.pFromTz.value = this.pToTz.value = this.pDefTimezone.value = this.config.userTimezoneDefault || '';
 			}
 
-			if (fd)
-			{
-				this._FromDateValue = this.pFromDate.value = bxFormatDate(fd.date, fd.month, fd.year);
-				this._FromTimeValue = this.pFromTime.value = fd.bTime ? formatTimeByNum(fd.hour, fd.min, this.bAMPM) : '';
-			}
-			else
-			{
-				this._FromDateValue = this._FromTimeValue = this.pFromDate.value = this.pFromTime.value = '';
-			}
+			// Dafault values for from-to fields
+			var dateFrom = this.GetUsableDateTime(new Date().getTime(), 30);
+			var dateTo = this.GetUsableDateTime(dateFrom.getTime() + 3600000 /* one hour*/, 30);
 
-			if (td)
+			this.pFromDate.value = this.FormatDate(dateFrom);
+			this.pToDate.value = this.FormatDate(dateTo);
+			this.pFromTime.value = this.FormatTime(dateFrom);
+			this.pToTime.value = this.FormatTime(dateTo);
+
+			this._FromDateValue = this.pFromDate.value;
+			this._FromTimeValue = this.pFromTime.value;
+
+			// Default Timezone
+			if (this.config.userTimezoneName)
 			{
-				this.pToDate.value = bxFormatDate(td.date, td.month, td.year);
-				this.pToTime.value = td.bTime ? formatTimeByNum(td.hour, td.min, this.bAMPM) : '';
+				this.pDefTimezoneWrap.style.display = 'none';
+				this.pDefTimezone.value = this.config.userTimezoneName;
+				this.pFromTz.value = this.pToTz.value = this.config.userTimezoneName;
 			}
 			else
 			{
-				this.pToDate.value = this.pToTime.value = '';
+				this.pDefTimezoneWrap.style.display = '';
+				this.pFromTz.value = this.pToTz.value = this.pDefTimezone.value = this.config.userTimezoneDefault || '';
 			}
 
 			this.pFullDay.checked = oEvent.DT_SKIP_TIME == "Y";
@@ -356,6 +364,11 @@
 			if (bNew)
 			{
 				this.pLocation.value = '';
+				if (this.Location)
+				{
+					this.Location.Set(false, '');
+				}
+
 				this.pImportance.value = 'normal';
 				this.pAccessibility.value = 'busy';
 				if (this.pSection.options && this.pSection.options.length > 0)
@@ -371,7 +384,6 @@
 				this.pImportance.value = oEvent.IMPORTANCE;
 				this.pAccessibility.value = oEvent.ACCESSIBILITY;
 				this.pSection.value = oEvent.SECT_ID;
-
 
 				// Remind
 				this.pReminder.checked = oEvent.REMIND && oEvent.REMIND[0];
@@ -472,6 +484,223 @@
 				m = 0;
 
 			return {h: h, m: m};
+		},
+
+		TimezoneSwitch: function()
+		{
+			if(this.pTzCont.offsetHeight > 0)
+			{
+				this.pTzCont.style.height = 0;
+				BX.removeClass(this.pTzOuterCont, 'feed-ev-timezone-outer-wrap-opened');
+			}
+			else
+			{
+				this.pTzCont.style.height = this.pTzInnerCont.offsetHeight + 'px';
+				BX.addClass(this.pTzOuterCont, 'feed-ev-timezone-outer-wrap-opened');
+			}
+		},
+
+		DefaultTimezoneOnChange: function()
+		{
+			var defTimezoneName = this.pDefTimezone.value;
+			BX.userOptions.save('calendar', 'timezone_name', 'timezone_name', defTimezoneName);
+			if (this.linkFromToDefaultTz)
+				this.pToTz.value = this.pFromTz.value = this.pDefTimezone.value;
+		},
+
+		TimezoneFromOnChange: function()
+		{
+			if (this.linkFromToTz)
+				this.pToTz.value = this.pFromTz.value;
+			this.linkFromToDefaultTz = false;
+		},
+
+		TimezoneToOnChange: function()
+		{
+			this.linkFromToTz = false;
+			this.linkFromToDefaultTz = false;
+		},
+
+		FormatDate: function(date)
+		{
+			return BX.date.format(this.DATE_FORMAT, date.getTime() / 1000);
+		},
+
+		FormatTime: function(date, seconds)
+		{
+			return BX.date.format(seconds === true ? this.TIME_FORMAT : this.TIME_FORMAT_SHORT, date.getTime() / 1000);
+		},
+
+		FormatDateTime: function(date)
+		{
+			return BX.date.format(this.DATETIME_FORMAT, date.getTime() / 1000);
+		},
+
+		GetUsableDateTime: function(timestamp, roundMin)
+		{
+			var r = (roundMin || 10) * 60 * 1000;
+			timestamp = Math.ceil(timestamp / r) * r;
+			return new Date(timestamp);
+		},
+
+		ParseDate: function(str, trimSeconds)
+		{
+			var bUTC = false;
+			var format = BX.message('FORMAT_DATETIME');
+
+			if (trimSeconds !== false)
+				format = format.replace(':SS', '');
+
+			if (BX.type.isNotEmptyString(str))
+			{
+				var regMonths = '';
+				for (i = 1; i <= 12; i++)
+				{
+					regMonths = regMonths + '|' + BX.message('MON_'+i);
+				}
+
+				var expr = new RegExp('([0-9]+|[a-z]+' + regMonths + ')', 'ig');
+				var aDate = str.match(expr),
+					aFormat = BX.message('FORMAT_DATE').match(/(DD|MI|MMMM|MM|M|YYYY)/ig),
+					i, cnt,
+					aDateArgs=[], aFormatArgs=[],
+					aResult={};
+
+				if (!aDate)
+					return null;
+
+				if(aDate.length > aFormat.length)
+				{
+					aFormat = format.match(/(DD|MI|MMMM|MM|M|YYYY|HH|H|SS|TT|T|GG|G)/ig);
+				}
+
+				for(i = 0, cnt = aDate.length; i < cnt; i++)
+				{
+					if(BX.util.trim(aDate[i]) != '')
+					{
+						aDateArgs[aDateArgs.length] = aDate[i];
+					}
+				}
+
+				for(i = 0, cnt = aFormat.length; i < cnt; i++)
+				{
+					if(BX.util.trim(aFormat[i]) != '')
+					{
+						aFormatArgs[aFormatArgs.length] = aFormat[i];
+					}
+				}
+
+				var m = BX.util.array_search('MMMM', aFormatArgs);
+				if (m > 0)
+				{
+					aDateArgs[m] = BX.getNumMonth(aDateArgs[m]);
+					aFormatArgs[m] = "MM";
+				}
+				else
+				{
+					m = BX.util.array_search('M', aFormatArgs);
+					if (m > 0)
+					{
+						aDateArgs[m] = BX.getNumMonth(aDateArgs[m]);
+						aFormatArgs[m] = "MM";
+					}
+				}
+
+				for(i = 0, cnt = aFormatArgs.length; i < cnt; i++)
+				{
+					var k = aFormatArgs[i].toUpperCase();
+					aResult[k] = k == 'T' || k == 'TT' ? aDateArgs[i] : parseInt(aDateArgs[i], 10);
+				}
+
+				if(aResult['DD'] > 0 && aResult['MM'] > 0 && aResult['YYYY'] > 0)
+				{
+					var d = new Date();
+
+					if(bUTC)
+					{
+						d.setUTCDate(1);
+						d.setUTCFullYear(aResult['YYYY']);
+						d.setUTCMonth(aResult['MM'] - 1);
+						d.setUTCDate(aResult['DD']);
+						d.setUTCHours(0, 0, 0);
+					}
+					else
+					{
+						d.setDate(1);
+						d.setFullYear(aResult['YYYY']);
+						d.setMonth(aResult['MM'] - 1);
+						d.setDate(aResult['DD']);
+						d.setHours(0, 0, 0);
+					}
+
+					if(
+						(!isNaN(aResult['HH']) || !isNaN(aResult['GG']) || !isNaN(aResult['H']) || !isNaN(aResult['G']))
+							&& !isNaN(aResult['MI'])
+						)
+					{
+						if (!isNaN(aResult['H']) || !isNaN(aResult['G']))
+						{
+							var bPM = (aResult['T']||aResult['TT']||'am').toUpperCase()=='PM';
+							var h = parseInt(aResult['H']||aResult['G']||0, 10);
+							if(bPM)
+							{
+								aResult['HH'] = h + (h == 12 ? 0 : 12);
+							}
+							else
+							{
+								aResult['HH'] = h < 12 ? h : 0;
+							}
+						}
+						else
+						{
+							aResult['HH'] = parseInt(aResult['HH']||aResult['GG']||0, 10);
+						}
+
+						if (isNaN(aResult['SS']))
+							aResult['SS'] = 0;
+
+						if(bUTC)
+						{
+							d.setUTCHours(aResult['HH'], aResult['MI'], aResult['SS']);
+						}
+						else
+						{
+							d.setHours(aResult['HH'], aResult['MI'], aResult['SS']);
+						}
+					}
+
+					return d;
+				}
+			}
+		},
+
+		LocationOnChange: function(oLoc, ind, value)
+		{
+			this.pLocation.className = 'calendar-inp calendar-inp-time calendar-inp-loc';
+			if (ind === false)
+			{
+				this.Loc.NEW = value || '';
+			}
+			else
+			{
+				this.Loc.NEW = 'ECMR_' + this.config.meetingRooms[ind].ID;
+			}
+		},
+
+		CheckMeetingRoom: function(params, callback)
+		{
+			params.bx_event_calendar_check_meeting_room = 'Y';
+			params.sessid = BX.bitrix_sessid();
+			BX.ajax.get(
+				'/bitrix/components/bitrix/calendar.livefeed.edit/ajax_action.php',
+				params,
+				function()
+				{
+					if (callback && typeof callback == 'function')
+						callback();
+					return true;
+				}
+			);
 		}
 	};
 
@@ -576,48 +805,19 @@
 
 	window.BXEvDestSearchBefore = function(event)
 	{
-		if (event.keyCode == 8 && BX('feed-event-dest-input').value.length <= 0)
-		{
-			BX.SocNetLogDestination.sendEvent = false;
-			BX.SocNetLogDestination.deleteLastItem(destinationFormName);
-		}
-
-		return true;
+		return BX.SocNetLogDestination.searchBeforeHandler(event, {
+			formName: destinationFormName,
+			inputId: 'feed-event-dest-input'
+		});
 	};
 	window.BXEvDestSearch = function(event)
 	{
-		if (event.keyCode == 16 || event.keyCode == 17 || event.keyCode == 18 || event.keyCode == 20 || event.keyCode == 244 || event.keyCode == 224 || event.keyCode == 91)
-			return false;
-
-		if (event.keyCode == 13)
-		{
-			BX.SocNetLogDestination.selectFirstSearchItem(destinationFormName);
-			return true;
-		}
-		if (event.keyCode == 27)
-		{
-			BX('feed-event-dest-input').value = '';
-			BX.style(BX('feed-event-dest-add-link'), 'display', 'inline');
-		}
-		else
-		{
-			BX.SocNetLogDestination.search(BX('feed-event-dest-input').value, true, destinationFormName);
-		}
-
-		if (!BX.SocNetLogDestination.isOpenDialog() && BX('feed-event-dest-input').value.length <= 0)
-		{
-			BX.SocNetLogDestination.openDialog(destinationFormName);
-		}
-		else
-		{
-			if (BX.SocNetLogDestination.sendEvent && BX.SocNetLogDestination.isOpenDialog())
-				BX.SocNetLogDestination.closeDialog();
-		}
-		if (event.keyCode == 8)
-		{
-			BX.SocNetLogDestination.sendEvent = true;
-		}
-		return true;
+		return BX.SocNetLogDestination.searchHandler(event, {
+			formName: destinationFormName,
+			inputId: 'feed-event-dest-input',
+			linkId: 'feed-event-dest-add-link',
+			sendAjax: true
+		});
 	};
 
 	function bxFormatDate(d, m, y)
@@ -670,24 +870,9 @@
 
 	function getUsableDateTime(timestamp, roundMin)
 	{
-		var date = bxGetDateFromTS(timestamp);
-		if (!roundMin)
-			roundMin = 10;
-
-		date.min = Math.ceil(date.min / roundMin) * roundMin;
-
-		if (date.min == 60)
-		{
-			if (date.hour == 23)
-				date.bTime = false;
-			else
-				date.hour++;
-			date.min = 0;
-		}
-
-		date.oDate.setHours(date.hour);
-		date.oDate.setMinutes(date.min);
-		return date;
+		var r = (roundMin || 10) * 60 * 1000;
+		timestamp = Math.ceil(timestamp / r) * r;
+		return bxGetDateFromTS(timestamp);
 	}
 
 	function formatTimeByNum(h, m, bAMPM)
@@ -740,6 +925,7 @@
 		}
 		return res;
 	}
+
 
 })(window);
 

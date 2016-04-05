@@ -488,7 +488,7 @@ class CBPWorkflow
 				try
 				{
 					$trackingService = $this->GetService("TrackingService");
-					$trackingService->Write($this->GetInstanceId(), CBPTrackingType::FaultActivity, $activity->GetName(), $activity->executionStatus, $activity->executionResult, ($activity->IsPropertyExists("Title") ? $activity->Title : ""), ($exception != null ? "[".$exception->getCode()."] ".$exception->getMessage() : ""));
+					$trackingService->Write($this->GetInstanceId(), CBPTrackingType::FaultActivity, $activity->GetName(), $activity->executionStatus, $activity->executionResult, ($activity->IsPropertyExists("Title") ? $activity->Title : ""), ($exception != null ? ($exception->getCode()? "[".$exception->getCode()."] " : '').$exception->getMessage() : ""));
 
 					$newStatus = $activity->HandleFault($exception);
 
@@ -505,8 +505,9 @@ class CBPWorkflow
 		}
 	}
 
-	public function Terminate(Exception $e = null)
+	public function Terminate(Exception $e = null, $stateTitle = '')
 	{
+		/** @var CBPTaskService $taskService */
 		$taskService = $this->GetService("TaskService");
 		$taskService->DeleteAllWorkflowTasks($this->GetInstanceId());
 
@@ -515,12 +516,13 @@ class CBPWorkflow
 		$persister = CBPWorkflowPersister::GetPersister();
 		$persister->SaveWorkflow($this->rootActivity, true);
 
+		/** @var CBPStateService $stateService */
 		$stateService = $this->GetService("StateService");
 		$stateService->SetState(
 			$this->instanceId,
 			array(
 				"STATE" => "Terminated",
-				"TITLE" => GetMessage("BPCGWF_TERMINATED"),
+				"TITLE" => $stateTitle ? $stateTitle : GetMessage("BPCGWF_TERMINATED"),
 				"PARAMETERS" => array()
 			),
 			false//array()
@@ -529,7 +531,7 @@ class CBPWorkflow
 		if ($e != null)
 		{
 			$trackingService = $this->GetService("TrackingService");
-			$trackingService->Write($this->instanceId, CBPTrackingType::FaultActivity, "none", CBPActivityExecutionStatus::Faulting, CBPActivityExecutionResult::Faulted, "Exception", "[".$e->getCode()."] ".$e->getMessage());
+			$trackingService->Write($this->instanceId, CBPTrackingType::FaultActivity, "none", CBPActivityExecutionStatus::Faulting, CBPActivityExecutionResult::Faulted, "Exception", ($e->getCode()? "[".$e->getCode()."] " : '').$e->getMessage());
 		}
 	}
 

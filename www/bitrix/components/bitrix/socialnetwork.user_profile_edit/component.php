@@ -41,31 +41,55 @@ if (!is_array($arParams['EDITABLE_FIELDS']) || count($arParams['EDITABLE_FIELDS'
 		$arParams['EDITABLE_FIELDS'] = array_merge($arParams['EDITABLE_FIELDS'], array('BLOG_ALIAS', 'BLOG_DESCRIPTION', 'BLOG_INTERESTS', 'BLOG_AVATAR', 'BLOG_SIGNATURE'));
 }
 $arResult["arSocServ"] = array();
-if(CModule::IncludeModule("socialservices"))
+if (CModule::IncludeModule("socialservices"))
 {
 	$oAuthManager = new CSocServAuthManager();
 	$arResult["arSocServ"] = $oAuthManager->GetActiveAuthServices(array());
-	if(!empty($arResult["arSocServ"]))
+	if (!empty($arResult["arSocServ"]))
+	{
 		$arParams['EDITABLE_FIELDS'][] = 'SOCSERVICES';
+	}
 }
 
 
 if(in_array('TIME_ZONE', $arParams['EDITABLE_FIELDS']))
+{
 	$arParams['EDITABLE_FIELDS'][] = 'AUTO_TIME_ZONE';
-	
+}
+
 $arResult["urlToCancel"] = CComponentEngine::MakePathFromTemplate($arParams["PATH_TO_USER"], array("user_id" => $arParams["ID"]));
 
 $CurrentUserPerms = CSocNetUserPerms::InitUserPerms($USER->GetID(), $arParams["ID"], CSocNetUser::IsCurrentUserModuleAdmin(SITE_ID, (CModule::IncludeModule("bitrix24") && CBitrix24::IsPortalAdmin($USER->GetID()) ? false : true)));
-if (!$CurrentUserPerms["Operations"]["modifyuser"] || !$CurrentUserPerms["Operations"]["modifyuser_main"])
+if (
+	!$CurrentUserPerms["Operations"]["modifyuser"]
+	|| !$CurrentUserPerms["Operations"]["modifyuser_main"]
+)
+{
 	$arParams['ID'] = $USER->GetID();
+}
 
-$arResult["bEdit"] = ($USER->CanDoOperation('edit_own_profile') || $USER->IsAdmin()) ? "Y" : "N";
+$arResult["bEdit"] = (
+	$USER->CanDoOperation('edit_own_profile')
+	|| $USER->IsAdmin()
+		? "Y"
+		: "N"
+);
 
 if ($arResult['bEdit'] != 'Y')
+{
 	$APPLICATION->AuthForm(GetMessage('SONET_P_PU_NO_RIGHTS'));
+}
 
 $dbUser = CUser::GetByID($arParams["ID"]);
 $arResult["User"] = $dbUser->GetNext();
+
+if (
+	$arResult["User"]['EXTERNAL_AUTH_ID'] == 'email'
+	&& IsModuleInstalled('bitrix24')
+)
+{
+	$APPLICATION->AuthForm(GetMessage('SONET_P_PU_NO_RIGHTS'));
+}
 
 if ($arResult['User']['EXTERNAL_AUTH_ID'])
 {

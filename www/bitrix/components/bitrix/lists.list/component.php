@@ -96,6 +96,13 @@ $arResult["CAN_ADD_ELEMENT"] = (
 		|| CIBlockSectionRights::UserHasRightTo($IBLOCK_ID, $section_id, "section_element_bind")
 	)
 );
+$arResult["CAN_READ"] = (
+	!$arResult["IS_SOCNET_GROUP_CLOSED"]
+	&& (
+		$lists_perm > CListPermissions::CAN_READ
+		|| CIBlockSectionRights::UserHasRightTo($IBLOCK_ID, $section_id, "element_read")
+	)
+);
 $arResult["CAN_EDIT_SECTIONS"] = (
 	!$arResult["IS_SOCNET_GROUP_CLOSED"]
 	&& (
@@ -144,7 +151,7 @@ else
 
 $arResult["GRID_ID"] = "lists_list_elements_".$arResult["IBLOCK_ID"];
 
-$arResult["ANY_SECTION"] = isset($_GET["list_section_id"]) && strlen($_GET["list_section_id"]) == 0;
+$arResult["ANY_SECTION"] =  (isset($_GET["list_section_id"]) && strlen($_GET["list_section_id"]) == 0);
 $arResult["SECTION"] = false;
 $arResult["SECTION_ID"] = false;
 $arResult["PARENT_SECTION_ID"] = false;
@@ -544,6 +551,9 @@ foreach($arListFields as $FIELD_ID => $arField)
 	elseif($arField["TYPE"] == "F")
 	{
 	}
+	elseif($arField["TYPE"] == "S:DiskFile")
+	{
+	}
 	elseif($arField["TYPE"] == "SORT" || $arField["TYPE"] == "N")
 	{
 		$arResult["FILTER"][$i] = array(
@@ -567,6 +577,17 @@ foreach($arListFields as $FIELD_ID => $arField)
 			"items" => $items,
 			"params" => array("size"=>5, "multiple"=>"multiple"),
 			"valign" => "top",
+		);
+		$arFilterable[$FIELD_ID] = "";
+	}
+	elseif($arField["TYPE"] == "E")
+	{
+		//Should be handled in template
+		$arResult["FILTER"][$i] = array(
+			"id" => $FIELD_ID,
+			"name" => htmlspecialcharsex($arField["NAME"]),
+			"type" => "E",
+			"value" => $arField,
 		);
 		$arFilterable[$FIELD_ID] = "";
 	}
@@ -658,27 +679,26 @@ foreach($grid_filter as $key => $value)
 	{
 		if(array_search($key, $filterArray))
 		{
-			if(
-				isset($filterArray["fieldsType"]) &&
-				($filterArray["fieldsType"] == "E" || $filterArray["fieldsType"] == "E:EList")
-			)
+			if(isset($filterArray["fieldsType"]) && ($filterArray["fieldsType"] == "E:EList"))
 			{
-				if(!intval($value))
-				{
-					$elementId = array();
-					$elementQuery = CIBlockElement::getList(
-						array("SORT" => "ASC"),
-						array("NAME" => "%".$value."%")
-					);
-					while($element = $elementQuery->fetch())
-					{
-						$elementId[] = $element["ID"];
-					}
-					if(!empty($elementId))
-					{
-						$value = $elementId;
-					}
-				}
+				if(intval($value))
+					$filter = array("ID" => $value);
+				else
+					$filter = array("NAME" => "%".$value."%");
+
+				$elementId = array();
+				$elementQuery = CIBlockElement::getList(
+					array("SORT" => "ASC"),
+					$filter,
+					false,
+					false,
+					array("ID")
+				);
+				while($element = $elementQuery->fetch())
+					$elementId[] = $element["ID"];
+
+				if(!empty($elementId))
+					$value = $elementId;
 			}
 		}
 	}
@@ -710,7 +730,10 @@ $arFilter["CHECK_PERMISSIONS"] = ($lists_perm >= CListPermissions::CAN_READ? "N"
 if(!$arResult["ANY_SECTION"])
 	$arFilter["SECTION_ID"] = $arResult["SECTION_ID"];
 
-/** @var CIBlockResult $rsElements */
+if($arParams["CAN_EDIT"])
+	$arFilter["SHOW_NEW"] = "Y";
+
+	/** @var CIBlockResult $rsElements */
 $rsElements = CIBlockElement::GetList(
 	$grid_sort["sort"], $arFilter, false, $grid_options->GetNavParams(), $arSelect
 );
@@ -731,8 +754,10 @@ else
 $arResult["ELEMENTS_CAN_DELETE"] = array();
 $arResult["ELEMENTS_CAN_MOVE"] = array();
 $arResult["ELEMENTS_ROWS"] = array();
+$check = false;
 while($obElement = $rsElements->GetNextElement())
 {
+	$check = true;
 	$data = $obElement->GetFields();
 	$aCols = array();
 
@@ -912,7 +937,7 @@ while($obElement = $rsElements->GetNextElement())
 		);
 	}
 
-	if(CModule::IncludeModule("bizproc") && $arIBlock["IBLOCK_TYPE_ID"] != COption::GetOptionString("lists", "livefeed_iblock_type_id"))
+	if(CModule::IncludeModule("bizproc"))
 	{
 		if(!empty($documentStates))
 		{
@@ -924,6 +949,9 @@ while($obElement = $rsElements->GetNextElement())
 			$backUrl = $APPLICATION->GetCurPageParam();
 			foreach($documentStates as $documentState)
 			{
+				if(!$documentState["ID"])
+					continue;
+
 				$actionsProcess = array();
 				$canViewWorkflow = CBPDocument::CanUserOperateDocument(
 					CBPCanUserOperateOperation::ViewWorkflow,
@@ -940,7 +968,7 @@ while($obElement = $rsElements->GetNextElement())
 					/* Stop workflow */
 					if(
 						strlen($documentState["ID"]) &&
-						CIBlockElementRights::UserHasRightTo($arIBlock["ID"], $data["ID"], "element_rights_edit") &&
+						CIBlockElementRights::userHasRightTo($arIBlock["ID"], $data["ID"], "element_edit") &&
 						strlen($documentState["WORKFLOW_STATUS"])
 					)
 					{
@@ -1041,6 +1069,11 @@ while($obElement = $rsElements->GetNextElement())
 		"actions" => $aActions,
 		"columns" => $aCols,
 	);
+}
+
+if(!$arResult["CAN_READ"] && $check)
+{
+	$arResult["CAN_READ"] = true;
 }
 
 $rsElements->bShowAll = false;

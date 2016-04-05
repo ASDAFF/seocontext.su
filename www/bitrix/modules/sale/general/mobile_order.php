@@ -1065,6 +1065,12 @@ class CSaleMobileOrderPush
 			&& CModule::IncludeModule("pull")
 			)
 		{
+
+			if (!empty($arParams["ORDER_ID"]) && !empty($GLOBALS['SALE_NEW_ORDER_SEND'][$arParams["ORDER_ID"]]))
+			{
+				return $result;
+			}
+
 			$arUsers = self::getSubscribers($eventId, $arParams);
 
 			if(!empty($arUsers))

@@ -61,5 +61,11 @@ $res = array_merge(
 			(is_array($arParams["LHE"]) && isset($arParams["LHE"]["iframeCss"]) ? $arParams["LHE"]["iframeCss"] : ""),
 	)
 );
+
+if((string) $arParams["TEXT"]["INPUT_NAME"] != '')
+{
+	$res['inputName'] = $arParams["TEXT"]["INPUT_NAME"];
+}
+
 $Editor->Show($res);
 ?>

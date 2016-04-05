@@ -193,4 +193,11 @@ class Color
 
 		return isset($colors[$code]);
 	}
+
+	public static function getRandomColor()
+	{
+		$colors = array_values(self::getColors());
+
+		return $colors[mt_rand(0, count($colors)-1)];
+	}
 }

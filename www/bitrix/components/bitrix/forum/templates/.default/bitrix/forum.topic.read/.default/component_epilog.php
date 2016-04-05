@@ -2,9 +2,9 @@
 
 if ($arParams['AJAX_POST'] == 'Y' && $arParams['ACTION'] == 'REPLY')
 {
-	$response = ob_get_clean();
-	$response = str_replace(array("\r\n", "\n", "\t"), "", $response);
+	$response = str_replace(array("\r\n", "\n", "\t"), "", ob_get_clean());
 	$JSResult = array();
+
 	$FHParser = new CForumSimpleHTMLParser($response);
 
 	$statusMessage = $FHParser->getTagHTML('div[class=forum-note-box]');
@@ -67,7 +67,7 @@ if ($arParams['AJAX_POST'] == 'Y' && $arParams['ACTION'] == 'REPLY')
 	{
 		if (strlen($arResult["ERROR_MESSAGE"]) < 1)
 		{
-			$messagePreview = $FHParser->getTagHTML('div[class=forum-preview]');
+			$messagePreview = $FHParser->getInnerHTML('<!--MSG_PREVIEW-->', '<!--MSG_END_MSG_PREVIEW-->');
 			$JSResult += array(
 				'status' => true,
 				'previewMessage' => $messagePreview,

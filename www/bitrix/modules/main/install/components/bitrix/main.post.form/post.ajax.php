@@ -1,5 +1,6 @@
 <?
 define("PUBLIC_AJAX_MODE", true);
+define("EXTRANET_NO_REDIRECT", true);
 define("NO_KEEP_STATISTIC", "Y");
 define("NO_AGENT_STATISTIC","Y");
 define("NO_AGENT_CHECK", true);
@@ -18,8 +19,11 @@ if (
 }
 
 if (check_bitrix_sessid())
-{	
-	if (isset($_POST["nt"]))
+{
+	if (
+		isset($_POST["nt"])
+		&& !empty($_POST["nt"])
+	)
 	{
 		preg_match_all("/(#NAME#)|(#LAST_NAME#)|(#SECOND_NAME#)|(#NAME_SHORT#)|(#SECOND_NAME_SHORT#)|\\s|\\,/", urldecode($_REQUEST["nt"]), $matches);
 		$nameTemplate = implode("", $matches[0]);
@@ -38,19 +42,28 @@ if (check_bitrix_sessid())
 
 		$searchResults = array(
 			'USERS' => CSocNetLogDestination::SearchUsers(
-				$search,
-				$nameTemplate,
-				true,
-				($_POST['EXTRANET_SEARCH'] == "I"),
-				($_POST['EXTRANET_SEARCH'] == "E"),
-				(
-					isset($_POST['DEPARTMENT_ID'])
-					&& intval($_POST['DEPARTMENT_ID']) > 0
-						? intval($_POST['DEPARTMENT_ID'])
-						: false
-				)
+				array(
+					"SEARCH" => $search,
+					"NAME_TEMPLATE" => $nameTemplate,
+					"SELF" => true,
+					"EMPLOYEES_ONLY" => (isset($_POST['EXTRANET_SEARCH']) && $_POST['EXTRANET_SEARCH'] == "I"),
+					"EXTRANET_ONLY" => (isset($_POST['EXTRANET_SEARCH']) && $_POST['EXTRANET_SEARCH'] == "E"),
+					"DEPARTAMENT_ID" => (
+						isset($_POST['DEPARTMENT_ID'])
+						&& intval($_POST['DEPARTMENT_ID']) > 0
+							? intval($_POST['DEPARTMENT_ID'])
+							: false
+					),
+					"EMAIL_USERS" => (isset($_POST['EMAIL_USERS']) && $_POST['EMAIL_USERS'] == 'Y')
+				),
+				$searchModified
 			)
 		);
+
+		if (!empty($searchModified))
+		{
+			$searchResults['SEARCH'] = $searchModified;
+		}
 
 		if (
 			empty($searchResults['USERS'])
@@ -60,16 +73,19 @@ if (check_bitrix_sessid())
 		{
 			$searchResults = array(
 				'USERS' => CSocNetLogDestination::SearchUsers(
-					$searchConverted,
-					$nameTemplate,
-					true,
-					($_POST['EXTRANET_SEARCH'] == "I"),
-					($_POST['EXTRANET_SEARCH'] == "E"),
-					(
-						isset($_POST['DEPARTMENT_ID'])
-						&& intval($_POST['DEPARTMENT_ID']) > 0
-							? intval($_POST['DEPARTMENT_ID'])
-							: false
+					array(
+						"SEARCH" => $searchConverted,
+						"NAME_TEMPLATE" => $nameTemplate,
+						"SELF" => true,
+						"EMPLOYEES_ONLY" => (isset($_POST['EXTRANET_SEARCH']) && $_POST['EXTRANET_SEARCH'] == "I"),
+						"EXTRANET_ONLY" => (isset($_POST['EXTRANET_SEARCH']) && $_POST['EXTRANET_SEARCH'] == "E"),
+						"DEPARTAMENT_ID" => (
+							isset($_POST['DEPARTMENT_ID'])
+							&& intval($_POST['DEPARTMENT_ID']) > 0
+								? intval($_POST['DEPARTMENT_ID'])
+								: false
+						),
+						"EMAIL_USERS" => (isset($_POST['EMAIL_USERS']) && $_POST['EMAIL_USERS'] == 'Y')
 					)
 				),
 				'SEARCH' => $searchConverted

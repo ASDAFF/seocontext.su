@@ -105,7 +105,7 @@ while ($opt_res = $db_opt_res->Fetch())
 		{
 			IncludeModuleLangFile($ofile);
 			$mname = str_replace(".", "_", $mdir);
-			$aTabs[] = array("DIV" => "edit".($i+4), "TAB" => GetMessage($mname."_TAB"), "ICON"=>"main_user_edit", "TITLE"=>GetMessage($mname."_TAB_TITLE"));
+			$aTabs[] = array("DIV" => "edit_".$mname, "TAB" => GetMessage($mname."_TAB"), "ICON"=>"main_user_edit", "TITLE"=>GetMessage($mname."_TAB_TITLE"));
 			$i++;
 		}
 	}

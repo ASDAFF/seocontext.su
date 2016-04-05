@@ -2,11 +2,13 @@
 include_once($_SERVER["DOCUMENT_ROOT"].$templateFolder."/functions.php");
 include_once($_SERVER["DOCUMENT_ROOT"].$templateFolder."/message.php");
 include($_SERVER["DOCUMENT_ROOT"].$templateFolder."/file.php");
+include($_SERVER["DOCUMENT_ROOT"].$templateFolder."/urlpreview.php");
 $array = (((!empty($arParams["DESTINATION"]) || in_array("MentionUser", $arParams["BUTTONS"])) && IsModuleInstalled("socialnetwork")) ?
 	array('socnetlogdest') : array());
 $array[] = "fx";
 CUtil::InitJSCore($array);
 $arButtonsHTML = array();
+
 foreach($arParams["BUTTONS"] as $val)
 {
 	switch($val)
@@ -34,8 +36,8 @@ foreach($arParams["BUTTONS"] as $val)
 			$arButtonsHTML[] = '<span class="feed-add-post-form-but-cnt" id="bx-b-quote-'.$arParams["FORM_ID"].'"></span>';
 			break;
 		default:
-			if (array_key_exists($val, $arParams["BUTTONS_HTML"]))
-				$arButtonsHTML[] = $arParams["BUTTONS_HTML"][$val];
+			if (array_key_exists($val, $arParams["~BUTTONS_HTML"]))
+				$arButtonsHTML[] = $arParams["~BUTTONS_HTML"][$val];
 			break;
 	}
 }
@@ -85,9 +87,11 @@ foreach($arParams["BUTTONS"] as $val)
 						"CID" => $arParams["UPLOADS_CID"],
 						'parsers' => $arParams["PARSER"],
 						'showPanelEditor' => ($arParams["TEXT"]["SHOW"] == "Y"),
+						'pinEditorPanel' => ($arParams["PIN_EDITOR_PANEL"] == "Y"),
 						'formID' => $arParams["FORM_ID"],
 						'lazyLoad' => !!$arParams["LHE"]['lazyLoad'],
-						'ctrlEnterHandler' => $arParams["LHE"]['ctrlEnterHandler']
+						'ctrlEnterHandler' => $arParams["LHE"]['ctrlEnterHandler'],
+						'urlPreviewId' => $arParams['urlPreviewId']
 					));?>
 			);
 		}
@@ -264,9 +268,11 @@ if (in_array('socnetlogdest', $array))
 			itemsSelected : <?=(empty($arParams["DESTINATION"]['SELECTED'])? '{}': CUtil::PhpToJSObject($arParams["DESTINATION"]['SELECTED']))?>,
 			itemsHidden : <?=CUtil::PhpToJSObject($arParams["DESTINATION"]["HIDDEN_GROUPS"])?>,
 			isCrmFeed : <?=(empty($arParams["DESTINATION"]['LAST']['CRM']) ? 'false' : 'true'); ?>,
-			useClientDatabase : <?=($arParams["DESTINATION"]['USE_CLIENT_DATABASE'] == "Y" ? 'true' : 'false'); ?>,
+			useClientDatabase : <?=($arParams["DESTINATION_USE_CLIENT_DATABASE"] != "N" ? 'true' : 'false'); ?>,
 			destSort : <?=CUtil::PhpToJSObject(isset($arParams["DESTINATION"]['DEST_SORT']) ? $arParams["DESTINATION"]['DEST_SORT'] : $arResult["DEST_SORT"])?>,
-			mentionDestSort : <?=CUtil::PhpToJSObject(isset($arResult["MENTION_DEST_SORT"]) ? $arResult["MENTION_DEST_SORT"] : false)?>
+			mentionDestSort : <?=CUtil::PhpToJSObject(isset($arResult["MENTION_DEST_SORT"]) ? $arResult["MENTION_DEST_SORT"] : false)?>,
+			allowAddUser: <?=(isset($arParams["ALLOW_EMAIL_INVITATION"]) && $arParams["ALLOW_EMAIL_INVITATION"] == 'Y' ? 'true' : 'false'); ?>,
+			userNameTemplate: '<?=CUtil::JSEscape($arParams['NAME_TEMPLATE'])?>'
 		});
 	});
 	</script>
@@ -280,6 +286,7 @@ if (defined("BITRIX24_INDEX_COMPOSITE"))
 /***************** Upload files ************************************/
 ?><?=$arParams["UPLOADS_HTML"]?><?
 ?><?=$arParams["~AT_THE_END_HTML"]?><?
+?><?=$arParams["URL_PREVIEW_HTML"]?><?
 ?>
 	<div class="feed-add-post-buttons" id="lhe_buttons_<?=$arParams["FORM_ID"]?>">
 		<a class="feed-add-button feed-add-com-button" id="lhe_button_submit_<?=$arParams["FORM_ID"]?>" ><?
@@ -288,4 +295,3 @@ if (defined("BITRIX24_INDEX_COMPOSITE"))
 		<a class="feed-cancel-com" id="lhe_button_cancel_<?=$arParams["FORM_ID"]?>"><?=GetMessage("MPF_BUTTON_CANCEL")?></a>
 	</div>
 </div>
-

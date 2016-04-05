@@ -161,7 +161,7 @@ BX["UI"].FileInput.prototype = {
 				ar1.push(values[ii]);
 				ar2.push(BX(values[ii]['id'] + 'Block'));
 			}
-			this.agent.onAttach(ar1, ar2);
+			this.agent.onAttach(ar1, ar2, false);
 		}
 		this.initMenu(BX(this.id + '_add'), this.uploadParams);
 		this.checkUploadControl();
@@ -461,12 +461,11 @@ BX["UI"].FileInput.prototype = {
 							BX.addCustomEvent(frameMaster, "onDeleteItem", BX.delegate(function(item) {
 								this.deleteFile(item);
 							}, this));
-							BX.addCustomEvent(frameMaster, "onpR", BX.delegate(function(item) {
-								this.deleteFile(item);
-							}, this));
 						}
 						this.frameFlags.hasNew = false;
-						frameMaster.start(this.agent, (activeId || this.counters.newItemId), this.uploadParams);
+						var p = BX.clone(this.uploadParams, true);
+						p["description"] = this.elementParams["description"];
+						frameMaster.start(this.agent, (activeId || this.counters.newItemId), p);
 
 						this['__frameFiles'] = null;
 						delete this['__frameFiles'];
@@ -664,7 +663,7 @@ BX["UI"].FileInput.prototype = {
 
 		if (item.file["preview_url"] && item.file["width"] > 0 && item.file["height"] > 0)
 		{
-			BX.addCustomEvent(item, "onFileCanvasIsLoaded", BX.proxy(function(id, it, ag, image) {
+			BX.addCustomEvent(item, "onFileCanvasIsLoaded", BX.proxy(function(/*id, it, ag, image*/) {
 				item.file["tmp_url"] = item.file["~tmp_url"];
 				delete item.file["~tmp_url"];
 				item.file["width"] = item.file["~width"];
@@ -682,7 +681,7 @@ BX["UI"].FileInput.prototype = {
 		}
 		else if (item.dialogName == "BX.UploaderImage")
 		{
-			BX.addCustomEvent(item, "onFileCanvasIsLoaded", BX.proxy(function(id, it, ag, image) {
+			BX.addCustomEvent(item, "onFileCanvasIsLoaded", BX.proxy(function(/*id, it, ag, image*/) {
 				item.canvasIsLoaded = true;
 				this.replaceHint(item);
 			}, this));
@@ -1100,7 +1099,8 @@ var filePath = function(id, events, maxCount)
 				'<input id="#id#_#number#_path" type="text" value="" />',
 			'</div>'
 		].join("").replace(/#id#/gi, this.id);
-	var v1 = (this.number++), v2 = (this.number++);
+	var v1 = (this.number++);
+	this.number++;
 	this.template = [
 		'<div class="adm-fileinput-urls-container" id="#id#_container">',
 			'<ol class="adm-fileinput-list adm-fileinput-urls" id="#id#_list">',
@@ -1549,6 +1549,8 @@ FrameMaster.prototype = {
 			this.params = params;
 			this.preset.init(params);
 		}
+		this.params = (this.params || {});
+		this.params["description"] = (this.params["description"] !== false);
 	},
 	start : function(agent, activeId, params)
 	{
@@ -1995,7 +1997,7 @@ FrameMaster.prototype = {
 				'popup' + this.id,
 				null,
 				{
-					className : "bxu-popup",
+					className : "bxu-popup" + (this.params["description"] !== false ? "" : " bxu-popup-nondescription"),
 					autoHide : false,
 					lightShadow : true,
 					closeIcon : false,
@@ -4392,7 +4394,7 @@ CanvasMapMaster.prototype = {
 
 		this.options.collapsing = true;
 		this.options.collapsed = collapse;
-		var posB, pos, shiftX, shiftY, scale, func;
+		var posB, pos, shiftX, scale;
 		if (collapse)
 		{
 			if (!this.collapsedNode || !this.root.pos)

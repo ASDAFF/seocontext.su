@@ -29,4 +29,5 @@ $MESS["BT_CURRENCY_EDIT_ERR_UPDATE"] = "Unknown error updating currency #ID#";
 $MESS["BASE_CURRENCY_YES"] = "yes";
 $MESS["BASE_CURRENCY_NO"] = "no";
 $MESS["CONFIRM_DEL_MESSAGE"] = "Are you sure to delete this currency?";
+$MESS["BX_CURRENCY_EDIT_MESS_AMOUNT"] = "The Currency module uses the <b>direct quotes</b> of currencies against the base currency. Provide the price of a currency unit (1, or 10, 100, 1000 if so required by the currency face value) in the base currency. The face value and the default rate of the base currency must be 1 (one).";
 ?>

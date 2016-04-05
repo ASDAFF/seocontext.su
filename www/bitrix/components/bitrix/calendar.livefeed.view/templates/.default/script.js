@@ -20,13 +20,37 @@
 			this.pViewLink.href = this.pViewIconLink.href = this.viewEventUrl;
 
 			this.pFrom = BX('feed-event-view-from-' + this.id);
-			this.pFrom.innerHTML = this.GetFromHtml(this.config.EVENT.DT_FROM_TS, this.config.EVENT.DT_SKIP_TIME, this.config.EVENT.DT_LENGTH);
+
+			var event = this.config.EVENT;
+			if (event.DATE_FROM && event.DATE_TO)
+			{
+				event.dateFrom = BX.parseDate(event.DATE_FROM);
+				event.dateTo = BX.parseDate(event.DATE_TO);
+				event.DT_FROM_TS = event.dateFrom.getTime();
+				event.DT_TO_TS = event.dateTo.getTime();
+				if (event.DT_SKIP_TIME !== "Y")
+				{
+					event.DT_FROM_TS -= event['~USER_OFFSET_FROM'] * 1000;
+					event.DT_TO_TS -= event['~USER_OFFSET_TO'] * 1000;
+				}
+				this.pFrom.innerHTML = this.GetFromHtml(event.DT_FROM_TS, event.DT_SKIP_TIME);
+			}
+			else // Copatibility with old records
+			{
+				this.pFrom.innerHTML = this.GetFromHtml(BX.date.getBrowserTimestamp(event.DT_FROM_TS), event.DT_SKIP_TIME);
+			}
+
+			var pViewTzHint = BX('feed-event-tz-hint-' + this.id);
+			if (pViewTzHint)
+			{
+				new BX.CHint({parent: pViewTzHint, hint: pViewTzHint.getAttribute('data-bx-hint')});
+			}
 
 			this.InitPopups();
 
 			// Invite controls
 			var status = null;
-			if (this.config.EVENT.IS_MEETING && this.config.attendees[this.userId])
+			if (event.IS_MEETING && this.config.attendees[this.userId])
 			{
 				status = this.config.attendees[this.userId].STATUS;
 
@@ -64,7 +88,7 @@
 					{
 						_this.popupNotifyMoreY = new BX.PopupWindow('bx_event_attendees_window_y_' + _this.id + '_' + rand, _this.pMoreAttLinkY,
 							{
-								zIndex: 200,
+								zIndex: 100,
 								lightShadow : true,
 								offsetTop: -2,
 								offsetLeft: 3,
@@ -89,7 +113,7 @@
 					{
 						_this.popupNotifyMoreN = new BX.PopupWindow('bx_event_attendees_window_n_' + _this.id + '_' + rand, _this.pMoreAttLinkN,
 							{
-								zIndex: 200,
+								zIndex: 100,
 								lightShadow : true,
 								offsetTop: -2,
 								offsetLeft: 3,
@@ -306,11 +330,10 @@
 			);
 		},
 
-		GetFromHtml: function(DT_FROM_TS, DT_SKIP_TIME, DT_LENGTH)
+		GetFromHtml: function(DT_FROM_TS, DT_SKIP_TIME)
 		{
 			var
-				from = BX.date.getBrowserTimestamp(DT_FROM_TS),
-				fromDate = new Date(from),
+				fromDate = new Date(DT_FROM_TS),
 				dateFormat = BX.date.convertBitrixFormat(BX.message('FORMAT_DATE')),
 				timeFormat = BX.message('FORMAT_DATETIME'),
 				timeFormat2 = BX.util.trim(timeFormat.replace(BX.message('FORMAT_DATE'), '')),
@@ -347,47 +370,6 @@
 		}
 	};
 
-//
-//	window.__GetFromHtml = function(DT_FROM_TS, DT_SKIP_TIME)
-//	{
-//		var
-//			from = BX.date.getBrowserTimestamp(DT_FROM_TS),
-//			fromDate = new Date(from),
-//			dayl = 86400,
-//			dateFormat = BX.date.convertBitrixFormat(BX.message('FORMAT_DATE')),
-//			timeFormat = BX.message('FORMAT_DATETIME'),
-//			timeFormat2 = BX.util.trim(timeFormat.replace(dateFormat, '')),
-//			html;
-//
-//		if (timeFormat2 == timeFormat2)
-//			timeFormat = "HH:MI";
-//		else
-//			timeFormat = timeFormat2.replace(/:SS/ig, '');
-//		timeFormat = BX.date.convertBitrixFormat(timeFormat);
-//
-//		if (DT_SKIP_TIME == 'Y')
-//		{
-//			html = BX.date.format([
-//				["today", "today"],
-//				["tommorow", "tommorow"],
-//				["yesterday", "yesterday"],
-//				["" , dateFormat]
-//			], fromDate);
-//		}
-//		else
-//		{
-//			html = BX.date.format([
-//				["today", "today"],
-//				["tommorow", "tommorow"],
-//				["yesterday", "yesterday"],
-//				["" , dateFormat]
-//			], fromDate);
-//
-//			html += ', ' + BX.date.format(timeFormat, fromDate);
-//		}
-//
-//		return html;
-//	}
 })(window);
 
 

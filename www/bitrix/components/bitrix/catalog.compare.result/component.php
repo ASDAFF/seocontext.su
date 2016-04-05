@@ -615,20 +615,24 @@ if (!empty($arCompare) && is_array($arCompare))
 		),
 		array("delete_system_params" => true)
 	);
-	$arResult['~COMPARE_URL_TEMPLATE'] = $currentPath.(stripos($currentPath, '?') === false ? '?' : '&').$arParams['ACTION_VARIABLE'];
+
+	$arResult['~COMPARE_URL_TEMPLATE'] = $currentPath.(stripos($currentPath, '?') === false ? '?' : '&');
 	$arResult['COMPARE_URL_TEMPLATE'] = htmlspecialcharsbx($arResult['~COMPARE_URL_TEMPLATE']);
-	$arResult['~DELETE_FROM_COMPARE_URL_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=DELETE_FROM_COMPARE_RESULT&ID=#ID#';
-	$arResult['BUY_URL_TEMPLATE'] = $arResult['COMPARE_URL_TEMPLATE'].'=COMPARE_BUY&'.$arParams['PRODUCT_ID_VARIABLE'].'=#ID#';
-	$arResult['ADD_URL_TEMPLATE'] = $arResult['COMPARE_URL_TEMPLATE'].'=COMPARE_ADD2BASKET&'.$arParams['PRODUCT_ID_VARIABLE'].'=#ID#';
-	$arResult['~DELETE_FEATURE_FIELD_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=DELETE_FEATURE&pf_code=#CODE#';
-	$arResult['~ADD_FEATURE_FIELD_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=ADD_FEATURE&pf_code=#CODE#';
-	$arResult['~DELETE_FEATURE_PROPERTY_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=DELETE_FEATURE&pr_code=#CODE#';
-	$arResult['~ADD_FEATURE_PROPERTY_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=ADD_FEATURE&pr_code=#CODE#';
-	$arResult['~DELETE_FEATURE_OF_FIELD_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=DELETE_FEATURE&of_code=#CODE#';
-	$arResult['~ADD_FEATURE_OF_FIELD_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=ADD_FEATURE&of_code=#CODE#';
-	$arResult['~DELETE_FEATURE_OF_PROPERTY_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=DELETE_FEATURE&op_code=#CODE#';
-	$arResult['~ADD_FEATURE_OF_PROPERTY_TEMPLATE'] = $arResult['~COMPARE_URL_TEMPLATE'].'=ADD_FEATURE&op_code=#CODE#';
-	unset($currentPath);
+	$rawCompareTemplateWithAction = $arResult['~COMPARE_URL_TEMPLATE'].$arParams['ACTION_VARIABLE'];
+	$compareTemplateWithAction = $arResult['COMPARE_URL_TEMPLATE'].$arParams['ACTION_VARIABLE'];
+
+	$arResult['~DELETE_FROM_COMPARE_URL_TEMPLATE'] = $rawCompareTemplateWithAction.'=DELETE_FROM_COMPARE_RESULT&ID=#ID#';
+	$arResult['BUY_URL_TEMPLATE'] = $compareTemplateWithAction.'=COMPARE_BUY&'.$arParams['PRODUCT_ID_VARIABLE'].'=#ID#';
+	$arResult['ADD_URL_TEMPLATE'] = $compareTemplateWithAction.'=COMPARE_ADD2BASKET&'.$arParams['PRODUCT_ID_VARIABLE'].'=#ID#';
+	$arResult['~DELETE_FEATURE_FIELD_TEMPLATE'] = $rawCompareTemplateWithAction.'=DELETE_FEATURE&pf_code=#CODE#';
+	$arResult['~ADD_FEATURE_FIELD_TEMPLATE'] = $rawCompareTemplateWithAction.'=ADD_FEATURE&pf_code=#CODE#';
+	$arResult['~DELETE_FEATURE_PROPERTY_TEMPLATE'] = $rawCompareTemplateWithAction.'=DELETE_FEATURE&pr_code=#CODE#';
+	$arResult['~ADD_FEATURE_PROPERTY_TEMPLATE'] = $rawCompareTemplateWithAction.'=ADD_FEATURE&pr_code=#CODE#';
+	$arResult['~DELETE_FEATURE_OF_FIELD_TEMPLATE'] = $rawCompareTemplateWithAction.'=DELETE_FEATURE&of_code=#CODE#';
+	$arResult['~ADD_FEATURE_OF_FIELD_TEMPLATE'] = $rawCompareTemplateWithAction.'=ADD_FEATURE&of_code=#CODE#';
+	$arResult['~DELETE_FEATURE_OF_PROPERTY_TEMPLATE'] = $rawCompareTemplateWithAction.'=DELETE_FEATURE&op_code=#CODE#';
+	$arResult['~ADD_FEATURE_OF_PROPERTY_TEMPLATE'] = $rawCompareTemplateWithAction.'=ADD_FEATURE&op_code=#CODE#';
+	unset($rawCompareTemplateWithAction, $compareTemplateWithAction, $currentPath);
 
 	$arResult['DELETED_FIELDS'] = array();
 	$arResult['SHOW_FIELDS'] = array();

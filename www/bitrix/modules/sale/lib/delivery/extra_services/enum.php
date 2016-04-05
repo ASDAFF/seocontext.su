@@ -96,7 +96,7 @@ class Enum extends Base
 		if(empty($prices))
 			return "";
 
-		return '(function(value){var prices='.\CUtil::PhpToJSObject($prices).'; return prices[value]["PRICE"];})(this.value)';
+		return "(function(value){var prices=".\CUtil::PhpToJSObject($prices)."; return prices[value]['PRICE'];})(this.value)";
 	}
 
 	public function setOperatingCurrency($currency)
@@ -133,7 +133,7 @@ class Enum extends Base
 				SaleFormatCurrency(
 					$this->convertToOperatingCurrency($price["PRICE"]),
 					$this->operatingCurrency,
-					true
+					false
 				).
 				")";
 		}
@@ -153,7 +153,7 @@ class Enum extends Base
 
 	protected function createJSOnchange($id, array $prices)
 	{
-		return 'BX.onCustomEvent("onDeliveryExtraServiceValueChange", [{"id" : "'.$id.'", "value": this.value, "price": '.$this->getJSPrice($prices).'}]);';
+		return "BX.onCustomEvent('onDeliveryExtraServiceValueChange', [{'id' : '".$id."', 'value': this.value, 'price': ".$this->getJSPrice($prices)."}]);";
 	}
 
 }

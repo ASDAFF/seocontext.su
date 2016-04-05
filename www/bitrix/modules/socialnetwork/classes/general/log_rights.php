@@ -423,7 +423,7 @@ class CSocNetLogRights
 		}
 
 		return false;
-	}	
+	}
 
 }
 ?>

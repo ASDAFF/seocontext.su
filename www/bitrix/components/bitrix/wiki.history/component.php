@@ -8,7 +8,7 @@ if (($arParent =  $this->GetParent()) !== NULL)
 
 if(empty($arParams['PAGE_VAR']))
 	$arParams['PAGE_VAR'] = 'title';
-if(empty($arParams['PAGE_OPER']))
+if(empty($arParams['OPER_VAR']))
 	$arParams['OPER_VAR'] = 'oper';
 $arParams['PATH_TO_POST'] = trim($arParams['PATH_TO_POST']);
 if(empty($arParams['SEF_MODE']))
@@ -182,7 +182,7 @@ if($this->StartResultCache(false, array($USER->GetGroups(), $arNavigation, $arCa
 {
 	$arResult['USE_REVIEW'] = $arParams['USE_REVIEW'];
 	$arResult['ELEMENT'] = array();
-	$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+	$arParams['ELEMENT_NAME'] = rawurldecode($arParams['ELEMENT_NAME']);
 	$arFilter = array(
 		'IBLOCK_ID' => $arParams['IBLOCK_ID'],
 		'CHECK_PERMISSIONS' => 'N',

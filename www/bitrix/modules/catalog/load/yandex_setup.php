@@ -34,6 +34,8 @@ if (($ACTION == 'EXPORT_EDIT' || $ACTION == 'EXPORT_COPY') && $STEP == 1)
 		$SETUP_SERVER_NAME = $arOldSetupVars['SETUP_SERVER_NAME'];
 	if (isset($arOldSetupVars['USE_HTTPS']))
 		$USE_HTTPS = $arOldSetupVars['USE_HTTPS'];
+	if (isset($arOldSetupVars['FILTER_AVAILABLE']))
+		$filterAvalable = $arOldSetupVars['FILTER_AVAILABLE'];
 }
 
 if ($STEP > 1)
@@ -122,6 +124,8 @@ if ($STEP > 1)
 
 	if (!isset($USE_HTTPS) || $USE_HTTPS != 'Y')
 		$USE_HTTPS = 'N';
+	if (!isset($filterAvalable) || $filterAvalable != 'Y')
+		$filterAvalable = 'N';
 
 	if (($ACTION=="EXPORT_SETUP" || $ACTION=="EXPORT_EDIT" || $ACTION=="EXPORT_COPY") && strlen($SETUP_PROFILE_NAME)<=0)
 		$arSetupErrors[] = GetMessage("CET_ERROR_NO_PROFILE_NAME");
@@ -396,6 +400,13 @@ if ($STEP == 1)
 	</td>
 </tr>
 <tr>
+	<td width="40%"><? echo GetMessage('CAT_YANDEX_FILTER_AVAILABLE'); ?></td>
+	<td width="60%">
+		<input type="hidden" name="FILTER_AVAILABLE" value="N">
+		<input type="checkbox" name="FILTER_AVAILABLE" value="Y"<? echo ($filterAvalable == 'Y' ? ' checked' : ''); ?>
+	</td>
+</tr>
+<tr>
 	<td width="40%"><? echo GetMessage('CAT_YANDEX_USE_HTTPS'); ?></td>
 	<td width="60%">
 		<input type="hidden" name="USE_HTTPS" value="N">
@@ -459,7 +470,7 @@ if (2 > $STEP)
 	<input type="hidden" name="ACT_FILE" value="<?echo htmlspecialcharsbx($_REQUEST["ACT_FILE"]) ?>">
 	<input type="hidden" name="ACTION" value="<?echo htmlspecialcharsbx($ACTION) ?>">
 	<input type="hidden" name="STEP" value="<?echo intval($STEP) + 1 ?>">
-	<input type="hidden" name="SETUP_FIELDS_LIST" value="V,IBLOCK_ID,SETUP_SERVER_NAME,SETUP_FILE_NAME,XML_DATA,USE_HTTPS">
+	<input type="hidden" name="SETUP_FIELDS_LIST" value="V,IBLOCK_ID,SETUP_SERVER_NAME,SETUP_FILE_NAME,XML_DATA,USE_HTTPS,FILTER_AVAILABLE">
 	<input type="submit" value="<?echo ($ACTION=="EXPORT")?GetMessage("CET_EXPORT"):GetMessage("CET_SAVE")?>"><?
 }
 

@@ -8,7 +8,7 @@ class CAllSocNetFeaturesPerms
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $DB, $arSocNetAllowedRolesForFeaturesPerms, $arSocNetAllowedEntityTypes, $arSocNetAllowedRelationsType;
 
@@ -151,7 +151,7 @@ class CAllSocNetFeaturesPerms
 		return True;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
@@ -191,7 +191,7 @@ class CAllSocNetFeaturesPerms
 					if ($arGroupFeaturePerm = $dbGroupFeaturePerm->Fetch())
 					{
 						$cache = new CPHPCache;
-						$cache->CleanDir("/sonet/features_perms/".$arGroupFeaturePerm["FEATURE_ENTITY_TYPE"]."_".$arGroupFeaturePerm["FEATURE_ENTITY_ID"]."/");
+						$cache->CleanDir("/sonet/features_perms/".$arGroupFeaturePerm["FEATURE_ENTITY_TYPE"]."/".intval($arGroupFeaturePerm["FEATURE_ENTITY_ID"] / 1000)."/".$arGroupFeaturePerm["FEATURE_ENTITY_ID"]."/");
 					}
 				}
 			}
@@ -200,7 +200,7 @@ class CAllSocNetFeaturesPerms
 		return $bSuccess;
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 
@@ -264,7 +264,7 @@ class CAllSocNetFeaturesPerms
 				if ($arGroupFeaturePerm = $dbGroupFeaturePerm->Fetch())
 				{
 					$cache = new CPHPCache;
-					$cache->CleanDir("/sonet/features_perms/".$arGroupFeaturePerm["FEATURE_ENTITY_TYPE"]."_".$arGroupFeaturePerm["FEATURE_ENTITY_ID"]."/");
+					$cache->CleanDir("/sonet/features_perms/".$arGroupFeaturePerm["FEATURE_ENTITY_TYPE"]."/".intval($arGroupFeaturePerm["FEATURE_ENTITY_ID"] / 1000)."/".$arGroupFeaturePerm["FEATURE_ENTITY_ID"]."/");
 				}
 			}
 		}
@@ -274,7 +274,7 @@ class CAllSocNetFeaturesPerms
 		return $ID;
 	}
 
-	function SetPerm($featureID, $operation, $perm)
+	public static function SetPerm($featureID, $operation, $perm)
 	{
 		$arSocNetFeaturesSettings = CSocNetAllowed::GetAllowedFeatures();
 
@@ -370,7 +370,7 @@ class CAllSocNetFeaturesPerms
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -391,7 +391,7 @@ class CAllSocNetFeaturesPerms
 	/***************************************/
 	/**********  COMMON METHODS  ***********/
 	/***************************************/
-	function CurrentUserCanPerformOperation($type, $id, $feature, $operation, $site_id = SITE_ID)
+	public static function CurrentUserCanPerformOperation($type, $id, $feature, $operation, $site_id = SITE_ID)
 	{
 		$userID = 0;
 		if (is_object($GLOBALS["USER"]) && $GLOBALS["USER"]->IsAuthorized())
@@ -402,7 +402,7 @@ class CAllSocNetFeaturesPerms
 		return CSocNetFeaturesPerms::CanPerformOperation($userID, $type, $id, $feature, $operation, $bCurrentUserIsAdmin);
 	}
 
-	function CanPerformOperation($userID, $type, $id, $feature, $operation, $bCurrentUserIsAdmin = false)
+	public static function CanPerformOperation($userID, $type, $id, $feature, $operation, $bCurrentUserIsAdmin = false)
 	{
 		global $arSocNetAllowedEntityTypes;
 
@@ -765,7 +765,7 @@ class CAllSocNetFeaturesPerms
 		return false;
 	}
 
-	function GetOperationPerm($type, $id, $feature, $operation)
+	public static function GetOperationPerm($type, $id, $feature, $operation)
 	{
 		global $arSocNetAllowedEntityTypes;
 
@@ -941,7 +941,7 @@ class CAllSocNetFeaturesPerms
 				$cache = new CPHPCache;
 				$cache_time = 31536000;
 				$cache_id = "entity_"."_".$type."_".$id;
-				$cache_path = "/sonet/features_perms/".$type."_".$id."/";
+				$cache_path = "/sonet/features_perms/".$type."/".intval($id / 1000)."/".$id."/";
 
 				$arTmp = array();
 
@@ -1055,4 +1055,3 @@ class CAllSocNetFeaturesPerms
 		}
 	}
 }
-?>

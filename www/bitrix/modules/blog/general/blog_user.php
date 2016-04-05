@@ -4,7 +4,7 @@ $GLOBALS["BLOG_USER"] = Array();
 
 class CAllBlogUser
 {
-	function IsLocked($userID)
+	public static function IsLocked($userID)
 	{
 		$userID = IntVal($userID);
 		if ($userID > 0)
@@ -19,7 +19,7 @@ class CAllBlogUser
 		return False;
 	}
 
-	function CanUserUpdateUser($ID, $userID, $selectType = BLOG_BY_BLOG_USER_ID)
+	public static function CanUserUpdateUser($ID, $userID, $selectType = BLOG_BY_BLOG_USER_ID)
 	{
 		$ID = IntVal($ID);
 		$userID = IntVal($userID);
@@ -37,7 +37,7 @@ class CAllBlogUser
 	}
 
 	/*************** ADD, UPDATE, DELETE *****************/
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $DB;
 
@@ -100,7 +100,7 @@ class CAllBlogUser
 		return True;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
@@ -184,7 +184,7 @@ class CAllBlogUser
 		return True;
 	}
 
-	function DeleteFromUserGroup($ID, $blogID, $selectType = BLOG_BY_BLOG_USER_ID)
+	public static function DeleteFromUserGroup($ID, $blogID, $selectType = BLOG_BY_BLOG_USER_ID)
 	{
 		global $DB;
 
@@ -225,7 +225,7 @@ class CAllBlogUser
 		return $bSuccess;
 	}
 
-	function AddToUserGroup($ID, $blogID, $arGroups = array(), $joinStatus = "Y", $selectType = BLOG_BY_BLOG_USER_ID, $action = BLOG_CHANGE)
+	public static function AddToUserGroup($ID, $blogID, $arGroups = array(), $joinStatus = "Y", $selectType = BLOG_BY_BLOG_USER_ID, $action = BLOG_CHANGE)
 	{
 		global $DB;
 
@@ -308,7 +308,7 @@ class CAllBlogUser
 		return $bSuccess;
 	}
 
-	function SetLastVisit()
+	public static function SetLastVisit()
 	{
 		if (isset($GLOBALS["BLOG_USER"]["BLOG_LAST_VISIT_SET"]) && $GLOBALS["BLOG_USER"]["BLOG_LAST_VISIT_SET"] == "Y")
 			return True;
@@ -342,7 +342,7 @@ class CAllBlogUser
 	}
 
 	//*************** SELECT *********************/
-	function GetByID($ID, $selectType = BLOG_BY_BLOG_USER_ID)
+	public static function GetByID($ID, $selectType = BLOG_BY_BLOG_USER_ID)
 	{
 		global $DB;
 
@@ -375,7 +375,7 @@ class CAllBlogUser
 		return False;
 	}
 
-	function GetUserFriends($ID, $bFlag = True)
+	public static function GetUserFriends($ID, $bFlag = True)
 	{
 		global $DB;
 
@@ -424,7 +424,7 @@ class CAllBlogUser
 		return $dbResult;
 	}
 
-	function GetUserGroups($ID, $blogID, $joinStatus = "", $selectType = BLOG_BY_BLOG_USER_ID, $bUrl = false)
+	public static function GetUserGroups($ID, $blogID, $joinStatus = "", $selectType = BLOG_BY_BLOG_USER_ID, $bUrl = false)
 	{
 		global $DB;
 
@@ -489,7 +489,7 @@ class CAllBlogUser
 		return False;
 	}
 
-	function GetUserPerms($arGroups, $blogID, $postID = 0, $permsType = BLOG_PERMS_POST, $selectType = BLOG_BY_BLOG_USER_ID)
+	public static function GetUserPerms($arGroups, $blogID, $postID = 0, $permsType = BLOG_PERMS_POST, $selectType = BLOG_BY_BLOG_USER_ID)
 	{
 		global $DB;
 
@@ -557,7 +557,7 @@ class CAllBlogUser
 		}
 	}
 
-	function GetUserName($alias, $name, $lastName, $login, $secondName = "")
+	public static function GetUserName($alias, $name, $lastName, $login, $secondName = "")
 	{
 		$result = "";
 
@@ -577,7 +577,7 @@ class CAllBlogUser
 		return $result;
 	}
 	
-	function GetUserNameEx($arUser, $arBlogUser, $arParams)
+	public static function GetUserNameEx($arUser, $arBlogUser, $arParams)
 	{
 		$result = "";
 		if (!$arParams["bSoNet"])
@@ -600,14 +600,15 @@ class CAllBlogUser
 			$result = CUser::FormatName(
 						$arParams["NAME_TEMPLATE"], 
 						$arUser, 
-						$bUseLogin
+						$bUseLogin,
+						false
 					);
 		}
 
 		return $result;
 	}	
 
-	function PreparePath($userID = 0, $siteID = False, $is404 = True)
+	public static function PreparePath($userID = 0, $siteID = False, $is404 = True)
 	{
 		$userID = IntVal($userID);
 		if (!$siteID)
@@ -637,7 +638,7 @@ class CAllBlogUser
 		return $result;
 	}
 
-	function PreparePath2User($arParams = array())
+	public static function PreparePath2User($arParams = array())
 	{
 		return CBlogUser::PreparePath(
 			isset($arParams["USER_ID"]) ? $arParams["USER_ID"] : 0,
@@ -645,7 +646,7 @@ class CAllBlogUser
 		);
 	}
 
-	function GetUserIP()
+	public static function GetUserIP()
 	{
 		if ($_SERVER["HTTP_X_FORWARDED_FOR"])
 		{
@@ -666,7 +667,7 @@ class CAllBlogUser
 		return array($clientIP, $clientProxy);
 	}
 
-	function GetUserInfo($id, $path, $arParams = array())
+	public static function GetUserInfo($id, $path, $arParams = array())
 	{
 		if (!empty(CBlogPost::$arBlogUCache[$id]))
 		{
@@ -680,7 +681,23 @@ class CAllBlogUser
 			if (intval($arParams["AVATAR_SIZE_COMMENT"]) <= 0)
 				$arParams["AVATAR_SIZE_COMMENT"] = 30;
 
-			$dbUser = CUser::GetList(($sort_by = Array('ID'=>'desc')), ($dummy=''), Array("ID" => $id), Array("FIELDS" => Array("ID", "LAST_NAME", "NAME", "SECOND_NAME", "LOGIN", "PERSONAL_PHOTO", "PERSONAL_GENDER")));
+			$bResizeImmediate = (isset($arParams["RESIZE_IMMEDIATE"]) && $arParams["RESIZE_IMMEDIATE"] == "Y");
+
+			$arSelect = Array(
+				"FIELDS" => Array("ID", "LAST_NAME", "NAME", "SECOND_NAME", "LOGIN", "PERSONAL_PHOTO", "PERSONAL_GENDER", "EXTERNAL_AUTH_ID")
+			);
+
+			if (IsModuleInstalled('extranet'))
+			{
+				$arSelect["SELECT"] = array('UF_DEPARTMENT');
+			}
+
+			$dbUser = CUser::GetList(
+				($sort_by = Array('ID'=>'desc')),
+				($dummy=''),
+				Array("ID" => $id),
+				$arSelect
+			);
 			if($arResult["arUser"] = $dbUser->GetNext())
 			{
 				if(IntVal($arResult["arUser"]["PERSONAL_PHOTO"]) > 0)
@@ -690,7 +707,9 @@ class CAllBlogUser
 						$arResult["arUser"]["PERSONAL_PHOTO_file"],
 						array("width" => $arParams["AVATAR_SIZE"], "height" => $arParams["AVATAR_SIZE"]),
 						BX_RESIZE_IMAGE_EXACT,
-						false
+						false,
+						false,
+						$bResizeImmediate
 					);
 					if ($arResult["arUser"]["PERSONAL_PHOTO_resized"] !== false)
 						$arResult["arUser"]["PERSONAL_PHOTO_img"] = CFile::ShowImage($arResult["arUser"]["PERSONAL_PHOTO_resized"]["src"], $arParams["AVATAR_SIZE"], $arParams["AVATAR_SIZE"], "border=0 align='right'");
@@ -698,7 +717,9 @@ class CAllBlogUser
 						$arResult["arUser"]["PERSONAL_PHOTO_file"],
 						array("width" => $arParams["AVATAR_SIZE_COMMENT"], "height" => $arParams["AVATAR_SIZE_COMMENT"]),
 						BX_RESIZE_IMAGE_EXACT,
-						false
+						false,
+						false,
+						$bResizeImmediate
 					);
 					if ($arResult["arUser"]["PERSONAL_PHOTO_resized_30"] !== false)
 						$arResult["arUser"]["PERSONAL_PHOTO_img_30"] = CFile::ShowImage($arResult["arUser"]["PERSONAL_PHOTO_resized_30"]["src"], $arParams["AVATAR_SIZE_COMMENT"], $arParams["AVATAR_SIZE_COMMENT"], "border=0 align='right'");
@@ -711,7 +732,7 @@ class CAllBlogUser
 		return $arResult["arUser"];
 	}
 
-	function GetUserInfoArray($arId, $path, $arParams = array())
+	public static function GetUserInfoArray($arId, $path, $arParams = array())
 	{
 		if (
 			!is_array($arId)
@@ -756,7 +777,7 @@ class CAllBlogUser
 				($sort_by = Array('ID'=>'desc')),
 				($dummy=''),
 				Array("ID" => implode(" | ", $arIdToGet)),
-				Array("FIELDS" => Array("ID", "LAST_NAME", "NAME", "SECOND_NAME", "LOGIN", "PERSONAL_PHOTO", "PERSONAL_GENDER"))
+				Array("FIELDS" => Array("ID", "LAST_NAME", "NAME", "SECOND_NAME", "LOGIN", "PERSONAL_PHOTO", "PERSONAL_GENDER", "EXTERNAL_AUTH_ID"))
 			);
 			while ($arUser = $dbUser->GetNext())
 			{

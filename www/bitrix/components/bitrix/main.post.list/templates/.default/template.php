@@ -16,8 +16,13 @@ if (!empty($arParams["RATING_TYPE_ID"]))
 	\Bitrix\Main\Page\Asset::getInstance()->addJs("/bitrix/js/main/rating_like.js");
 }
 
-CUtil::InitJSCore(array("date", "fx", "popup", "viewer"));
-$ajax_page = CUtil::JSEscape($APPLICATION->GetCurPageParam("", array("logajax", "bxajaxid", "logout")));
+CUtil::InitJSCore(array("date", "fx", "popup", "viewer", "tooltip"));
+$tooltip_ajax_page = (
+	isset($arParams["AUTHOR_URL"])
+	&& $arParams["AUTHOR_URL"] != ""
+		? CUtil::JSEscape($APPLICATION->GetCurPageParam("", array("logajax", "bxajaxid", "logout")))
+		: ""
+);
 
 ob_start();
 ?>
@@ -29,9 +34,16 @@ ob_start();
 			#BEFORE_HEADER#
 			<div class="feed-com-avatar feed-com-avatar-#AUTHOR_AVATAR_IS#"><img src="#AUTHOR_AVATAR#" width="<?=$arParams["AVATAR_SIZE"]?>" height="<?=$arParams["AVATAR_SIZE"]?>" /></div>
 			<!--/noindex-->
-				<span class="feed-com-name feed-author-name feed-author-name-#AUTHOR_ID#">#AUTHOR_NAME#</span>
-				<a class="feed-com-name #AUTHOR_EXTRANET_STYLE# feed-author-name feed-author-name-#AUTHOR_ID#" id="bpc_#FULL_ID#" href="#AUTHOR_URL#">#AUTHOR_NAME#</a>
-				<script type="text/javascript">BX.tooltip('#AUTHOR_ID#', "bpc_#FULL_ID#", '<?=$ajax_page?>');</script>
+				<span class="feed-com-name #AUTHOR_EXTRANET_STYLE# feed-author-name feed-author-name-#AUTHOR_ID#">#AUTHOR_NAME#</span>
+				<a class="feed-com-name #AUTHOR_EXTRANET_STYLE# feed-author-name feed-author-name-#AUTHOR_ID#" id="bpc_#FULL_ID#" href="<?=($arParams["AUTHOR_URL"] != "" ? "#AUTHOR_URL#" : "javascript:void(0);")?>">#AUTHOR_NAME#</a>
+				<?
+				if ($arParams["AUTHOR_URL"] != "")
+				{
+					?>
+					<script type="text/javascript">BX.tooltip('#AUTHOR_ID#', "bpc_#FULL_ID#", '<?=$tooltip_ajax_page?>', '', false, #AUTHOR_TOOLTIP_PARAMS#);</script>
+					<?
+				}
+				?>
 			<!--/noindex-->
 			<div class="feed-com-informers">
 				<span class="feed-time">#DATE#</span>
@@ -161,6 +173,7 @@ BX.ready(function(){
 			MODERATE_URL : '<?=CUtil::JSEscape($arParams["~MODERATE_URL"])?>',
 			DELETE_URL : '<?=CUtil::JSEscape($arParams["~DELETE_URL"])?>',
 			AUTHOR_URL : '<?=CUtil::JSEscape($arParams["~AUTHOR_URL"])?>',
+			AUTHOR_URL_PARAMS: <?=(isset($arParams["AUTHOR_URL_PARAMS"]) ? CUtil::PhpToJSObject($arParams["AUTHOR_URL_PARAMS"]) : '{}')?>,
 
 			AVATAR_SIZE : '<?=CUtil::JSEscape($arParams["AVATAR_SIZE"])?>',
 			NAME_TEMPLATE : '<?=CUtil::JSEscape($arParams["~NAME_TEMPLATE"])?>',

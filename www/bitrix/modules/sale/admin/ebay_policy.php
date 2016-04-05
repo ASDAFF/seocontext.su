@@ -20,7 +20,7 @@ if (!\Bitrix\Main\Loader::includeModule('sale'))
 $ebay = \Bitrix\Sale\TradingPlatform\Ebay\Ebay::getInstance();
 
 if(!$ebay->isActive())
-	LocalRedirect("/bitrix/admin/sale_ebay.php?lang=".LANG."&back_url=".urlencode($APPLICATION->GetCurPageParam()));
+	LocalRedirect("/bitrix/admin/sale_ebay_general.php?lang=".LANG."&back_url=".urlencode($APPLICATION->GetCurPageParam()));
 
 $errorMsg = "";
 $bSaved = false;

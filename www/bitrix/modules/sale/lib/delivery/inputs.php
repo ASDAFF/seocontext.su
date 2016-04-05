@@ -102,13 +102,27 @@ class ReadOnly extends Input\Base
 {
 	public static function getViewHtmlSingle(array $input, $value)
 	{
-		return isset($input["VALUE_VIEW"]) ? $input["VALUE_VIEW"] : $value;
+		$result = '<span';
+
+		if(!empty($input['ID']))
+			$result .= ' id="'.$input['ID'].'_view"';
+
+		$result .= '>';
+		$result .= isset($input["VALUE_VIEW"]) ? $input["VALUE_VIEW"] : $value;
+		$result .= '</span>';
+		return $result;
 	}
 
 	public static function getEditHtmlSingle($name, array $input, $value)
 	{
 		$value = str_replace('"', "'", $value);
-		return self::getViewHtml($input, $value).'<input type="hidden" value="'.$value.'" name="'.$name.'">';
+		$res = self::getViewHtml($input, $value).'<input type="hidden" value="'.htmlspecialcharsbx($value).'" name="'.htmlspecialcharsbx($name).'"';
+
+		if(!empty($input['ID']))
+			$res .= ' id="'.$input['ID'].'"';
+
+		$res .= '>';
+		return $res;
 	}
 
 
@@ -348,4 +362,93 @@ class LocationMulti extends Input\Base
 Input\Manager::register('LOCATION_MULTI', array(
 	'CLASS' => __NAMESPACE__.'\\LocationMulti',
 	'NAME' => Loc::getMessage('INPUT_DELIVERY_LOCATION_MULTI')
+));
+
+class ProductCategories extends Input\Base
+{
+	public static function getViewHtml(array $input, $values)
+	{
+		if(!is_array($values))
+			return '';
+
+		$result = '<br><br>';
+		$catList = self::getCategoriesList($values);
+
+		foreach($catList as $catName)
+			$result .= '<div> - '.$catName.'</div>';
+
+		return $result;
+	}
+
+	public static function getEditHtml($name, array $input, $values)
+	{
+		$result = '<br><a style="color:#113c7d;text-decoration:none;border-bottom:1px dashed #113c7d;font-weight: bold;" href="javascript:void(0);" id="'.$input["ID"].'" onclick="window.open(\''.$input["URL"].'\',\'choose category\',\'width=850,height=600\');">'.Loc::getMessage('SALE_DELIVERY_INP_ADD').'</a><br><br>'.
+			'<script type="text/javascript">'.$input["SCRIPT"].'</script>'.
+			'<script type="text/javascript">BX.message({SALE_DELIVERY_INP_DELETE: "'.Loc::getMessage("SALE_DELIVERY_INP_DELETE").'"});</script>';
+
+		$catList = self::getCategoriesList($values);
+		$existCatHtml = '<table id="sale-admin-delivery-restriction-cat-content" width="100%">';
+
+		foreach($catList as $catId => $catName)
+			$existCatHtml .= '
+				<tr class="adm-s-delivery-restriction-delcat" id="sale-admin-delivery-restriction-cat-'.$catId.'">
+					<td>
+						<span> - '.$catName.'</span>
+						<input type="hidden" name="RESTRICTION[CATEGORIES][]" value="'.$catId.'">
+					</td>
+					<td align="right">
+						&nbsp;<a class="adm-s-bus-morelinkqhsw" href="javascript:void(0);" onclick="BX.Sale.Delivery.deleteRestrictionProductSection(\''.$catId.'\');">'.Loc::getMessage('SALE_DELIVERY_INP_DELETE').'</a>
+					</td>
+				</tr>';
+
+		$existCatHtml .= '</table>';
+
+		return $existCatHtml.$result;
+	}
+
+	protected static function getCategoriesList($ids)
+	{
+		if(!\Bitrix\Main\Loader::includeModule('iblock'))
+			return array();
+
+		$result = array();
+
+		$res = \Bitrix\Iblock\SectionTable::getList(array(
+			'filter' => array(
+				'ID' => $ids
+			),
+			'select' => array('ID', 'NAME')
+		));
+
+		while($section = $res->fetch())
+			$result[$section['ID']]  = $section['NAME'];
+
+		return $result;
+	}
+
+	public static function getValueSingle(array $input, $userValue)
+	{
+		return $userValue;
+	}
+
+
+	public static function getError(array $input, $values)
+	{
+		return self::getErrorSingle($input, $values);
+	}
+
+	public static function getErrorSingle(array $input, $values)
+	{
+		return array();
+	}
+
+	public static function getSettings(array $input, $reload)
+	{
+		return array();
+	}
+}
+
+Input\Manager::register('DELIVERY_PRODUCT_CATEGORIES', array(
+	'CLASS' => __NAMESPACE__.'\\ProductCategories',
+	'NAME' => Loc::getMessage('INPUT_DELIVERY_PRODUCT_CATEGORIES')
 ));

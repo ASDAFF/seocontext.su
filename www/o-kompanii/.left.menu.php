@@ -15,13 +15,6 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"Лицензии", 
-		"/o-kompanii/litsenzii/",
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
 		"Вакансии", 
 		"/o-kompanii/vakansii/",
 		Array(), 
@@ -43,22 +36,8 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"История компании", 
-		"/o-kompanii/istoriya-kompanii/",
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
 		"Реквизиты", 
 		"/o-kompanii/rekvizity/",
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
-		"Прайс-лист", 
-		"/o-kompanii/prays-list/",
 		Array(), 
 		Array(), 
 		"" 

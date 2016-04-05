@@ -71,6 +71,9 @@ BX.Sale.Admin.OrderBuyer =
 
 		for(var i in params)
 		{
+			if(!params.hasOwnProperty(i))
+				continue;
+
 			profList.add(BX.create("option", { props:{value: i,	text: params[i]}}));
 
 			if(i > 0 && buyerProfileId == 0)
@@ -109,6 +112,9 @@ BX.Sale.Admin.OrderBuyer =
 	{
 		for(var i in params)
 		{
+			if(!params.hasOwnProperty(i))
+				continue;
+
 			var property = BX.Sale.Admin.OrderBuyer.propertyCollection.getById(i);
 
 			if(property)
@@ -290,8 +296,9 @@ BX.Sale.Admin.OrderBuyer =
 
 		while (group = groupIterator())
 		{
-			var div1 = BX.create('DIV',{props:{className:"adm-bus-table-container caption border sale-order-props-group"}}),
-				divName = BX.create('DIV',{props:{className:"adm-bus-table-caption-title"}, html:BX.util.htmlspecialchars(group.getName())}),
+			var name = group.getName() ? BX.util.htmlspecialchars(group.getName()) : BX.message('SALE_ORDER_BUYER_UNKNOWN_GROUP'),
+				div1 = BX.create('DIV',{props:{className:"adm-bus-table-container caption border sale-order-props-group"}}),
+				divName = BX.create('DIV',{props:{className:"adm-bus-table-caption-title"}, html:name}),
 				table = BX.create('TABLE',{props:{className:"adm-detail-content-table edit-table"}}),
 				propsIterator =  group.getIterator();
 

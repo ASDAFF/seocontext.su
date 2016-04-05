@@ -25,11 +25,14 @@ if(isset($_REQUEST["test"]) && $_REQUEST["test"] === "Y")
 
 		if (CModule::IncludeModule('perfmon'))
 		{
-			$accel = CPerfomanceMeasure::GetAccelerator();
-			if(!is_object($accel))
-				$ACCELERATOR_ENABLED = "N";
-			else
-				$ACCELERATOR_ENABLED = $accel->IsWorking()? "Y": "N";
+			$ACCELERATOR_ENABLED = "N";
+			foreach(CPerfomanceMeasure::GetAllAccelerators() as $accel)
+			{
+				if ($accel->IsWorking())
+				{
+					$ACCELERATOR_ENABLED = "Y";
+				}
+			}
 
 			CPerfomanceHistory::Add($a=array(
 				"TOTAL_MARK" => round(doubleval(count($_SESSION["PERFMON_TIMES"]))/array_sum($_SESSION["PERFMON_TIMES"]), 2),
@@ -331,11 +334,14 @@ elseif(isset($_REQUEST["test"]))
 
 			if($bPHPIsGood)
 			{
-				$accel = CPerfomanceMeasure::GetAccelerator();
-				if(!is_object($accel))
-					$bPHPIsGood = false;
-				else
-					$bPHPIsGood = $accel->IsWorking();
+				$bPHPIsGood = false;
+				foreach(CPerfomanceMeasure::GetAllAccelerators() as $accel)
+				{
+					if ($accel->IsWorking())
+					{
+						$bPHPIsGood = true;
+					}
+				}
 			}
 
 			if($bPHPIsGood)
@@ -374,7 +380,7 @@ elseif(isset($_REQUEST["test"]))
 			$rsData = $cData->GetList(array("IS_ADMIN" => "DESC"), array("=IS_ADMIN" => "N"), true, false, array("IS_ADMIN", "COUNT", "SUM_PAGE_TIME", "AVG_PAGE_TIME"));
 			$arTotalPage = $rsData->Fetch();
 
-			if(($action == "stop") || (COption::SetOptionString("perfmon", "total_mark_value") == "calc"))
+			if(($action == "stop") || (COption::GetOptionString("perfmon", "total_mark_value") == "calc"))
 			{
 				if($arTotalPage["AVG_PAGE_TIME"] > 0)
 					COption::SetOptionString("perfmon", "total_mark_value", number_format(1/$arTotalPage["AVG_PAGE_TIME"], 2));

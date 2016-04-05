@@ -154,6 +154,8 @@ Class sale extends CModule
 		RegisterModuleDependences("sender", "OnPresetMailingList", "sale", "\\Bitrix\\Sale\\Sender\\EventHandler", "onPresetMailingList");
 		RegisterModuleDependences("sender", "OnPresetTemplateList", "sale", "\\Bitrix\\Sale\\Sender\\EventHandler", "onPresetTemplateList");
 
+		RegisterModuleDependences("sender", "OnConnectorList", "sale", "Bitrix\\Sale\\Bigdata\\TargetSaleMailConnector", "onConnectorList");
+
 		RegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlGroup", "GetControlDescr", 100);
 		RegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlBasketGroup", "GetControlDescr", 200);
 		RegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlBasketFields", "GetControlDescr", 300);
@@ -193,14 +195,18 @@ Class sale extends CModule
 		RegisterModuleDependences('sale'      , 'OnOrderAdd'           , 'sale', '\Bitrix\Sale\Internals\ConversionHandlers', 'onOrderAdd'           );
 		RegisterModuleDependences('sale'      , 'OnSalePayOrder'       , 'sale', '\Bitrix\Sale\Internals\ConversionHandlers', 'onSalePayOrder'       );
 
+		RegisterModuleDependences('sale', 'OnGetBusinessValueGroups', 'sale', '\Bitrix\Sale\PaySystem\Manager', 'getBusValueGroups');
+		RegisterModuleDependences('sale', 'OnGetBusinessValueConsumers', 'sale', '\Bitrix\Sale\PaySystem\Manager', 'getConsumersList');
+
 		RegisterModuleDependences("perfmon", "OnGetTableSchema", "sale", "sale", "OnGetTableSchema");
 
 		COption::SetOptionString("sale", "viewed_capability", "N");
 		COption::SetOptionString("sale", "viewed_count", 10);
 		COption::SetOptionString("sale", "viewed_time", 5);
 		COption::SetOptionString("main", "~sale_converted_15", 'Y');
+		COption::SetOptionString("main", "~sale_paysystem_converted", 'Y');
 
-		COption::SetOptionString("sale", "expiration_processing_events", 'N');
+		COption::SetOptionString("sale", "expiration_processing_events", 'Y');
 
 		COption::SetOptionString("sale", "p2p_status_list", serialize(array(
 			"N", "P", "F", "F_CANCELED", "F_DELIVERY", "F_PAY", "F_OUT"
@@ -301,6 +307,8 @@ Class sale extends CModule
 			}
 
 			CSaleYMHandler::install();
+
+			\Bitrix\Sale\Delivery\Services\EmptyDeliveryService::create();
 		}
 
 		return true;
@@ -351,6 +359,8 @@ Class sale extends CModule
 		UnRegisterModuleDependences("sender", "OnPresetMailingList", "sale", "\\Bitrix\\Sale\\Sender\\EventHandler", "onPresetMailingList");
 		UnRegisterModuleDependences("sender", "OnPresetTemplateList", "sale", "\\Bitrix\\Sale\\Sender\\EventHandler", "onPresetTemplateList");
 
+		UnRegisterModuleDependences("sender", "OnConnectorList", "sale", "Bitrix\\Sale\\Bigdata\\TargetSaleMailConnector", "onConnectorList");
+
 		UnRegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlGroup", "GetControlDescr");
 		UnRegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlBasketGroup", "GetControlDescr");
 		UnRegisterModuleDependences("sale", "OnCondSaleControlBuildList", "sale", "CSaleCondCtrlBasketFields", "GetControlDescr");
@@ -376,6 +386,9 @@ Class sale extends CModule
 
 		UnRegisterModuleDependences("main", "OnEventLogGetAuditTypes", "sale", "CSaleYMHandler", 'OnEventLogGetAuditTypes');
 		UnRegisterModuleDependences("main", "OnEventLogGetAuditTypes", "sale", "CSalePaySystemAction", 'OnEventLogGetAuditTypes');
+
+		UnRegisterModuleDependences('sale', 'OnGetBusinessValueGroups', 'sale', '\Bitrix\Sale\PaySystem\Manager', 'getBusValueGroups');
+		UnRegisterModuleDependences('sale', 'OnGetBusinessValueConsumers', 'sale', '\Bitrix\Sale\PaySystem\Manager', 'getConsumersList');
 
 		// conversion
 		UnRegisterModuleDependences('conversion', 'OnGetCounterTypes'    , 'sale', '\Bitrix\Sale\Internals\ConversionHandlers', 'onGetCounterTypes'    );

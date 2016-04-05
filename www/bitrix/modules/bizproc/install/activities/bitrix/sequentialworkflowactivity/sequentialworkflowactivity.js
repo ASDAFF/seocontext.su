@@ -101,7 +101,7 @@ SequentialWorkflowActivity = function()
 							BX.remove(r);
 							for(var i=1; i<allP.childNodes.length; i++)
 								allP.childNodes[i]._ind = i-1;
-							window.dlgSnippetsSettings.Hide();
+							window.dlgSnippetsSettings.Close();
 							BCPSaveUserParams();
 						}
 					}
@@ -206,8 +206,8 @@ SequentialWorkflowActivity = function()
 		var dCont, bCat, cat;
 
 		dCont = divGroupList.appendChild(document.createElement('DIV'));
-		//console.debug(oActivity);
-		if(oActivity['NAME'])
+		dCont.onclick = function(e){BX.PreventDefault(e);}
+		if(oActivity['NAME'] !== undefined)
 			dCont.activityTemplate = {'Properties': {'Title': oActivity['NAME']}, 'Type': oActivity['CLASS'], 'Children': [], 'Icon': oActivity['ICON']};
 		else
 			dCont.activityTemplate = oActivity;
@@ -290,9 +290,14 @@ SequentialWorkflowActivity = function()
 
 			for(var act_i in arAllActivities)
 			{
-				if(!arAllActivities[act_i]["CATEGORY"] || arAllActivities[act_i]["CATEGORY"]["ID"]!=groupId)
+
+				if (arAllActivities[act_i]["EXCLUDED"] || !arAllActivities[act_i]["CATEGORY"])
 					continue;
-				if(arAllActivities[act_i]["EXCLUDED"])
+
+				var activityGroupId = arAllActivities[act_i]["CATEGORY"]["ID"];
+				if (arAllActivities[act_i]["CATEGORY"]["OWN_ID"])
+					activityGroupId = arAllActivities[act_i]["CATEGORY"]["OWN_ID"];
+				if (activityGroupId !=groupId)
 					continue;
 
 				if(act_i == 'setstateactivity' && rootActivity.Type == ob.Type)

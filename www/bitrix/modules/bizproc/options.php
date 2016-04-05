@@ -51,6 +51,9 @@ if ($REQUEST_METHOD == "POST" && strlen($Update) > 0 && $bizprocPerms == "W" && 
 	COption::SetOptionString("bizproc", "log_skip_types", $log_skip_types ? implode(',', $log_skip_types) : "");
 
 	\Bitrix\Main\Config\Option::set("bizproc", "use_gzip_compression", $_REQUEST["use_gzip_compression"]);
+	\Bitrix\Main\Config\Option::set("bizproc", "locked_wi_path", $_REQUEST["locked_wi_path"]);
+
+	CBPSchedulerService::setDelayMinLimit($_REQUEST["delay_min_limit"], $_REQUEST['delay_min_limit_type']);
 
 	foreach($arSites as $site)
 	{
@@ -116,6 +119,28 @@ $tabControl->BeginNextTab();
 					<option value="" <? if (empty($useGZipCompression)) echo "selected";  ?>><?= GetMessage("BIZPROC_OPT_USE_GZIP_COMPRESSION_EMPTY") ?></option>
 					<option value="Y" <? if ($useGZipCompression == "Y") echo "selected";  ?>><?= GetMessage("BIZPROC_OPT_USE_GZIP_COMPRESSION_Y") ?></option>
 					<option value="N" <? if ($useGZipCompression == "N") echo "selected";  ?>><?= GetMessage("BIZPROC_OPT_USE_GZIP_COMPRESSION_N") ?></option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td width="50%" valign="top"><?= GetMessage("BIZPROC_OPT_LOCKED_WI_PATH") ?>:</td>
+			<td width="50%" valign="top">
+				<?$path = \Bitrix\Main\Config\Option::get("bizproc", "locked_wi_path", "/services/bp/instances.php?type=is_locked");?>
+				<input type="text" size="40" name="locked_wi_path" value="<?=htmlspecialcharsbx($path)?>">
+			</td>
+		</tr>
+		<tr>
+			<td width="50%" valign="top"><?= GetMessage("BIZPROC_OPT_TIME_LIMIT") ?>:</td>
+			<td width="50%" valign="top">
+				<?
+					list($delayTime, $delayType) = CBPSchedulerService::getDelayMinLimit(true);
+				?>
+				<input type="text" name="delay_min_limit" value="<?=$delayTime?>" size="5" />
+				<select name="delay_min_limit_type">
+					<option value="s"<?= ($delayType == "s") ? " selected" : "" ?>><?= GetMessage("BIZPROC_OPT_TIME_LIMIT_S") ?></option>
+					<option value="m"<?= ($delayType == "m") ? " selected" : "" ?>><?= GetMessage("BIZPROC_OPT_TIME_LIMIT_M") ?></option>
+					<option value="h"<?= ($delayType == "h") ? " selected" : "" ?>><?= GetMessage("BIZPROC_OPT_TIME_LIMIT_H") ?></option>
+					<option value="d"<?= ($delayType == "d") ? " selected" : "" ?>><?= GetMessage("BIZPROC_OPT_TIME_LIMIT_D") ?></option>
 				</select>
 			</td>
 		</tr>

@@ -5,7 +5,7 @@ class CAllCatalogGroup
 {
 	protected static $arBaseGroupCache = array();
 
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $APPLICATION;
 		global $USER;
@@ -292,7 +292,7 @@ class CAllCatalogGroup
 		return $arResult;
 	}
 
-	function GetBaseGroup()
+	public static function GetBaseGroup()
 	{
 		if (empty(self::$arBaseGroupCache) && is_array(self::$arBaseGroupCache))
 		{
@@ -305,9 +305,9 @@ class CAllCatalogGroup
 			);
 			if ($arGroup = $rsGroups->Fetch())
 			{
-				$arGroup['ID'] = intval($arGroup['ID']);
-				$arGroup['NAME_LANG'] = strval($arGroup['NAME_LANG']);
-				$arGroup['XML_ID'] = strval($arGroup['XML_ID']);
+				$arGroup['ID'] = (int)$arGroup['ID'];
+				$arGroup['NAME_LANG'] = (string)$arGroup['NAME_LANG'];
+				$arGroup['XML_ID'] = (string)$arGroup['XML_ID'];
 
 				self::$arBaseGroupCache = $arGroup;
 			}
@@ -315,6 +315,7 @@ class CAllCatalogGroup
 			{
 				self::$arBaseGroupCache = false;
 			}
+			unset($arGroup, $rsGroup);
 			if (defined('CATALOG_GLOBAL_VARS') && 'Y' == CATALOG_GLOBAL_VARS)
 			{
 				global $CATALOG_BASE_GROUP;
@@ -324,4 +325,3 @@ class CAllCatalogGroup
 		return self::$arBaseGroupCache;
 	}
 }
-?>

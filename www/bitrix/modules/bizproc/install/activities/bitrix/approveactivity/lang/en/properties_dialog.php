@@ -25,4 +25,8 @@ $MESS["BPAR_PD_COMMENT_LABEL_MESSAGE"] = "Comment input field label";
 $MESS["BPAR_PD_TASK_BUTTON1_MESSAGE"] = "Accept button text";
 $MESS["BPAR_PD_TASK_BUTTON2_MESSAGE"] = "Reject button text";
 $MESS["BPAR_PD_ACCESS_CONTROL"] = "Show assignment description only to responsible persons";
+$MESS["BPAA_PD_TIMEOUT_LIMIT"] = "Minimum approval time";
+$MESS["BPAR_PD_COMMENT_REQUIRED"] = "Comment is required";
+$MESS["BPAR_PD_COMMENT_REQUIRED_YA"] = "Only when approved";
+$MESS["BPAR_PD_COMMENT_REQUIRED_YR"] = "Only when declined";
 ?>

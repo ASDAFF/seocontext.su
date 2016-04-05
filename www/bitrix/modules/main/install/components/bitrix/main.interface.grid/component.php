@@ -60,6 +60,11 @@ else
 
 $arParams["GRID_ID"] = preg_replace("/[^a-z0-9_]/i", "", $arParams["GRID_ID"]);
 
+if(!is_array($arParams["~NAV_PARAMS"]))
+{
+	$arParams["~NAV_PARAMS"] = array();
+}
+
 $arResult["HEADERS"] = array();
 
 //*********************
@@ -293,13 +298,41 @@ if($arParams["NAV_STRING"] <> '')
 }
 elseif(is_object($arParams["NAV_OBJECT"]))
 {
-	/** @var CDBResult $nav */
-	$nav = $arParams["NAV_OBJECT"];
-	$nav->nPageWindow = 5;
-	//dirty hack
-	if($arParams["FORM_ID"] <> '' && $arParams["TAB_ID"] <> '')
-		$_GET[$arParams["FORM_ID"].'_active_tab'] = $arParams["TAB_ID"];
-	$arResult["NAV_STRING"] = $nav->GetPageNavString("", "modern", true);
+	if(($nav = $arParams["NAV_OBJECT"]) instanceof \Bitrix\Main\UI\PageNavigation)
+	{
+		$params = array_merge(
+			array(
+				"NAV_OBJECT" => $nav,
+				"PAGE_WINDOW" => 5,
+				"SHOW_ALWAYS" => true,
+			),
+			$arParams["~NAV_PARAMS"]
+		);
+
+		ob_start();
+
+		$APPLICATION->IncludeComponent(
+			"bitrix:main.pagenavigation",
+			"modern",
+			$params,
+			false,
+			array(
+				"HIDE_ICONS" => "Y",
+			)
+		);
+
+		$arResult["NAV_STRING"] = ob_get_clean();
+	}
+	else
+	{
+		/** @var CDBResult $nav */
+		$nav = $arParams["NAV_OBJECT"];
+		$nav->nPageWindow = 5;
+		//dirty hack
+		if($arParams["FORM_ID"] <> '' && $arParams["TAB_ID"] <> '')
+			$_GET[$arParams["FORM_ID"].'_active_tab'] = $arParams["TAB_ID"];
+		$arResult["NAV_STRING"] = $nav->GetPageNavStringEx($dummy, "", "modern", true, null, $arParams["~NAV_PARAMS"]);
+	}
 }
 
 //*********************

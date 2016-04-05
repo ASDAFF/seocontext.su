@@ -162,6 +162,9 @@ class CBPAllStateService
 			{
 				self::cleanRunningCountersCache($userId);
 			}
+
+			foreach (GetModuleEvents('bizproc', 'OnWorkflowComplete', true) as $event)
+				ExecuteModuleEventEx($event, array($workflowId, $status));
 		}
 	}
 

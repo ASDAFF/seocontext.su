@@ -1397,7 +1397,7 @@ BX.JCCalendar = function()
 	{
 		if (!this.popup_month)
 		{
-			this.popup_month = BX.PopupWindowManager.create(
+			this.popup_month = new BX.PopupWindow(
 				'calendar_popup_month_' + this.control_id, this.PARTS.MONTH,
 				{
 					content: this._menu_month_content(),
@@ -1405,7 +1405,15 @@ BX.JCCalendar = function()
 					closeByEsc: true,
 					autoHide: true,
 					offsetTop: -29,
-					offsetLeft: -1
+					offsetLeft: -1,
+					events: {
+						onPopupShow: BX.delegate(function() {
+							if (this.popup_year)
+							{
+								this.popup_year.close();
+							}
+						}, this)
+					}
 				}
 			);
 
@@ -1438,7 +1446,7 @@ BX.JCCalendar = function()
 	{
 		if (!this.popup_year)
 		{
-			this.popup_year = BX.PopupWindowManager.create(
+			this.popup_year = new BX.PopupWindow(
 				'calendar_popup_year_' + this.control_id, this.PARTS.YEAR,
 				{
 					content: this._menu_year_content(),
@@ -1446,7 +1454,15 @@ BX.JCCalendar = function()
 					closeByEsc: true,
 					autoHide: true,
 					offsetTop: -29,
-					offsetLeft: -1
+					offsetLeft: -1,
+					events: {
+						onPopupShow: BX.delegate(function() {
+							if (this.popup_month)
+							{
+								this.popup_month.close();
+							}
+						}, this)
+					}
 				}
 			);
 

@@ -3,8 +3,10 @@
 /** @global CDatabase $DB */
 /** @global CUser $USER */
 
-use Bitrix\Iblock;
+use Bitrix\Main,
+	Bitrix\Iblock;
 
+define("NOT_CHECK_PERMISSIONS", true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 CModule::IncludeModule("iblock");
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/iblock/prolog.php");
@@ -12,7 +14,7 @@ IncludeModuleLangFile(__FILE__);
 
 $ID = intval($_REQUEST["ID"]);
 
-$APPLICATION->AddHeadScript('/bitrix/js/iblock/iblock_edit.js');
+Main\Page\Asset::getInstance()->addJs('/bitrix/js/iblock/iblock_edit.js');
 
 define('CATALOG_NEW_OFFERS_IBLOCK_NEED','-1');
 define('PROPERTY_EMPTY_ROW_SIZE',5);
@@ -247,13 +249,13 @@ function GetPropertyInfo($strPrefix, $ID, $boolUnpack = true, $arHiddenPropField
 				$arResult['SMART_FILTER'] = ('Y' == $arResult['SMART_FILTER'] ? 'Y' : 'N');
 				$arResult['DISPLAY_TYPE'] = substr($arResult['DISPLAY_TYPE'], 0, 1);
 				$arResult['DISPLAY_EXPANDED'] = ('Y' == $arResult['DISPLAY_EXPANDED'] ? 'Y' : 'N');
-				$arProperty['FILTER_HINT'] = trim($arProperty['FILTER_HINT']);
-				if ($arProperty['FILTER_HINT'])
+				$arResult['FILTER_HINT'] = trim($arResult['FILTER_HINT']);
+				if ($arResult['FILTER_HINT'])
 				{
 					$TextParser = new CBXSanitizer();
 					$TextParser->SetLevel(CBXSanitizer::SECURE_LEVEL_LOW);
 					$TextParser->ApplyHtmlSpecChars(false);
-					$arProperty['FILTER_HINT'] = $TextParser->SanitizeHtml($arProperty['FILTER_HINT']);
+					$arResult['FILTER_HINT'] = $TextParser->SanitizeHtml($arResult['FILTER_HINT']);
 				}
 				$arResult['MULTIPLE_CNT'] = intval($arResult['MULTIPLE_CNT']);
 				if (0 >= $arResult['MULTIPLE_CNT'])
@@ -275,89 +277,27 @@ function GetPropertyInfo($strPrefix, $ID, $boolUnpack = true, $arHiddenPropField
 	return $arResult;
 }
 
-function GetSKUProperty($ID,$SKUID)
-{
-	$arResult = false;
-	$ID = (int)$ID;
-	$SKUID = (int)$SKUID;
-	if ($ID > 0 && $SKUID > 0)
-	{
-		$rsProps = CIBlockProperty::GetList(array(),array('IBLOCK_ID' => $SKUID, 'PROPERTY_TYPE' => 'E', 'LINK_IBLOCK_ID' => $ID, 'ACTIVE' => 'Y'));
-		while ($arProp = $rsProps->Fetch())
-		{
-			if (is_array($arProp) && $arProp['MULTIPLE'] == 'N')
-			{
-				$arResult = $arProp;
-				break;
-			}
-		}
-	}
-	return $arResult;
-}
-
 function CheckSKUProperty($ID, $SKUID)
 {
-	$arResult = false;
 	$ID = (int)$ID;
 	$SKUID = (int)$SKUID;
 	if ($ID > 0 && $SKUID > 0)
 	{
-		$intSKUPropID = 0;
-		$ibp = new CIBlockProperty();
-		$arProp = GetSKUProperty($ID,$SKUID);
-
-		if (empty($arProp) || (is_array($arProp) && $arProp['MULTIPLE'] != 'N'))
+		$propertyId = CIBlockPropertyTools::createProperty($SKUID, CIBlockPropertyTools::CODE_SKU_LINK, array('LINK_IBLOCK_ID' => $ID));
+		if ($propertyId)
 		{
-			$arOFProperty = array(
-				'NAME' => GetMessage('IB_E_OF_SKU_PROPERTY_NAME'),
-				'IBLOCK_ID' => $SKUID,
-				'PROPERTY_TYPE' => Iblock\PropertyTable::TYPE_ELEMENT,
-				'USER_TYPE' => CIBlockPropertyTools::USER_TYPE_SKU_LINK,
-				'LINK_IBLOCK_ID' => $ID,
-				'ACTIVE' => 'Y',
-				'SORT' => '5',
-				'MULTIPLE' => 'N',
-				'CODE' => CIBlockPropertyTools::CODE_SKU_LINK,
-				'XML_ID' => CIBlockPropertyTools::XML_SKU_LINK,
-				'FILTRABLE' => 'Y',
-				'SEARCHABLE' => 'N',
+			$arResult = array(
+				'RESULT' => 'OK',
+				'VALUE' => $propertyId
 			);
-			$intSKUPropID = $ibp->Add($arOFProperty);
-			if (!$intSKUPropID)
-			{
-				$arResult = array(
-					'RESULT' => 'ERROR',
-					'MESSAGE' => $ibp->LAST_ERROR,
-				);
-			}
-		}
-		elseif ($arProp['USER_TYPE'] != CIBlockPropertyTools::USER_TYPE_SKU_LINK || $arProp['XML_ID'] != CIBlockPropertyTools::XML_SKU_LINK)
-		{
-			$arFields = array(
-				'USER_TYPE' => CIBlockPropertyTools::USER_TYPE_SKU_LINK,
-				'XML_ID' => CIBlockPropertyTools::XML_SKU_LINK,
-			);
-			$boolFlag = $ibp->Update($arProp['ID'],$arFields);
-			if (false === $boolFlag)
-			{
-				$arResult = array(
-					'RESULT' => 'ERROR',
-					'MESSAGE' => $ibp->LAST_ERROR,
-				);
-			}
-			else
-				$intSKUPropID = $arProp['ID'];
 		}
 		else
 		{
-			$intSKUPropID = $arProp['ID'];
-		}
-		$intSKUPropID = (int)$intSKUPropID;
-		if ($intSKUPropID > 0)
 			$arResult = array(
-				'RESULT' => 'OK',
-				'VALUE' => $intSKUPropID,
+				'RESULT' => 'ERROR',
+				'MESSAGE' => implode('. ',CIBlockPropertyTools::getErrors())
 			);
+		}
 	}
 	else
 	{
@@ -4823,7 +4763,7 @@ if(CIBlockRights::UserHasRightTo($ID, $ID, "iblock_rights_edit"))
 			else
 				$strSelected = $perm[$r["ID"]];
 
-			if($strSelected=="U" && !CModule::IncludeModule("workflow"))
+			if($strSelected=="U" && !$bWorkflow && !$bBizproc)
 				$strSelected="R";
 
 			if($strSelected!="R" &&

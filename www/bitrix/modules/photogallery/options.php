@@ -80,6 +80,7 @@ if (!$file_exist)
 <a href="/bitrix/admin/fileman_file_upload.php?path=/bitrix/modules/photogallery/fonts/"><?=GetMessage("P_UPLOAD")?></a>
 </td></tr>
 
+<?/*
 <tr class="heading"><td colspan="2"><?=GetMessage("P_PICTURES")?><sup>1</sup>:</td></tr>
 <tr><td align="center" colspan="2">
 	<table cellpadding="0" cellspacing="5">
@@ -111,7 +112,8 @@ for ($ii = 0; $ii < 5; $ii++):
 	<td style="text-align: center !important;"></td>
 </tr><?
 endfor;
-?></table></td></tr><?
+?>
+</table></td></tr><?*/
 $tabControl->Buttons(
 	array(
 		"disabled"=>$RIGHTS<"W",
@@ -129,9 +131,10 @@ $tabControl->End();
 	Getmessage("P_FONTS_NOTE"))?>
 
 <?=EndNote();?>
+<?/*
 <?=BeginNote();?>
-
 <sup>1</sup> <?=GetMessage("P_PICTURES_HELP")?><br />
 <sup>2</sup> <span class="required"><?=GetMessage("P_PICTURES_CODE_HELP")?></span><br />
 <?=EndNote();?>
+*/?>
 <?endif;?>

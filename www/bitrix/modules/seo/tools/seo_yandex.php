@@ -139,7 +139,7 @@ if(isset($_REQUEST['action']))
 	}
 
 	Header('Content-type: application/json; charset='.LANG_CHARSET);
-	echo CUtil::PhpToJsObject($res);
+	echo \Bitrix\Main\Web\Json::encode($res);
 }
 elseif (isset($_REQUEST['get']))
 {
@@ -175,9 +175,13 @@ elseif (isset($_REQUEST['get']))
 <?
 				foreach($arDomains as $domain)
 				{
+					$domainView = \CBXPunycode::ToUnicode($domain['DOMAIN'], $errors=null);
 					$domainEnc = Converter::getHtmlConverter()->encode($domain['DOMAIN']);
-?>
-		<option value="<?=$domainEnc?>"><?=$domainEnc?></option>
+					$domainViewEnc = Converter::getHtmlConverter()->encode($domainView);
+
+
+					?>
+		<option value="<?=$domainEnc?>"><?=$domainViewEnc?></option>
 <?
 				}
 ?>

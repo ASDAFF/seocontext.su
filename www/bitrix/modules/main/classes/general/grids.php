@@ -308,7 +308,7 @@ class CGridOptions
 		);
 	}
 
-	public function SetDefaultView($settings, $apply = false)
+	public function SetDefaultView($settings)
 	{
 		$options = array(
 			"view" => array(
@@ -318,6 +318,7 @@ class CGridOptions
 				"sort_order"=>$settings["sort_order"],
 				"page_size"=>$settings["page_size"],
 				"saved_filter"=>$settings["saved_filter"],
+				"custom_names"=>$settings["custom_names"],
 			)
 		);
 
@@ -428,6 +429,9 @@ class CGridOptions
 				break;
 			case "yesterday":
 				$aRes[$field_id."_from"] = $aRes[$field_id."_to"] = ConvertTimeStamp(time()-86400);
+				break;
+			case "tomorrow":
+				$aRes[$field_id."_from"] = $aRes[$field_id."_to"] = ConvertTimeStamp(time()+86400);
 				break;
 			case "week":
 				$day = date("w");

@@ -149,9 +149,10 @@ if(CheckFilter())
 	}
 
 	$arFilter = array(
+		"ID" => $find_id,
 		"TIMESTAMP_X_1" => $find_timestamp_x_1,
 		"TIMESTAMP_X_2" => $find_timestamp_x_2,
-		"SEVERITY" => is_array($find_severity) && count($find_severity) > 0? implode("|", $find_severity): "",
+		"SEVERITY" => (is_array($find_severity) && count($find_severity) > 0? implode("|", $find_severity): ""),
 		$audit_type_id_op."AUDIT_TYPE_ID" => $audit_type_id_filter,
 		"MODULE_ID" => $find_module_id,
 		"ITEM_ID" => $find_item_id,

@@ -6,8 +6,6 @@ if (!CModule::IncludeModule('bizproc'))
 	return;
 }
 
-$dir = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/")));
-__IncludeLang($dir."lang/".LANGUAGE_ID."/bizproc_workflow_admin.php");
 $APPLICATION->IncludeComponent("bitrix:lists.element.navchain", ".default", array(
 	"IBLOCK_TYPE_ID" => $arParams["IBLOCK_TYPE_ID"],
 	"IBLOCK_ID" => $arResult["VARIABLES"]["list_id"],
@@ -70,8 +68,8 @@ if($arParams["IBLOCK_TYPE_ID"] == COption::GetOptionString("lists", "livefeed_ib
 }
 else
 {
-	$moduleId = "iblock";
-	$entity = "CIBlockDocument";
+	$moduleId = "lists";
+	$entity = 'Bitrix\Lists\BizprocDocumentLists';
 	$createDefaultTemplate = 'Y';
 }
 $APPLICATION->IncludeComponent("bitrix:bizproc.workflow.list", ".default", Array(

@@ -110,7 +110,7 @@ else
 	{
 		foreach ($arTrackRecord as $key=>$value)
 		{
-			if (CheckDateTime($value))
+			if ($key != 'ACTION_NOTE' && CheckDateTime($value))
 			{
 				$arTrackRecord[$key] = FormatDateFromDB($value);
 			}

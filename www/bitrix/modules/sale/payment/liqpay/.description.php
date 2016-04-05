@@ -1,4 +1,8 @@
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?><?
+
+include \Bitrix\Main\Application::getDocumentRoot().'/bitrix/modules/sale/handlers/paysystem/liqpay/.description.php';
+
+return;
 include(GetLangFileName(dirname(__FILE__)."/", "/liqpay.php"));
 
 $psTitle = "LiqPAY.com";

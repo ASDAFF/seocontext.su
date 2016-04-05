@@ -134,7 +134,7 @@ if (!empty($errorMessage))
 	CAdminMessage::ShowMessage(implode('<br>', $errorMessage));
 
 $baseCurrency = Currency\CurrencyManager::getBaseCurrency();
-$showGetRate = ($baseCurrency != '' && in_array($baseCurrency, array('RUB', 'UAH', 'BYR')));
+$showGetRate = ($baseCurrency != '' && in_array($baseCurrency, array('RUB', 'BYR', 'UAH')));
 ?>
 <form method="POST" action="<?$APPLICATION->GetCurPage()?>" name="rate_edit">
 <? echo bitrix_sessid_post();
@@ -162,11 +162,11 @@ if ($ID > 0)
 	<td><?echo CCurrency::SelectBox("CURRENCY", $currencyRate['CURRENCY'], '', true); ?></td>
 </tr>
 <tr class="adm-detail-required-field">
-	<td><?echo GetMessage("curr_rates_rate_cnt")?>:</td>
+	<td><?echo GetMessage("curr_rates_rate_cnt")?>: <span class="required" style="vertical-align: super; font-size: smaller;">1</span></td>
 	<td><input type="text" id="RATE_CNT" name="RATE_CNT" value="<? echo $currencyRate['RATE_CNT']; ?>" size="5"></td>
 </tr>
 <tr class="adm-detail-required-field">
-	<td><?echo GetMessage("curr_rates_rate")?>:</td>
+	<td><?echo GetMessage("curr_rates_rate")?>: <span class="required" style="vertical-align: super; font-size: smaller;">1</span></td>
 	<td>
 		<input type="text" id="RATE" name="RATE" value="<? echo $currencyRate['RATE']; ?>" size="12"><?
 if ($showGetRate)
@@ -187,7 +187,12 @@ $tabControl->Buttons(
 );
 $tabControl->End();?>
 </form>
-<script type="text/javascript">
+<?
+echo BeginNote();
+?><span class="required" style="vertical-align: super; font-size: smaller;">1</span> - <?
+echo GetMessage('BX_CURRENCY_RATE_EDIT_MESS_AMOUNT');
+echo EndNote();
+?><script type="text/javascript">
 function getCurrencyRate()
 {
 	BX('cyrrency_query_error_div').innerHTML = '';
@@ -251,4 +256,4 @@ BX.ready(function(){
 	}
 });
 </script>
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");

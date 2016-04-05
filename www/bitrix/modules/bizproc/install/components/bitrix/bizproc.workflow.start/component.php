@@ -147,6 +147,7 @@ if ($arParams["TEMPLATE_ID"] > 0 && strlen($_POST["CancelStartParamWorkflow"]) <
 
 	$arWorkflowParameters = array();
 	$bCanStartWorkflow = false;
+	$isConstantsTuned = CBPWorkflowTemplateLoader::isConstantsTuned($arWorkflowTemplate["ID"]);
 
 	if (count($arWorkflowTemplate["PARAMETERS"]) <= 0)
 	{
@@ -203,6 +204,14 @@ if ($arParams["TEMPLATE_ID"] > 0 && strlen($_POST["CancelStartParamWorkflow"]) <
 		}
 	}
 
+	if(!$isConstantsTuned)
+	{
+		$arError[] = array(
+			"id" => "required_constants",
+			"text" => GetMessage("BPABS_REQUIRED_CONSTANTS"));
+		$bCanStartWorkflow = false;
+	}
+
 	if ($bCanStartWorkflow)
 	{
 		$arErrorsTmp = array();
@@ -250,8 +259,9 @@ if ($arParams["TEMPLATE_ID"] > 0 && strlen($_POST["CancelStartParamWorkflow"]) <
 			}
 		}
 
-		$arResult["SHOW_MODE"] = "WorkflowParameters";
+		$arResult["SHOW_MODE"] = $isConstantsTuned ? "WorkflowParameters" : "StartWorkflowError";
 	}
+
 	if (!empty($arError))
 	{
 		$e = new CAdminException($arError);

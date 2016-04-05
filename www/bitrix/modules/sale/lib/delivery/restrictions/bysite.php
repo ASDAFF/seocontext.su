@@ -22,8 +22,11 @@ class BySite extends Base
 	{
 		return Loc::getMessage("SALE_DLVR_RSTR_BY_SITE_DESCRIPT");
 	}
-	public function check($siteId, array $restrictionParams, $deliveryId = 0)
+	public static function check($siteId, array $restrictionParams, $deliveryId = 0)
 	{
+		if(empty($restrictionParams))
+			return true;
+
 		$result = true;
 
 		if(strlen($siteId) > 0 && isset($restrictionParams["SITE_ID"]) && is_array($restrictionParams["SITE_ID"]))
@@ -32,13 +35,9 @@ class BySite extends Base
 		return $result;
 	}
 
-	public function checkByShipment(\Bitrix\Sale\Shipment $shipment, array $restrictionParams, $deliveryId = 0)
+	protected static function extractParams(\Bitrix\Sale\Shipment $shipment)
 	{
-		if(empty($restrictionParams))
-			return true;
-
-		$siteId = $shipment->getCollection()->getOrder()->getSiteId();
-		return $this->check($siteId, $restrictionParams, $deliveryId);
+		return $shipment->getCollection()->getOrder()->getSiteId();
 	}
 
 	public static function getParamsStructure()
@@ -59,5 +58,13 @@ class BySite extends Base
 				"OPTIONS" => $siteList
 			)
 		);
+	}
+
+	public static function getSeverity($mode)
+	{
+		if($mode == Manager::MODE_MANAGER)
+			return Manager::SEVERITY_STRICT;
+
+		return parent::getSeverity($mode);
 	}
 } 

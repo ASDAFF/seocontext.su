@@ -41,6 +41,7 @@ final class ForumCommentsComponent extends CBitrixComponent
 
 	const STATUS_SCOPE_MOBILE = 'mobile';
 	const STATUS_SCOPE_WEB = 'web';
+
 	private $scope;
 	public $prepareMobileData;
 
@@ -53,17 +54,21 @@ final class ForumCommentsComponent extends CBitrixComponent
 
 		$this->prepareMobileData = IsModuleInstalled("mobile");
 		$this->scope = self::STATUS_SCOPE_WEB;
-
 		if (is_callable(array('\Bitrix\MobileApp\Mobile', 'getApiVersion')) && \Bitrix\MobileApp\Mobile::getApiVersion() >= 1 &&
 			defined("BX_MOBILE") && BX_MOBILE === true)
 			$this->scope = self::STATUS_SCOPE_MOBILE;
 
 		self::$index++;
 
-		if ($this->isWeb())
-			$this->setTemplateName(".default");
-		else
-			$this->setTemplateName("mobile_app");
+		$templateName = $this->getTemplateName();
+
+		if ((empty($templateName) || $templateName == ".default" || $templateName == "bitrix24"))
+		{
+			if ($this->isWeb())
+				$this->setTemplateName(".default");
+			else
+				$this->setTemplateName("mobile_app");
+		}
 	}
 
 	public function isWeb()
@@ -201,7 +206,8 @@ final class ForumCommentsComponent extends CBitrixComponent
 					"type" => $this->arParams["ENTITY_TYPE"],
 					"id" => $this->arParams["ENTITY_ID"],
 					"xml_id" => $this->arParams["ENTITY_XML_ID"]
-				)
+				),
+				(isset($this->arParams["RECIPIENT_ID"]) ? intval($this->arParams["RECIPIENT_ID"]) : 0)
 			);
 
 			$this->forum = $this->feed->getForum();
@@ -222,7 +228,7 @@ final class ForumCommentsComponent extends CBitrixComponent
 				foreach (GetModuleEvents('forum', 'OnCommentsInit', true) as $arEvent)
 					ExecuteModuleEventEx($arEvent, array(&$this));
 
-				if (!$this->checkPreview() && $this->checkActions() === false)
+				if ($this->arParams["CHECK_ACTIONS"] != "N" && !$this->checkPreview() && $this->checkActions() === false)
 				{
 					foreach (GetModuleEvents('forum', 'OnCommentError', true) as $arEvent)
 						ExecuteModuleEventEx($arEvent, array(&$this));
@@ -274,6 +280,7 @@ final class ForumCommentsComponent extends CBitrixComponent
 
 	protected function prepareParams()
 	{
+		$this->arParams["SHOW_LOGIN"] = ($this->arParams["SHOW_LOGIN"] == "N" ? "N" : "Y");
 		if (!array_key_exists("USE_CAPTCHA", $this->arParams))
 			$this->arParams["USE_CAPTCHA"] = $this->forum["USE_CAPTCHA"];
 		if ($this->arParams["USE_CAPTCHA"] == "Y" && !$this->getUser()->IsAuthorized())
@@ -308,7 +315,8 @@ final class ForumCommentsComponent extends CBitrixComponent
 		unset($_GET["result"]);
 		unset($GLOBALS["HTTP_GET_VARS"]["result"]);
 		$this->arParams["AJAX_MODE"] = $this->isAjaxRequest() ? "Y" : "N";
-		$this->arParams["index"] = self::$index;
+		$this->arParams["index"] = $this->componentId;
+		$this->arParams["COMPONENT_ID"] = $this->componentId;
 		return $this;
 	}
 

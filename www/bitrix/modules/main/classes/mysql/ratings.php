@@ -4,13 +4,13 @@ IncludeModuleLangFile(__FILE__);
 
 class CRatings extends CAllRatings
 {
-	function err_mess()
+	public static function err_mess()
 	{
 		return "<br>Class: CRatings<br>File: ".__FILE__;
 	}
 
 	// building rating on computed components
-	function BuildRating($ID)
+	public static function BuildRating($ID)
 	{
 		global $DB;
 
@@ -199,7 +199,7 @@ class CRatings extends CAllRatings
 		return true;
 	}
 
-	function DeleteByUser($ID)
+	public static function DeleteByUser($ID)
 	{
 		global $DB, $CACHE_MANAGER;
 
@@ -239,7 +239,7 @@ class CRatings extends CAllRatings
 	}
 
 	// insert result calculate rating
-	function AddResults($arResults)
+	public static function AddResults($arResults)
 	{
 		global $DB;
 		$err_mess = (CRatings::err_mess())."<br>Function: AddComponentResults<br>Line: ";
@@ -272,7 +272,7 @@ class CRatings extends CAllRatings
 	}
 
 	// insert result calculate rating-components
-	function AddComponentResults($arComponentConfigs)
+	public static function AddComponentResults($arComponentConfigs)
 	{
 		global $DB;
 		$err_mess = (CRatings::err_mess())."<br>Function: AddComponentResults<br>Line: ";
@@ -290,7 +290,7 @@ class CRatings extends CAllRatings
 		return true;
 	}
 
-	function SetAuthorityRating($ratingId)
+	public static function SetAuthorityRating($ratingId)
 	{
 		global $DB, $stackCacheManager;
 
@@ -307,7 +307,7 @@ class CRatings extends CAllRatings
 		return true;
 	}
 
-	function GetCommunityInfo($ratingId)
+	public static function GetCommunityInfo($ratingId)
 	{
 		global $DB;
 
@@ -413,7 +413,7 @@ class CRatings extends CAllRatings
 		return $res->Fetch();
 	}
 
-	function CheckAllowVote($arVoteParam)
+	public static function CheckAllowVote($arVoteParam)
 	{
 		global $USER;
 
@@ -545,7 +545,7 @@ class CRatings extends CAllRatings
 		return $arInfo;
 	}
 
-	function SetAuthorityDefaultValue($arParams)
+	public static function SetAuthorityDefaultValue($arParams)
 	{
 		global $DB;
 
@@ -588,7 +588,7 @@ class CRatings extends CAllRatings
 		return true;
 	}
 
-	function AutoAssignGroup($groupId, $authorityValueAdd, $authorityValueDelete)
+	public static function AutoAssignGroup($groupId, $authorityValueAdd, $authorityValueDelete)
 	{
 		global $DB;
 		$err_mess = (CRatings::err_mess())."<br>Function: AutoAssignGroup<br>Line: ";
@@ -638,7 +638,7 @@ class CRatings extends CAllRatings
 		return true;
 	}
 
-	function GetRatingVoteList($arParam)
+	public static function GetRatingVoteList($arParam)
 	{
 		global $DB, $USER;
 
@@ -737,7 +737,7 @@ class CRatings extends CAllRatings
 						false
 					);
 					$ar['PHOTO'] = CFile::ShowImage($arFileTmp['src'], 21, 21, 'border=0');
-					$ar['FULL_NAME'] = CUser::FormatName(CSite::GetNameFormat(false), $row);
+					$ar['FULL_NAME'] = CUser::FormatName(CSite::GetNameFormat(false), $row, $bIntranetInstalled);
 				}
 				else
 					$arUserID[] = $row["ID"];
@@ -793,7 +793,7 @@ class CRatings extends CAllRatings
 						);
 						$arUser["PHOTO"] = CFile::ShowImage($arFileTmp["src"], 21, 21, "border=0");
 					}
-					$arUser["FULL_NAME"] = CUser::FormatName(CSite::GetNameFormat(false), $arUser);
+					$arUser["FULL_NAME"] = CUser::FormatName(CSite::GetNameFormat(false), $arUser, $bIntranetInstalled);
 					$arUsers[$arUser["ID"]] = $arUser;
 				}
 
@@ -812,4 +812,3 @@ class CRatings extends CAllRatings
 		);
 	}
 }
-?>

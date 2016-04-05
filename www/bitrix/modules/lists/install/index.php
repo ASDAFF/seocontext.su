@@ -81,7 +81,7 @@ Class lists extends CModule
 			return;
 
 		$currentPermissions = CLists::GetPermission();
-		unset($currentPermissions["bitrix_process"]);
+		unset($currentPermissions["bitrix_processes"]);
 		unset($currentPermissions["lists"]);
 
 		$socnet_iblock_type_id = COption::GetOptionString("lists", "socnet_iblock_type_id");
@@ -202,7 +202,6 @@ Class lists extends CModule
 		UnRegisterModuleDependences('socialnetwork', 'OnAfterSonetLogEntryAddComment', 'lists', 'CListsLiveFeed', 'OnAfterSonetLogEntryAddComment');
 		UnRegisterModuleDependences('socialnetwork', 'OnForumCommentIMNotify', 'lists', 'CListsLiveFeed', 'OnForumCommentIMNotify');
 		UnRegisterModuleDependences("iblock", "OnAfterIBlockElementDelete", "lists", "BizprocDocument", "OnAfterIBlockElementDelete");
-		UnRegisterModuleDependences("socialnetwork", "OnSendMentionGetEntityFields", "lists", "CListsLiveFeed", "OnSendMentionGetEntityFields");
 		UnRegisterModule("lists");
 
 		if($this->errors !== false)
@@ -231,6 +230,7 @@ Class lists extends CModule
 			CopyDirFiles($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/lists/install/admin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin", true);
 			CopyDirFiles($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/lists/install/components", $_SERVER["DOCUMENT_ROOT"]."/bitrix/components", True, True);
 			CopyDirFiles($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/lists/install/images", $_SERVER["DOCUMENT_ROOT"]."/bitrix/images/lists", True, True);
+			CopyDirFiles($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/lists/install/js", $_SERVER["DOCUMENT_ROOT"]."/bitrix/js", true, true);
 		}
 		return true;
 	}
@@ -239,7 +239,8 @@ Class lists extends CModule
 	{
 		if($_ENV["COMPUTERNAME"]!='BX')
 		{
-			DeleteDirFilesEx("/bitrix/images/lists/");//images
+			DeleteDirFilesEx("/bitrix/images/lists/");
+			DeleteDirFilesEx("/bitrix/js/lists/");
 		}
 		return true;
 	}

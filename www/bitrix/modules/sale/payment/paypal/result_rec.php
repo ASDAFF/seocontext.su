@@ -1,7 +1,35 @@
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?><?
 
-use Bitrix\Sale\Order;
+use \Bitrix\Sale\Order;
 
+$request = \Bitrix\Main\Application::getInstance()->getContext()->getRequest();
+
+$entityId = IntVal($request->get("custom"));
+list($orderId, $paymentId) = \Bitrix\Sale\PaySystem\Manager::getIdsByPayment($entityId);
+
+if ($orderId > 0)
+{
+	/** @var \Bitrix\Sale\Order $order */
+	$order = \Bitrix\Sale\Order::load($orderId);
+	if ($order)
+	{
+		/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+		$paymentCollection = $order->getPaymentCollection();
+		if ($paymentCollection && $paymentId > 0)
+		{
+			/** @var \Bitrix\Sale\Payment $payment */
+			$payment = $paymentCollection->getItemById($paymentId);
+			if ($payment)
+			{
+				$service = \Bitrix\Sale\PaySystem\Manager::getObjectById($payment->getPaymentSystemId());
+				if ($service)
+					$service->processRequest($request);
+			}
+		}
+	}
+}
+
+return;
 include(GetLangFileName(dirname(__FILE__)."/", "/payment.php"));
 
 if(!isset($GLOBALS["SALE_INPUT_PARAMS"]))
@@ -84,6 +112,24 @@ if(strlen($req) > 0)
 			$strPS_STATUS_DESCRIPTION .= "Payment status - ".$keyarray["payment_status"]."; ";
 			$strPS_STATUS_DESCRIPTION .= "Payment sate - ".$keyarray["payment_date"]."; ";
 
+			$entityId = $keyarray["custom"];
+			list($orderId, $paymentId) = \Bitrix\Sale\PaySystem\Manager::getIdsByPayment($entityId);
+
+			/** @var \Bitrix\Sale\Order $order */
+			$order = \Bitrix\Sale\Order::load($orderId);
+
+			/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+			$paymentCollection = $order->getPaymentCollection();
+
+			/** @var \Bitrix\Sale\Payment $payment */
+			$payment = $paymentCollection->getItemById($paymentId);
+
+			$data = \Bitrix\Sale\PaySystem\Manager::getById($payment->getPaymentSystemId());
+
+			$service = new \Bitrix\Sale\PaySystem\Service($data);
+			$service->processRequest($request);
+
+			return;
 			/** @var \Bitrix\Sale\Order $order */
 			$order = Order::load($keyarray["custom"]);
 

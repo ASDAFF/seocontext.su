@@ -463,3 +463,4 @@ $arTemplateParameters["KEYBOARD"] = array(
 	"DEFAULT" => "N"
 );
 $arTemplateParameters["CACHE_TIME"] = Array("DEFAULT"=>"0");
+$arTemplateParameters["NEED_TEMPLATE"] = "Y";

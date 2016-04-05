@@ -13,7 +13,7 @@ class CAllDiskQuota
 	var $max_execution_time = 20; // 20 sec
 	var $LAST_ERROR = false;
 
-	function CAllDiskQuota($params = array())
+	public function CAllDiskQuota($params = array())
 	{
 		if(array_key_exists("max_execution_time", $params) && intval($params["max_execution_time"]) > 0)
 			$this->max_execution_time = intval($params["max_execution_time"]);
@@ -279,7 +279,7 @@ class CAllDiskQuota
 		return false;
 	}
 
-	function UpdateDiskQuota($type, $size, $action)
+	public static function UpdateDiskQuota($type, $size, $action)
 	{
 		if (COption::GetOptionInt("main", "disk_space") <= 0)
 			return true;
@@ -288,34 +288,37 @@ class CAllDiskQuota
 			return false;
 
 		if (is_array($size))
-			$size = strLen(implode("", $size));
-		elseif (doubleVal($size) > 0)
-			$size = doubleVal($size);
+			$size = strlen(implode("", $size));
+		elseif (doubleval($size) > 0)
+			$size = doubleval($size);
 		else
-			$size = strLen($size);
+			$size = strlen($size);
 
-		$size = doubleVal($size);
+		$size = doubleval($size);
 
-		$name = strToLower($type) == "db" ? "db" : "files";
+		$name = strtolower($type) == "db" ? "db" : "files";
 
-		if (in_array(strToLower($action), array("delete", "del")))
+		if (in_array(strtolower($action), array("delete", "del")))
 		{
 			COption::SetOptionString("main_size", "~".$name,
-				doubleVal(COption::GetOptionInt("main_size", "~".$name) - $size));
+				doubleval(COption::GetOptionInt("main_size", "~".$name) - $size));
 			return true;
 		}
-		if (in_array(strToLower($action), array("update", "insert", "add", "copy")))
+		if (in_array(strtolower($action), array("update", "insert", "add", "copy")))
 		{
 			COption::SetOptionString("main_size", "~".$name,
-				doubleVal(COption::GetOptionInt("main_size", "~".$name) + $size));
+				doubleval(COption::GetOptionInt("main_size", "~".$name) + $size));
 			return true;
 		}
 		return false;
 	}
 
-	function CheckDiskQuota($params = array())
+	public function CheckDiskQuota($params = array())
 	{
 		if (COption::GetOptionInt("main", "disk_space") <= 0)
+			return true;
+
+		if (defined("SKIP_DISK_QUOTA_CHECK") && constant("SKIP_DISK_QUOTA_CHECK") === true)
 			return true;
 
 		$quota = $this->GetDiskQuota();

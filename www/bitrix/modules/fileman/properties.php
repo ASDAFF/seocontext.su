@@ -175,9 +175,12 @@ class CIBlockPropertyMapGoogle extends CIBlockPropertyMapInterface
 ?>
 <script type="text/javascript">
 	BX.ready(function(){
-		var tabArea = BX.findParent(BX("BX_GMAP_<?=$MAP_ID?>"),{className:"adm-detail-content"});
-		var tabButton = BX("tab_cont_"+tabArea.id);
-		BX.bind(tabButton,"click", function() { BXMapGoogleAfterShow("<?=$MAP_ID?>"); });
+		var tabArea = BX.findParent(BX("BX_GMAP_<?=$MAP_ID?>"), {className: "adm-detail-content"});
+		if (tabArea && tabArea.id)
+		{
+			var tabButton = BX("tab_cont_" + tabArea.id);
+			BX.bind(tabButton, "click", function() { BXMapGoogleAfterShow("<?=$MAP_ID?>"); });
+		}
 	});
 
 	<?if($arProperty['MULTIPLE'] == 'N'):?>
@@ -798,9 +801,12 @@ function saveYandexKey(domain, input)
 ?>
 <script type="text/javascript">
 	BX.ready(function(){
-		var tabArea = BX.findParent(BX("BX_YMAP_<?=$MAP_ID?>"),{className:"adm-detail-content"});
-		var tabButton = BX("tab_cont_"+tabArea.id);
-		BX.bind(tabButton,"click", function() { BXMapYandexAfterShow("<?=$MAP_ID?>"); });
+		var tabArea = BX.findParent(BX("BX_YMAP_<?=$MAP_ID?>"), {className: "adm-detail-content"});
+		if (tabArea && tabArea.id)
+		{
+			var tabButton = BX("tab_cont_" + tabArea.id);
+			BX.bind(tabButton, "click", function() { BXMapYandexAfterShow("<?=$MAP_ID?>"); });
+		}
 	});
 
 	<?if($arProperty['MULTIPLE'] == 'N'):?>
@@ -1290,9 +1296,12 @@ function saveYandexKey(domain, input)
 ?>
 <script type="text/javascript">
 	BX.ready(function(){
-		var tabArea = BX.findParent(BX("BX_YMAP_<?=$MAP_ID?>"),{className:"adm-detail-content"});
-		var tabButton = BX("tab_cont_"+tabArea.id);
-		BX.bind(tabButton,"click", function() { BXMapYandexAfterShow("<?=$MAP_ID?>"); });
+		var tabArea = BX.findParent(BX("BX_YMAP_<?=$MAP_ID?>"), {className: "adm-detail-content"});
+		if (tabArea && tabArea.id)
+		{
+			var tabButton = BX("tab_cont_" + tabArea.id);
+			BX.bind(tabButton, "click", function() { BXMapYandexAfterShow("<?=$MAP_ID?>"); });
+		}
 	});
 
 	<?if($arProperty['MULTIPLE'] == 'N'):?>
@@ -1855,7 +1864,7 @@ function saveYandexKey(domain, input)
 // ### Base class ###
 class CVideoProperty
 {
-	function BasePrepareSettings($arProperty, $key = "SETTINGS")
+	public static function BasePrepareSettings($arProperty, $key = "SETTINGS")
 	{
 		$arSet = array(
 			"BUFFER_LENGTH" => "10",
@@ -1921,7 +1930,7 @@ class CVideoProperty
 		return $arSet;
 	}
 
-	function BaseGetSettingsHTML($name, $val)
+	public static function BaseGetSettingsHTML($name, $val)
 	{
 		$arSkins = GetSkinsEx(CUserTypeVideo::GetSkinPath());
 		ob_start();
@@ -2045,7 +2054,7 @@ jsUtils.loadJSFile("/bitrix/components/bitrix/player/js/prop_skin_selector.js", 
 		return $result;
 	}
 
-	function BaseGetEditFormHTML($set, $val, $name, $controlMode=false)
+	public static function BaseGetEditFormHTML($set, $val, $name, $controlMode=false)
 	{
 		global $APPLICATION;
 		$id = str_replace(array("[","]",":"), "_", $name);
@@ -2298,7 +2307,7 @@ function ChangeOrLeaveFile<?= $id?>(bChange)
 		return $s;
 	}
 
-	function BaseConvertToDB($value)
+	public static function BaseConvertToDB($value)
 	{
 		$io = CBXVirtualIo::GetInstance();
 
@@ -2391,14 +2400,14 @@ function ChangeOrLeaveFile<?= $id?>(bChange)
 		return $strRes;
 	}
 
-	function BaseConvertFromDB($val = "")
+	public static function BaseConvertFromDB($val = "")
 	{
 		if (!is_array($val) && strlen($val) > 0)
 			$val = unserialize($val);
 		return $val ? $val : array();
 	}
 
-	function BaseCheckFields($val)
+	public static function BaseCheckFields($val)
 	{
 		$arErrors = array();
 
@@ -2432,14 +2441,14 @@ function ChangeOrLeaveFile<?= $id?>(bChange)
 		return $arErrors;
 	}
 
-	function BaseGetAdminListViewHTML($val)
+	public static function BaseGetAdminListViewHTML($val)
 	{
 		if (!is_array($val) || strlen($val["path"]) == 0)
 			return '';
 		return "<span style='white-space: nowrap;' title='".$val["path"]."'>".GetMessage("IBLOCK_PROP_VIDEO")." [".htmlspecialcharsex($val["path"])."]</span>";
 	}
 
-	function BaseGetPublicHTML($set, $val)
+	public static function BaseGetPublicHTML($set, $val)
 	{
 		if (strlen($val["path"]) <= 0)
 			return '';
@@ -2490,7 +2499,7 @@ function ChangeOrLeaveFile<?= $id?>(bChange)
 		return $s;
 	}
 
-	function BaseOnSearchContent($val)
+	public static function BaseOnSearchContent($val)
 	{
 		$str = "";
 		if (strlen($val['path']) > 0)
@@ -2508,18 +2517,18 @@ function ChangeOrLeaveFile<?= $id?>(bChange)
 		return $str;
 	}
 
-	function CheckFileInUploadDir($path = '')
+	public static function CheckFileInUploadDir($path = '')
 	{
 		$pathToDir = CVideoProperty::GetUploadDirPath();
 		return substr($path, 0, strlen($pathToDir)) == $pathToDir;
 	}
 
-	function GetUploadDirPath()
+	public static function GetUploadDirPath()
 	{
 		return "/upload/video/";
 	}
 
-	function GetSkinPath()
+	public static function GetSkinPath()
 	{
 		return "/bitrix/components/bitrix/player/mediaplayer/skins";
 	}
@@ -2713,7 +2722,7 @@ class CIBlockPropertyVideo extends CVideoProperty
 // ### UserType for main module ###
 class CUserTypeVideo extends CVideoProperty
 {
-	function GetUserTypeDescription()
+	public static function GetUserTypeDescription()
 	{
 		return array(
 			"USER_TYPE_ID" => "video",
@@ -2723,7 +2732,7 @@ class CUserTypeVideo extends CVideoProperty
 		);
 	}
 
-	function GetDBColumnType($arUserField)
+	public static function GetDBColumnType($arUserField)
 	{
 		global $DB;
 		switch(strtolower($DB->type))
@@ -2737,12 +2746,12 @@ class CUserTypeVideo extends CVideoProperty
 		}
 	}
 
-	function PrepareSettings($arProperty)
+	public static function PrepareSettings($arProperty)
 	{
 		return CUserTypeVideo::BasePrepareSettings($arProperty, "SETTINGS");
 	}
 
-	function GetSettingsHTML($arUserField = array(), $arHtmlControl, $bVarsFromForm)
+	public static function GetSettingsHTML($arUserField = array(), $arHtmlControl, $bVarsFromForm)
 	{
 		if(!is_array($arUserField))
 			$arUserField = array();
@@ -2751,37 +2760,36 @@ class CUserTypeVideo extends CVideoProperty
 		return CUserTypeVideo::BaseGetSettingsHTML($arHtmlControl["NAME"], $arUserField["SETTINGS"]);
 	}
 
-	function GetEditFormHTML($arUserField, $arHtmlControl)
+	public static function GetEditFormHTML($arUserField, $arHtmlControl)
 	{
 		$val = CUserTypeVideo::BaseConvertFromDB(htmlspecialcharsback($arHtmlControl["VALUE"])); // Unserialize array
 		return CUserTypeVideo::BaseGetEditFormHTML($arUserField["SETTINGS"], $val, $arHtmlControl["NAME"]);
 	}
 
-	function OnBeforeSave($arUserField, $value)
+	public static function OnBeforeSave($arUserField, $value)
 	{
 		return CUserTypeVideo::BaseConvertToDB($value);
 	}
 
-	function GetAdminListViewHTML($arUserField, $arHtmlControl)
+	public static function GetAdminListViewHTML($arUserField, $arHtmlControl)
 	{
 		$val = CUserTypeVideo::BaseConvertFromDB(htmlspecialcharsback($arHtmlControl["VALUE"])); // Unserialize array
 		return CUserTypeVideo::BaseGetAdminListViewHTML($val);
 	}
 
-	function CheckFields($arUserField, $value)
+	public static function CheckFields($arUserField, $value)
 	{
 		return CUserTypeVideo::BaseCheckFields($value);
 	}
 
-	function OnSearchIndex($arUserField)
+	public static function OnSearchIndex($arUserField)
 	{
 		return CIBlockPropertyVideo::BaseOnSearchContent($arUserField["VALUE"]);
 	}
 
-	function GetPublicViewHTML($arUserField, $arHtmlControl)
+	public static function GetPublicViewHTML($arUserField, $arHtmlControl)
 	{
 		$val = CUserTypeVideo::BaseConvertFromDB(htmlspecialcharsback($arHtmlControl["VALUE"])); // Unserialize array
 		return CUserTypeVideo::BaseGetPublicHTML($arUserField["SETTINGS"], $val);
 	}
 }
-?>

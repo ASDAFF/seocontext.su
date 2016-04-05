@@ -4,6 +4,8 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 
 use Bitrix\Security\Mfa\Otp;
 use Bitrix\Main\Localization\Loc;
+use Bitrix\Main\Web\Json;
+
 Loc::loadMessages(__FILE__);
 
 class CSecurityUserOtpInit
@@ -52,7 +54,7 @@ class CSecurityUserOtpInit
 		{
 			// try to connect
 			$result = $this->toEdit();
-			$result = CSecurityJsonHelper::encode($result);
+			$result = Json::encode($result);
 			$APPLICATION->RestartBuffer();
 			header('Content-Type: application/json', true);
 			echo $result;

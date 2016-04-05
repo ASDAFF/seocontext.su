@@ -97,6 +97,10 @@
 		if (params.WEBSOCKET == 'N')
 			_wsSupport = false;
 
+		_userId = BX.message('USER_ID');
+		if (typeof(params.USER_ID) != 'undefined')
+			_userId = params.USER_ID;
+
 		BX.bind(window, "offline", function(){
 			_pullTryConnect = false;
 			if (_WS) _WS.close(1000, "offline");
@@ -446,6 +450,7 @@
 				}
 				catch(e)
 				{
+					reason = {'reason': data.reason};
 				}
 			}
 
@@ -972,7 +977,7 @@
 
 	BX.PULL.extendWatch = function(tag, force)
 	{
-		if (tag.length <= 0)
+		if (!tag || tag.length <= 0)
 			return false;
 
 		_watchTag[tag] = true;
@@ -1017,7 +1022,16 @@
 					lsId: 'PULL_WATCH_'+location.pathname,
 					lsTimeout: 5,
 					data: {'PULL_UPDATE_WATCH' : 'Y', 'WATCH' : arWatchTag, 'SITE_ID': (BX.message.SITE_ID? BX.message('SITE_ID'): ''), 'PULL_AJAX_CALL' : 'Y', 'sessid': BX.bitrix_sessid()},
-					onsuccess: BX.delegate(function() {
+					onsuccess: BX.delegate(function(data)
+					{
+						BX.onCustomEvent(window, "onAfterUpdateWatch", [data.RESULT]);
+						for (var i in data.RESULT)
+						{
+							if (!data.RESULT[i])
+							{
+								delete _watchTag[i];
+							}
+						}
 						BX.localStorage.set('puw', location.pathname, 5);
 					}, this)
 				});
@@ -1089,9 +1103,10 @@
 
 				try
 				{
+					message[i].params['PULL_TIME_AGO'] = BX.PULL.getDateDiff(message[i].params['SERVER_TIME_WEB']+parseInt(BX.message('USER_TZ_OFFSET')));
 					if (message[i].module_id == 'online')
 					{
-						if (BX.PULL.getDateDiff(message[i].params['SERVER_TIME_WEB']+parseInt(BX.message('USER_TZ_OFFSET'))) < 120)
+						if (message[i].params['PULL_TIME_AGO'] < 120)
 							BX.onCustomEvent(window, 'onPullOnlineEvent', [message[i].command, message[i].params], true);
 					}
 					else
@@ -1289,6 +1304,7 @@
 
 		var textWT = JSON.stringify(_watchTag);
 		var text = "\n========= PULL DEBUG ===========\n"+
+					"UserId: "+_userId+" "+(_userId>0?'': '(guest)')+"\n"+
 					"Connect: "+(_updateStateSend? 'Y': 'N')+"\n"+
 					"WebSocket connect: "+(_wsConnected? 'Y': 'N')+"\n"+
 					"LocalStorage status: "+(_lsSupport? 'Y': 'N')+"\n"+

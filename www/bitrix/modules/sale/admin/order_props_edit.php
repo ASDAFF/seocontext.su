@@ -276,32 +276,17 @@ while ($row = $result->Fetch())
 	$paymentOptions[$row['ID']] = $row['NAME'] . ($row['LID'] ? " ({$row['LID']}) " : ' ') . "[{$row['ID']}]";
 
 // delivery system options
-
 $deliveryOptions = array('' => Loc::getMessage('SALE_PROPERTY_SELECT_ALL'));
 
-$result = CSaleDelivery::GetList(
-	array("SORT"=>"ASC", "NAME"=>"ASC"),
-	array("ACTIVE" => "Y"),
-	false,
-	false,
-	array("ID", "NAME", "ACTIVE", "SORT")
-);
-while ($row = $result->Fetch())
-	$deliveryOptions[$row['ID']] = $row['NAME']." [".$row['ID']."]";
-
-$result = CSaleDeliveryHandler::GetList(
-	array("SORT" => "ASC"),
-	array("SITE_ID" => trim($personType['LID']))
-);
-while ($row = $result->GetNext())
+foreach(\Bitrix\Sale\Delivery\Services\Manager::getActiveList(true) as $deliveryId => $deliveryFields)
 {
-	$dsName = $row['LID'] ? " ({$row['LID']})" : '';
-	foreach ($row['PROFILES'] as $profileId => $arDeliveryProfile)
-		if ($arDeliveryProfile['ACTIVE'] == 'Y')
-		{
-			$id = $row['SID'].':'.$profileId;
-			$deliveryOptions[$id] = $row['NAME']." ({$arDeliveryProfile["TITLE"]}) [$id] $dsName";
-		}
+	$name = $deliveryFields["NAME"]." [".$deliveryId."]";
+	$sites = \Bitrix\Sale\Delivery\Restrictions\Manager::getSitesByServiceId($deliveryId);
+
+	if(!empty($sites))
+		$name .= " (".implode(", ", $sites).")";
+
+	$deliveryOptions[$deliveryId] = $name;
 }
 
 $relationsSettings = array(

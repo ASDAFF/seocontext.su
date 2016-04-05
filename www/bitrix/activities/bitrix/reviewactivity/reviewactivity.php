@@ -37,6 +37,7 @@ class CBPReviewActivity
 			"Comments" => "",
 			"CommentLabelMessage" => "",
 			"ShowComment" => "Y",
+			'CommentRequired' => 'N',
 			'AccessControl' => 'N',
 			"LastReviewer" => null,
 			"LastReviewerComment" => '',
@@ -123,6 +124,8 @@ class CBPReviewActivity
 		$arParameters["ShowComment"] = $this->IsPropertyExists("ShowComment") ? $this->ShowComment : "Y";
 		if ($arParameters["ShowComment"] != "Y" && $arParameters["ShowComment"] != "N")
 			$arParameters["ShowComment"] = "Y";
+
+		$arParameters["CommentRequired"] = $this->IsPropertyExists("CommentRequired") ? $this->CommentRequired : "N";
 		$arParameters["AccessControl"] = $this->IsPropertyExists("AccessControl") && $this->AccessControl == 'Y' ? 'Y' : 'N';
 
 		$taskService = $this->workflow->GetService("TaskService");
@@ -377,8 +380,17 @@ class CBPReviewActivity
 
 		if (!array_key_exists("ShowComment", $arTask["PARAMETERS"]) || ($arTask["PARAMETERS"]["ShowComment"] != "N"))
 		{
+			$required = '';
+			if (isset($arTask['PARAMETERS']['CommentRequired']) && $arTask['PARAMETERS']['CommentRequired'] == 'Y')
+			{
+				$required = '<span style="color: red">*</span>';
+			}
+
 			$form .=
-				'<tr><td valign="top" width="40%" align="right" class="bizproc-field-name">'.(strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPAR_ACT_COMMENT")).':</td>'.
+				'<tr><td valign="top" width="40%" align="right" class="bizproc-field-name">'
+					.(strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPAR_ACT_COMMENT"))
+					.$required
+				.':</td>'.
 				'<td valign="top" width="60%" class="bizproc-field-value">'.
 				'<textarea rows="3" cols="50" name="task_comment"></textarea>'.
 				'</td></tr>';
@@ -418,11 +430,27 @@ class CBPReviewActivity
 				"USER_ID" => $userId,
 				"REAL_USER_ID" => $realUserId,
 				"USER_NAME" => $userName,
-				"COMMENT" => isset($arRequest["task_comment"]) ? $arRequest["task_comment"] : '',
+				"COMMENT" => isset($arRequest["task_comment"]) ? trim($arRequest["task_comment"]) : '',
 			);
 
 			if (isset($arRequest['INLINE_USER_STATUS']) && $arRequest['INLINE_USER_STATUS'] != CBPTaskUserStatus::Ok)
 				throw new CBPNotSupportedException(GetMessage("BPAA_ACT_NO_ACTION"));
+
+
+			if (
+				isset($arTask['PARAMETERS']['CommentRequired'])
+				&& empty($arEventParameters['COMMENT'])
+				&& $arTask['PARAMETERS']['CommentRequired'] == 'Y'
+			)
+			{
+				$label = strlen($arTask["PARAMETERS"]["CommentLabelMessage"]) > 0 ? $arTask["PARAMETERS"]["CommentLabelMessage"] : GetMessage("BPAR_ACT_COMMENT");
+				throw new CBPArgumentNullException(
+					'task_comment',
+					GetMessage("BPAA_ACT_COMMENT_ERROR", array(
+						'#COMMENT_LABEL#' => $label
+					))
+				);
+			}
 
 			CBPRuntime::SendExternalEvent($arTask["WORKFLOW_ID"], $arTask["ACTIVITY_NAME"], $arEventParameters);
 
@@ -519,6 +547,7 @@ class CBPReviewActivity
 			"TaskButtonMessage" => "task_button_message",
 			"CommentLabelMessage" => "comment_label_message",
 			"ShowComment" => "show_comment",
+			'CommentRequired' => 'comment_required',
 			"TimeoutDuration" => "timeout_duration",
 			"TimeoutDurationType" => "timeout_duration_type",
 			"AccessControl" => "access_control",
@@ -627,6 +656,7 @@ class CBPReviewActivity
 			"task_button_message" => "TaskButtonMessage",
 			"comment_label_message" => "CommentLabelMessage",
 			"show_comment" => "ShowComment",
+			'comment_required' => 'CommentRequired',
 			"timeout_duration" => "TimeoutDuration",
 			"timeout_duration_type" => "TimeoutDurationType",
 			"access_control" => "AccessControl",

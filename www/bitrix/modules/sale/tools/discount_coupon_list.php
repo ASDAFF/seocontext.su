@@ -50,6 +50,7 @@ $adminListTableID = 'tbl_sale_sub_coupons_'.md5($discountID);
 $hideFields = array('DISCOUNT_ID');
 $adminSort = new CAdminSubSorting($adminListTableID, 'ID', 'ASC', 'by', 'order', $couponsAjaxPath);
 $adminList = new CAdminSubList($adminListTableID, $adminSort, $couponsAjaxPath, $hideFields);
+$adminList->setDialogParams(array('from_module' => 'sale'));
 unset($hideFields);
 
 if (!isset($by))

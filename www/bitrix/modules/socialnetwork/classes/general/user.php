@@ -3,7 +3,7 @@ IncludeModuleLangFile(__FILE__);
 
 class CAllSocNetUser
 {
-	function OnUserDelete($ID)
+	public static function OnUserDelete($ID)
 	{
 		global $DB;
 
@@ -40,25 +40,25 @@ class CAllSocNetUser
 		return $bSuccess;
 	}
 
-	function OnBeforeUserUpdate(&$arFields)
+	public static function OnBeforeUserUpdate(&$arFields)
 	{
 		$rsUser = CUser::GetByID($arFields["ID"]);
 		if ($arUser = $rsUser->Fetch())
 			define("GLOBAL_ACTIVE_VALUE", $arUser["ACTIVE"]);
 	}
 
-	function OnAfterUserAdd(&$arFields)
+	public static function OnAfterUserAdd(&$arFields)
 	{
 		return;
 	}
 
-	function OnAfterUserLogout(&$arParams)
+	public static function OnAfterUserLogout(&$arParams)
 	{
 		if (array_key_exists("SONET_ADMIN", $_SESSION))
 			unset($_SESSION["SONET_ADMIN"]);
 	}
 
-	function OnAfterUserUpdate(&$arFields)
+	public static function OnAfterUserUpdate(&$arFields)
 	{
 		if (array_key_exists("ACTIVE", $arFields) && defined("GLOBAL_ACTIVE_VALUE") && GLOBAL_ACTIVE_VALUE != $arFields["ACTIVE"]):
 
@@ -74,7 +74,7 @@ class CAllSocNetUser
 		endif;
 	}
 	
-	function OnBeforeProlog()
+	public static function OnBeforeProlog()
 	{
 		if (!$GLOBALS["USER"]->IsAuthorized())
 			return;
@@ -82,7 +82,7 @@ class CAllSocNetUser
 		CUser::SetLastActivityDate($GLOBALS["USER"]->GetID());
 	}
 
-	function OnUserInitialize($user_id, $arFields = array())
+	public static function OnUserInitialize($user_id, $arFields = array())
 	{
 		if (intval($user_id) <= 0)
 		{
@@ -123,7 +123,7 @@ class CAllSocNetUser
 		}
 	}
 
-	function IsOnLine($userID)
+	public static function IsOnLine($userID)
 	{
 		$userID = IntVal($userID);
 		if ($userID <= 0)
@@ -132,17 +132,17 @@ class CAllSocNetUser
 		return CUser::IsOnLine($userID, 120);
 	}
 
-	function IsFriendsAllowed()
+	public static function IsFriendsAllowed()
 	{
 		return (COption::GetOptionString("socialnetwork", "allow_frields", "Y") == "Y");
 	}
 
-	function IsFriendsFriendsAllowed()
+	public static function IsFriendsFriendsAllowed()
 	{
 		return (COption::GetOptionString("socialnetwork", "allow_frields_friends", "Y") == "Y");
 	}
 
-	function IsCurrentUserModuleAdmin($site_id = SITE_ID, $bUseSession = true)
+	public static function IsCurrentUserModuleAdmin($site_id = SITE_ID, $bUseSession = true)
 	{
 		if (!is_object($GLOBALS["USER"]) || !$GLOBALS["USER"]->IsAuthorized())
 			return false;
@@ -170,7 +170,7 @@ class CAllSocNetUser
 		}
 	}
 
-	function IsUserModuleAdmin($userID, $site_id = SITE_ID)
+	public static function IsUserModuleAdmin($userID, $site_id = SITE_ID)
 	{
 		global $DB, $CACHE_MANAGER;
 		static $arSocnetModuleAdminsCache = array();
@@ -289,12 +289,12 @@ class CAllSocNetUser
 		return (array_key_exists($userID, $arSocnetModuleAdminsCache[$cache_key]));
 	}
 
-	function DeleteUserAdminCache()
+	public static function DeleteUserAdminCache()
 	{
 		BXClearCache(true, "/sonet/user_admin/");
 	}
 
-	function FormatName($name, $lastName, $login)
+	public static function FormatName($name, $lastName, $login)
 	{
 		$name = Trim($name);
 		$lastName = Trim($lastName);
@@ -310,7 +310,7 @@ class CAllSocNetUser
 		return $formatName;
 	}
 
-	function FormatNameEx($name, $secondName, $lastName, $login, $email, $id)
+	public static function FormatNameEx($name, $secondName, $lastName, $login, $email, $id)
 	{
 		$name = Trim($name);
 		$lastName = Trim($lastName);
@@ -336,7 +336,7 @@ class CAllSocNetUser
 		return $formatName;
 	}
 
-	function SearchUser($user, $bIntranet = false)
+	public static function SearchUser($user, $bIntranet = false)
 	{
 		$user = Trim($user);
 		if (StrLen($user) <= 0)
@@ -429,7 +429,7 @@ class CAllSocNetUser
 		return false;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		$ID = IntVal($ID);
 
@@ -444,7 +444,7 @@ class CAllSocNetUser
 			return false;
 	}
 
-	function GetFields($bAdditional = false)
+	public static function GetFields($bAdditional = false)
 	{
 		$arRes = array(
 			"ID" => GetMessage("SONET_UP1_ID"),
@@ -523,11 +523,116 @@ class CAllSocNetUser
 		return $arRes;
 	}
 
-	function GetFieldsMap($bAdditional = false)
+	public static function GetFieldsMap($bAdditional = false)
 	{
 		$arUserFields = CSocNetUser::GetFields($bAdditional);
 		return array_keys($arUserFields);
 	}
 
+	public static function CanProfileView($currentUserId, $arUser, $siteId = SITE_ID, $arContext = array())
+	{
+		if (
+			!is_array($arUser)
+			&& intval($arUser) > 0
+		)
+		{
+			$dbUser = CUser::GetByID(intval($arUser));
+			$arUser = $dbUser->Fetch();
+		}
+
+		if (
+			!is_array($arUser)
+			|| !isset($arUser["ID"])
+			|| intval($arUser["ID"]) <= 0
+		)
+		{
+			return false;
+		}
+
+		if (self::OnGetProfileView($currentUserId, $arUser, $siteId, $arContext)) // only for email users
+		{
+			return true;
+		}
+
+		foreach(GetModuleEvents("socialnetwork", "OnGetProfileView", true) as $arEvent)
+		{
+			$bFound = true;
+			if (ExecuteModuleEventEx($arEvent, Array($currentUserId, $arUser, $siteId, $arContext)) === true)
+			{
+				return true;
+			}
+		}
+
+		return (!$bFound);
+	}
+
+	public static function OnGetProfileView($currentUserId, $arUser, $siteId, $arContext)
+	{
+		if (!IsModuleInstalled('mail'))
+		{
+			return false;
+		}
+
+		if (
+			intval($currentUserId) <= 0
+			|| !isset($arContext)
+			|| !isset($arContext["ENTITY_TYPE"])
+			|| !in_array($arContext["ENTITY_TYPE"], array("LOG_ENTRY"))
+			|| !isset($arContext["ENTITY_ID"])
+			|| intval($arContext["ENTITY_ID"]) <= 0
+			|| !is_array($arUser)
+			|| !isset($arUser["ID"])
+			|| intval($arUser["ID"]) <= 0
+		)
+		{
+			return false;
+		}
+
+		if (
+			(
+				isset($arUser["EXTERNAL_AUTH_ID"])
+				&& $arUser["EXTERNAL_AUTH_ID"] == 'email'
+			) // -> email user
+			||
+			(
+				($rsCurrentUser = CUser::GetByID(intval($currentUserId)))
+				&& ($arCurrentUser = $rsCurrentUser->Fetch())
+				&& ($arCurrentUser["EXTERNAL_AUTH_ID"] == 'email')
+			) // email user ->
+		)
+		{
+			if ($arContext["ENTITY_TYPE"] == "LOG_ENTRY")
+			{
+				$dbRes = CSocNetLogRights::GetList(
+					array(),
+					array(
+						"LOG_ID" => intval($arContext["ENTITY_ID"])
+					),
+					false,
+					false,
+					array("GROUP_CODE")
+				);
+
+				$arLogEntryUserId = array();
+
+				while ($arRes = $dbRes->Fetch())
+				{
+					if (preg_match('/^U(\d+)$/', $arRes["GROUP_CODE"], $matches))
+					{
+						$arLogEntryUserId[] = $matches[1];
+					}
+				}
+
+				if (
+					in_array($currentUserId, $arLogEntryUserId)
+					&& in_array($arUser["ID"], $arLogEntryUserId)
+				)
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
 }
-?>

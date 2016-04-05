@@ -10,6 +10,7 @@ final class MainPostList extends CBitrixComponent
 {
 	const STATUS_SCOPE_MOBILE = 'mobile';
 	const STATUS_SCOPE_WEB = 'web';
+
 	private $scope;
 	private $sign;
 	static $users = array();
@@ -23,11 +24,15 @@ final class MainPostList extends CBitrixComponent
 			defined("BX_MOBILE") && BX_MOBILE === true)
 			$this->scope = self::STATUS_SCOPE_MOBILE;
 
-		if ($this->isWeb())
-			$this->setTemplateName(".default");
-		else
-			$this->setTemplateName("mobile_app");
+		$templateName = $this->getTemplateName();
 
+		if ((empty($templateName) || $templateName == ".default" || $templateName == "bitrix24"))
+		{
+			if ($this->isWeb())
+				$this->setTemplateName(".default");
+			else
+				$this->setTemplateName("mobile_app");
+		}
 
 		$this->sign = (new \Bitrix\Main\Security\Sign\Signer());
 	}
@@ -36,7 +41,6 @@ final class MainPostList extends CBitrixComponent
 	{
 		return ($this->scope == self::STATUS_SCOPE_WEB);
 	}
-
 
 	protected function isAjax()
 	{
@@ -113,7 +117,14 @@ HTML;
 
 	protected function sendIntoPull(array &$arParams, array &$arResult)
 	{
-		if ((check_bitrix_sessid() &&
+		if (((
+				check_bitrix_sessid()
+				|| (
+					isset($arParams["PUSH&PULL"])
+					&& isset($arParams["PUSH&PULL"]["AUTHOR_ID"])
+					&& intval($arParams["PUSH&PULL"]["AUTHOR_ID"]) > 0
+				)
+			) &&
 			//$this->getUser()->IsAuthorized() &&
 			($this->request->getPost("ENTITY_XML_ID") == $arParams["ENTITY_XML_ID"] ||
 				$this->request->getQuery("ENTITY_XML_ID") == $arParams["ENTITY_XML_ID"]) || $arParams["MODE"] == "PULL_MESSAGE") &&
@@ -128,7 +139,7 @@ HTML;
 					unset($comment["WEB"]);
 					unset($comment["MOBILE"]);
 					$comment["ACTION"] = $arParams["PUSH&PULL"]["ACTION"];
-					$comment["USER_ID"] = $this->getUser()->getId();
+					$comment["USER_ID"] = (isset($arParams["PUSH&PULL"]) && isset($arParams["PUSH&PULL"]["AUTHOR_ID"]) && intval($arParams["PUSH&PULL"]["AUTHOR_ID"]) > 0 ? intval($arParams["PUSH&PULL"]["AUTHOR_ID"]) : $this->getUser()->getId());
 
 					\CPullWatch::AddToStack('UNICOMMENTSEXTENDED'.$arParams["ENTITY_XML_ID"],
 						array(
@@ -274,15 +285,32 @@ HTML;
 					"LAST_NAME" => $res["LAST_NAME"],
 					"SECOND_NAME" => $res["SECOND_NAME"],
 					"AVATAR" => $res["AVATAR"],
+					"EXTERNAL_AUTH_ID" => $res["EXTERNAL_AUTH_ID"]
 				);
 				static::$users[$id] = $res;
 			}
 			$res = static::$users[$id];
 		}
+
 		$res["NAME"] = htmlspecialcharsbx($res["NAME"]);
 		$res["LAST_NAME"] = htmlspecialcharsbx($res["LAST_NAME"]);
 		$res["SECOND_NAME"] = htmlspecialcharsbx($res["SECOND_NAME"]);
 		$res["IS_EXTRANET"] = is_array($GLOBALS["arExtranetUserID"]) && in_array($res["ID"], $GLOBALS["arExtranetUserID"]) ? "Y" : "N";
+		$res["TYPE"] = (
+			isset($res["TYPE"])
+				? $res["TYPE"]
+				: (
+					isset($res["EXTERNAL_AUTH_ID"])
+					&& $res["EXTERNAL_AUTH_ID"] == 'email'
+						? "EMAIL"
+						: (
+							is_array($GLOBALS["arExtranetUserID"]) && in_array($res["ID"], $GLOBALS["arExtranetUserID"])
+								? "EXTRANET"
+								: false
+						)
+				)
+		);
+
 		return $res;
 	}
 
@@ -309,12 +337,8 @@ HTML;
 		{
 			$val = ($res[$key] ?: $res);
 			$result[$key] = array(
-				"POST_TIME" => (isset($val["POST_TIME"]) ? $val["POST_TIME"] : self::getDateTimeFormatted($res["POST_TIMESTAMP"], array(
-					"DATE_TIME_FORMAT" => $arParams["DATE_TIME_FORMAT"]
-				))),
-				"POST_DATE" => (isset($val["POST_DATE"]) ? $val["POST_DATE"] : self::getDateTimeFormatted($res["POST_TIMESTAMP"], array(
-					"DATE_TIME_FORMAT" => $arParams["DATE_TIME_FORMAT"]
-				))),
+				"POST_TIME" => (isset($val["POST_TIME"]) ? $val["POST_TIME"] : CComponentUtil::GetDateTimeFormatted($res["POST_TIMESTAMP"], $arParams["DATE_TIME_FORMAT"], CTimeZone::GetOffset())),
+				"POST_DATE" => (isset($val["POST_DATE"]) ? $val["POST_DATE"] : CComponentUtil::GetDateTimeFormatted($res["POST_TIMESTAMP"], $arParams["DATE_TIME_FORMAT"], CTimeZone::GetOffset())),
 				"CLASSNAME" => $val["CLASSNAME"],
 				"POST_MESSAGE_TEXT" => $val["POST_MESSAGE_TEXT"],
 				"BEFORE_HEADER" => $val["BEFORE_HEADER"].$this->getApplication()->GetViewContent($templateId.'BEFORE_HEADER'),
@@ -482,10 +506,12 @@ HTML;
 					$this->getApplication()->IncludeComponent(
 						"bitrix:system.field.view",
 						$arPostField["USER_TYPE"]["USER_TYPE_ID"],
-						array(
+						 array(
 							"arUserField" => $arPostField,
-							"LAZYLOAD" => (isset($arParams["LAZYLOAD"]) && $arParams["LAZYLOAD"] == "Y" ? "Y" : "N")
-						),
+							"TEMPLATE" => $this->getTemplateName(),
+							"LAZYLOAD" => (isset($arParams["LAZYLOAD"]) && $arParams["LAZYLOAD"] == "Y" ? "Y" : "N"),
+							"DISABLE_LOCAL_EDIT" => (isset($arParams["bPublicPage"]) && $arParams["bPublicPage"])
+						) + $arParams,
 						null,
 						array("HIDE_ICONS"=>"Y")
 					);
@@ -504,9 +530,10 @@ HTML;
 						$arPostField["USER_TYPE"]["USER_TYPE_ID"],
 						array(
 							"arUserField" => $arPostField,
+							"TEMPLATE" => $this->getTemplateName(),
 							"LAZYLOAD" => (isset($arParams["LAZYLOAD"]) && $arParams["LAZYLOAD"] == "Y" ? "Y" : "N"),
 							"MOBILE" => "Y"
-						),
+						) + $arParams,
 						null,
 						array("HIDE_ICONS"=>"Y")
 					);
@@ -524,6 +551,55 @@ HTML;
 	{
 		global $USER;
 		$todayString = ConvertTimeStamp();
+
+		$authorUrl = str_replace(
+			array("#ID#", "#id#", "#USER_ID#", "#user_id#"),
+			array($res["ID"], $res["ID"], $res["AUTHOR"]["ID"], $res["AUTHOR"]["ID"]),
+			$arParams["AUTHOR_URL"]);
+
+		$authorStyle = '';
+		$authorTooltipParams = array();
+
+		if (!empty($res["AUTHOR"]["TYPE"]))
+		{
+			if ($res["AUTHOR"]["TYPE"] == 'EMAIL')
+			{
+				$authorStyle = ' feed-com-name-email';
+			}
+			else if ($res["AUTHOR"]["TYPE"] == 'EXTRANET')
+			{
+				$authorStyle = ' feed-com-name-extranet';
+			}
+		}
+		else if ($res["AUTHOR"]["IS_EXTRANET"] == "Y")
+		{
+			$authorStyle = ' feed-com-name-extranet';
+		}
+
+		if (
+			!empty($arParams["AUTHOR_URL_PARAMS"]) && is_array($arParams["AUTHOR_URL_PARAMS"])
+			&& (
+				(isset($arParams["bPublicPage"]) && $arParams["bPublicPage"])
+				|| (!empty($res["AUTHOR"]["TYPE"]) && $res["AUTHOR"]["TYPE"] == 'EMAIL')
+			)
+		)
+		{
+			$authorTooltipParams = $arParams["AUTHOR_URL_PARAMS"];
+			if (
+				!isset($arParams["bPublicPage"])
+				|| !$arParams["bPublicPage"])
+			{
+				$strParams = '';
+				$i = 0;
+				foreach ($arParams["AUTHOR_URL_PARAMS"] as $key => $value)
+				{
+					$strParams .= ($i > 0 ? '&' : '').urlencode($key).'='.urlencode($value);
+					$i++;
+				}
+				$authorUrl .= (strpos($authorUrl, '?') === false ? '?' : '&').$strParams;
+			}
+		}
+
 		$replacement = array(
 			"#ID#" =>
 				$res["ID"],
@@ -573,12 +649,16 @@ HTML;
 				$res["AUTHOR"]["ID"],
 			"#AUTHOR_AVATAR_IS#" =>
 				(empty($res["AUTHOR"]["AVATAR"]) ? "N" : "Y"),
-			"#AUTHOR_AVATAR#" => $res["AUTHOR"]["AVATAR"],
-			"#AUTHOR_URL#" =>
-				str_replace(
-					array("#ID#", "#id#", "#USER_ID#", "#user_id#"),
-					array($res["ID"], $res["ID"], $res["AUTHOR"]["ID"], $res["AUTHOR"]["ID"]),
-					$arParams["AUTHOR_URL"]),
+			"#AUTHOR_AVATAR#" => (
+				!empty($res["AUTHOR"]["AVATAR"])
+					? $res["AUTHOR"]["AVATAR"]
+					: (
+						!empty($arParams["AVATAR_DEFAULT"])
+							? $arParams["AVATAR_DEFAULT"]
+							: ""
+					)
+			),
+			"#AUTHOR_URL#" => $authorUrl,
 			"#AUTHOR_NAME#" =>
 				CUser::FormatName(
 				$arParams["NAME_TEMPLATE"],
@@ -591,10 +671,10 @@ HTML;
 				),
 				($arParams["SHOW_LOGIN"] != "N"),
 				false),
+			"#AUTHOR_TOOLTIP_PARAMS#" => CUtil::PhpToJSObject($authorTooltipParams),
 			"#SHOW_POST_FORM#" =>
 				$arParams["SHOW_POST_FORM"],
-			"#AUTHOR_EXTRANET_STYLE#" =>
-				($res["AUTHOR"]["IS_EXTRANET"] == "Y" ? ' feed-com-name-extranet' : ''),
+			"#AUTHOR_EXTRANET_STYLE#" => $authorStyle,
 			"background:url('') no-repeat center;" =>
 				""
 		);
@@ -639,7 +719,7 @@ HTML;
 		$arParams['SHOW_MINIMIZED'] = ($arParams['SHOW_MINIMIZED'] == "Y" ? "Y" : "N");
 
 		$arParams["NAME_TEMPLATE"] = (!!$_REQUEST["NAME_TEMPLATE"] ? $_REQUEST["NAME_TEMPLATE"] : \CSite::GetNameFormat());
-		$arParams["SHOW_LOGIN"] = ($_REQUEST["SHOW_LOGIN"] == "Y" ? "Y" : "N");
+		$arParams["SHOW_LOGIN"] = ($_REQUEST["SHOW_LOGIN"] == "Y" ? "Y" : ($arParams["SHOW_LOGIN"] == "Y" ? "Y" : "N"));
 		$arParams["DATE_TIME_FORMAT"] = trim($arParams["DATE_TIME_FORMAT"]);
 		$arParams["SHOW_POST_FORM"] = ($arParams["SHOW_POST_FORM"] == "Y" ? "Y" : "N");
 		$arParams["BIND_VIEWER"] = ($arParams["BIND_VIEWER"] == "Y" ? "Y" : "N");
@@ -699,7 +779,6 @@ HTML;
 				$arParams["RATING_RESULTS"] = CRatings::GetRatingVoteResult($arParams["RATING_TYPE_ID"], array_keys($arParams["RECORDS"]));
 
 			$arParams["~RECORDS"] = $arParams["RECORDS"];
-
 			foreach ($arParams["~RECORDS"] as $key => &$res)
 				$arParams["RECORDS"][$key] = $this->buildComment($res);
 		}
@@ -867,51 +946,6 @@ HTML;
 
 	public function getDateTimeFormatted($timestamp, $arFormatParams)
 	{
-		static $arFormatWOYear = array();
-		static $arFormatTime = array();
-		static $defaultDateTimeFormat = false;
-
-		if (
-			empty($arFormatParams["DATE_TIME_FORMAT"])
-			|| $arFormatParams["DATE_TIME_FORMAT"] == "FULL"
-		)
-		{
-			if (!$defaultDateTimeFormat)
-			{
-				$defaultDateTimeFormat = $GLOBALS["DB"]->DateFormatToPHP(FORMAT_DATETIME);
-			}
-			$arFormatParams["DATE_TIME_FORMAT"] = $defaultDateTimeFormat;
-		}
-		$arFormatParams["DATE_TIME_FORMAT"] = preg_replace('/[\/.,\s:][s]/', '', $arFormatParams["DATE_TIME_FORMAT"]);
-
-		if (empty($arFormatWOYear[$arFormatParams["DATE_TIME_FORMAT"]]))
-		{
-			$arFormatWOYear[$arFormatParams["DATE_TIME_FORMAT"]] = preg_replace('/[\/.,\s-][Yyo]/', '', $arFormatParams["DATE_TIME_FORMAT"]);
-		}
-		$arFormatParams["DATE_TIME_FORMAT_WITHOUT_YEAR"] = $arFormatWOYear[$arFormatParams["DATE_TIME_FORMAT"]];
-
-		if (empty($arFormatTime[$arFormatParams["DATE_TIME_FORMAT"]]))
-		{
-			$arFormatTime[$arFormatParams["DATE_TIME_FORMAT"]] = preg_replace('/[\/.,\s]+$/', '', preg_replace('/^[\/.,\s]+/', '', preg_replace('/[dDjlFmMnYyo]/', '', $arFormatParams["DATE_TIME_FORMAT"])));
-		}
-		$arFormatParams["TIME_FORMAT"] = $arFormatTime[$arFormatParams["DATE_TIME_FORMAT"]];
-
-		$arFormat = Array(
-			"tommorow" => "tommorow, ".$arFormatParams["TIME_FORMAT"],
-			"today" => "today, ".$arFormatParams["TIME_FORMAT"],
-			"yesterday" => "yesterday, ".$arFormatParams["TIME_FORMAT"],
-			"" => (
-			date("Y", $timestamp) == date("Y")
-				? $arFormatParams["DATE_TIME_FORMAT_WITHOUT_YEAR"]
-				: $arFormatParams["DATE_TIME_FORMAT"]
-			)
-		);
-
-		return (
-			strcasecmp(LANGUAGE_ID, 'EN') !== 0
-			&& strcasecmp(LANGUAGE_ID, 'DE') !== 0
-				? ToLower(FormatDate($arFormat, $timestamp, (time()+CTimeZone::GetOffset())))
-				: FormatDate($arFormat, $timestamp, (time()+CTimeZone::GetOffset()))
-		);
+		return CComponentUtil::GetDateTimeFormatted($timestamp, (isset($arFormatParams["DATE_TIME_FORMAT"]) ? $arFormatParams["DATE_TIME_FORMAT"] : false));
 	}
 }

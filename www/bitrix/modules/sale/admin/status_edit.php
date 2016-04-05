@@ -136,13 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$readOnly && check_bitrix_sessid() 
 		else
 		{
 			$result = StatusTable::add($status);
-			if ($result->isSuccess())
+			if (!$result->isSuccess())
 			{
-				$statusId = $status['ID'];
-				CSaleStatus::CreateMailTemplate($statusId);
-			}
-			else
 				$errors = $result->getErrorMessages();
+			}
 		}
 	}
 
@@ -150,9 +147,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$readOnly && check_bitrix_sessid() 
 	if (! $errors)
 	{
 		foreach ($translations as $data)
+		{
 			StatusLangTable::add($data);
+		}
+		
 		foreach ($groupTasks as $data)
+		{
 			StatusGroupTaskTable::add($data);
+		}
+
+		if ($result->isSuccess())
+		{
+			$statusId = $status['ID'];
+			CSaleStatus::CreateMailTemplate($statusId);
+		}
+
+
 		if ($_POST['save'])
 			LocalRedirect('sale_status.php?lang='.LANGUAGE_ID.GetFilterParams('filter_', false));
 	}

@@ -10,11 +10,24 @@
 /** @var string $templateFolder */
 /** @var string $componentPath */
 /** @var CBitrixComponent $component */
-if ($arResult['IS_ADMIN_SECTION']):
-$maxImageSize = array(
-	"W" => \COption::GetOptionString("iblock", "list_image_size"),
-	"H" => \COption::GetOptionString("iblock", "list_image_size")
+use Bitrix\Main;
+
+if (!$arResult['IS_ADMIN_SECTION'])
+	return;
+$listImageSize = (int)Main\Config\Option::get('iblock', 'list_image_size');
+$viewFileParams = array(
+	'IMAGE' => 'Y',
+	'PATH' => 'Y',
+	'FILE_SIZE' => 'Y',
+	'DIMENSIONS' => 'Y',
+	'IMAGE_POPUP' => 'Y',
+	'MAX_SIZE' => array(
+		'W' => $listImageSize,
+		'H' => $listImageSize
+	),
+	'MIN_SIZE' => array('W' => 1, 'H' => 1),
 );
+unset($listImageSize);
 
 function getTreeOffsetWidth($level = 0)
 {
@@ -107,17 +120,12 @@ function addPropsCell(&$row, &$arSelectedProps, &$arItems)
 			if ($aProp['PROPERTY_TYPE'] == 'F')
 				$res = getImageField($property_value_id, $property_value);
 			elseif ($aProp['PROPERTY_TYPE'] == 'G')
-			{
 				$res = ProductSearchComponent::getSectionName($property_value);
-			}
 			elseif ($aProp['PROPERTY_TYPE'] == 'E')
-			{
 				$res = ProductSearchComponent::getElementName($property_value);
-			}
 			else
-			{
 				$res = htmlspecialcharsex($property_value);
-			}
+
 			if ($res != "")
 				$v .= ($v != '' ? ' / ' : '') . $res;
 		}
@@ -128,15 +136,8 @@ function addPropsCell(&$row, &$arSelectedProps, &$arItems)
 
 function getImageField($property_value_id,$property_value)
 {
-	$res = CFileInput::Show('NO_FIELDS[' . $property_value_id . ']', $property_value, array(
-			"IMAGE" => "Y",
-			"PATH" => false,
-			"FILE_SIZE" => false,
-			"DIMENSIONS" => false,
-			"IMAGE_POPUP" => false,
-			"MAX_SIZE" => array("W" => 50, "H" => 50),
-			"MIN_SIZE" => array("W" => 1, "H" => 1),
-		), array(
+	global $viewFileParams;
+	$res = CFileInput::Show('NO_FIELDS[' . $property_value_id . ']', $property_value, $viewFileParams, array(
 			'upload' => false,
 			'medialib' => false,
 			'file_dialog' => false,
@@ -191,6 +192,8 @@ else
 	$arSelectedFields = null;
 	$arSku = array();
 
+	$showSkuName = (string)Main\Config\Option::get('catalog', 'product_form_show_offer_name') == 'Y';
+
 	//Add 'Level Up' row to grid
 	if ($arResult['PARENT_SECTION_ID'] >= 0)
 	{
@@ -206,11 +209,12 @@ else
 	{
 		$arCatalogProduct = $arItems['PRODUCT'];
 
-		$row =& $lAdmin->AddRow($arItems["ID"], $arItems);
+		$row = &$lAdmin->AddRow($arItems["ID"], $arItems);
 
 		$row->AddField("ACTIVE", $arItems["ACTIVE"] == 'Y' ? GetMessage('SPS_PRODUCT_ACTIVE') : GetMessage('SPS_PRODUCT_NO_ACTIVE'));
-		$row->AddViewField("PREVIEW_PICTURE", getImageField('NO_FIELDS[' . $arItems['ID'] . '][PREVIEW_PICTURE]', $arItems['PREVIEW_PICTURE']));
-		$row->AddViewField("DETAIL_PICTURE", getImageField('NO_FIELDS[' . $arItems['ID'] . '][DETAIL_PICTURE]', $arItems['DETAIL_PICTURE']));
+		$row->AddViewFileField('PREVIEW_PICTURE', $viewFileParams);
+		$row->AddViewFileField('DETAIL_PICTURE', $viewFileParams);
+
 		$arActions = array();
 		$icon = $arCatalogProduct['TYPE'] == CCatalogProduct::TYPE_SET ? 'f2' : 'f1';
 
@@ -227,7 +231,7 @@ else
 			$jsClick = $tableId.'_helper.SelEl('.CUtil::PhpToJSObject($arParams, false, true, true).', this);';
 			if ($arResult['CALLER'] == 'discount' || $arResult['ALLOW_SELECT_PARENT'] == 'Y')
 			{
-				$row->AddField("ACTION", '<a href="javascript:void()" onclick="'.$jsClick.'">'.GetMessage('SPS_SELECT').'</a>');
+				$row->AddField("ACTION", '<a href="javascript:void(0)" onclick="'.$jsClick.'; BX.PreventDefault(); return false;">'.GetMessage('SPS_SELECT').'</a>');
 			}
 			$row->AddViewField("EXPAND", '<a class="expand-sku">' . GetMessage('SPS_EXPAND') . '</a><a class="collapse-sku">' . GetMessage('SPS_COLLAPSE') . '</a>');
 
@@ -250,26 +254,31 @@ else
 			foreach ($arSkuResult["SKU_ELEMENTS"] as $val)
 			{
 				$arSku[] = $val["ID"];
-				$rowSku =& $lAdmin->AddRow($val["ID"], $val);
-				$skuProperty = "";
+				$rowSku = &$lAdmin->AddRow($val["ID"], $val);
+				$skuProperty = '';
+				if ($showSkuName)
+					$skuProperty .= '<b>'.$val['NAME'].'</b>';
 				foreach ($val['PROPERTIES_SHOW'] as $name => $value)
 				{
-					if ($skuProperty != "")
-						$skuProperty .= " <br> ";
-					$skuProperty .= '<span style="color: grey;">' . $name . '</span>: ' . $value;
+					if ($skuProperty != '')
+						$skuProperty .= '<br>';
+					$skuProperty .= '<span style="color: grey;">'.$name.'</span>: '.$value;
 				}
 
 				$arSkuActions = array();
 				$rowSku->AddField("NAME", '<div class="sku-item-name">' . $skuProperty . '</div>' . '<input type="hidden" name="prd" id="' . $tableId . '_sku-' . $val["ID"] . '">');
 
-				$rowSku->AddViewField("DETAIL_PICTURE", getImageField('NO_FIELDS[' . $val['ID'] . '][DETAIL_PICTURE]', $val['DETAIL_PICTURE']));
-				$rowSku->AddViewField("PREVIEW_PICTURE", getImageField('NO_FIELDS[' . $val['ID'] . '][PREVIEW_PICTURE]', $val['PREVIEW_PICTURE']));
+				$rowSku->AddViewFileField('DETAIL_PICTURE', $viewFileParams);
+				$rowSku->AddViewFileField('PREVIEW_PICTURE', $viewFileParams);
 
 				$rowSku->AddField("ID", $arItems["ID"] . "-" . $val["ID"]);
-				foreach ($arPrices as $price)
+				if (!empty($arPrices))
 				{
-					$rowSku->AddViewField("PRICE" . $price['ID'], CCurrencyLang::CurrencyFormat($arResult['SKU_PRICES'][$price['ID']][$val["ID"]]['PRICE'], $arResult['SKU_PRICES'][$price['ID']][$val["ID"]]['CURRENCY'], true));
+					foreach ($arPrices as &$price)
+						$rowSku->AddViewField("PRICE".$price['ID'], CCurrencyLang::CurrencyFormat($arResult['SKU_PRICES'][$price['ID']][$val["ID"]]['PRICE'], $arResult['SKU_PRICES'][$price['ID']][$val["ID"]]['CURRENCY'], true));
+					unset($price);
 				}
+
 
 				$balance = FloatVal($val["BALANCE"]);
 
@@ -284,16 +293,14 @@ else
 					'measure' => (isset($val['MEASURE']['~SYMBOL_RUS']) ? $val['MEASURE']['~SYMBOL_RUS'] : ''),
 					'quantity' => $ratio
 				);
-				$rowSku->AddField("QUANTITY", '<input type="text" id="'.$tableId.'_qty_'.$val["ID"].'" value="'.$ratio.'" size="5" />'.$measure);
+				$rowSku->AddField("QUANTITY", '<span style="white-space: nowrap;"><input style="text-align: center;" type="text" id="'.$tableId.'_qty_'.$val["ID"].'" value="'.$ratio.'" size="4" />'.$measure.'</span>');
 				unset($measure, $ratio);
 
-				$active = GetMessage('SPS_PRODUCT_ACTIVE');
 				$arSkuActions[] = array(
 					"TEXT" => GetMessage("SPS_SELECT"),
 					"DEFAULT" => "Y",
 					"ACTION" => $tableId . '_helper.SelEl(' . CUtil::PhpToJSObject($arParams) . ', this);'
 				);
-
 
 				$active = ($val["ACTIVE"] == 'Y' ? GetMessage('SPS_PRODUCT_ACTIVE') : GetMessage('SPS_PRODUCT_NO_ACTIVE'));
 
@@ -328,7 +335,7 @@ else
 					'measure' => (isset($arCatalogProduct['MEASURE']['~SYMBOL_RUS']) ? $arCatalogProduct['MEASURE']['~SYMBOL_RUS'] : ''),
 					'quantity' => $ratio
 				);
-				$row->AddField("QUANTITY", '<input type="text" id="'.$tableId.'_qty_'.$arItems["ID"].'" value="'.$ratio.'" size="5" />'.$measure);
+				$row->AddField("QUANTITY", '<span style="white-space: nowrap;"><input style="text-align: center;" type="text" id="'.$tableId.'_qty_'.$arItems["ID"].'" value="'.$ratio.'" size="4" />'.$measure.'</span>');
 				unset($measure, $ratio);
 
 				$arActions[] = array(
@@ -347,9 +354,11 @@ else
 					"ACTION" => $tableId . '_helper.onSectionClick(' . $arItems["ID"] . ',\'' . CUtil::JSEscape($arItems['NAME']) . '\');'
 				);
 			}
-			foreach ($arPrices as $price)
+			if (!empty($arPrices))
 			{
-				$row->AddViewField("PRICE" . $price['ID'], CCurrencyLang::CurrencyFormat($arItems['PRICES'][$price['ID']]['PRICE'], $arItems['PRICES'][$price['ID']]['CURRENCY'], true));
+				foreach ($arPrices as &$price)
+					$row->AddViewField("PRICE".$price['ID'], CCurrencyLang::CurrencyFormat($arItems['PRICES'][$price['ID']]['PRICE'], $arItems['PRICES'][$price['ID']]['CURRENCY'], true));
+				unset($price);
 			}
 		}
 		addPropsCell($row, $arSelectedProps, $arItems);
@@ -778,4 +787,3 @@ else
 	</script>
 <?
 }
-endif;

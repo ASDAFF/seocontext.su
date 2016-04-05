@@ -392,7 +392,7 @@ class CBitrixComponentTemplate
 		$this->__name = preg_replace("'[\\\\/]+'", "/", $this->__name);
 		$this->__name = trim($this->__name, "/");
 
-		if (!$this->CheckName($this->__name))
+		if (!self::CheckName($this->__name))
 			$this->__name = ".default";
 
 		$this->__page = $this->__component->GetTemplatePage();
@@ -417,7 +417,7 @@ class CBitrixComponentTemplate
 	 *
 	 * @return boolean
 	 */
-	public function CheckName($name)
+	public static function CheckName($name)
 	{
 		return preg_match("#^([A-Za-z0-9_.-]+)(/[A-Za-z0-9_.-]+)?$#i", $name) > 0;
 	}

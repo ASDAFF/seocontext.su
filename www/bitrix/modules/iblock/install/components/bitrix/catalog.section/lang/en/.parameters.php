@@ -114,4 +114,8 @@ $MESS["LINE_ELEMENT_COUNT_TIP"] = "This value specifies the number of items per 
 $MESS["IBLOCK_EXTENDED_SETTINGS"] = "Extended parameters";
 $MESS["CP_BCS_DISABLE_INIT_JS_IN_COMPONENT"] = "Don't use auxiliary JavaScript libraries";
 $MESS["DISABLE_INIT_JS_IN_COMPONENT_TIP"] = "If checked, the component will not include the \"popup\" library. If the component template is based on the \"e-Store\" version 12.5 template, using this option will reduce functionality.";
+$MESS["CP_BCS_HIDE_NOT_AVAILABLE_EXT"] = "Products out of stock across all warehouses";
+$MESS["CP_BCS_HIDE_NOT_AVAILABLE_HIDE"] = "don't show";
+$MESS["CP_BCS_HIDE_NOT_AVAILABLE_LAST"] = "move to the bottom";
+$MESS["CP_BCS_HIDE_NOT_AVAILABLE_SHOW"] = "show as usual";
 ?>

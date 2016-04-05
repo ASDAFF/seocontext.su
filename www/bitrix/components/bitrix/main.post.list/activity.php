@@ -81,6 +81,22 @@ if ( check_bitrix_sessid() &&
 			)
 		)
 	);
+
+	CPullWatch::AddToStack('UNICOMMENTSEXTENDED'.$_REQUEST["ENTITY_XML_ID"],
+		Array(
+			'module_id' => 'unicomments',
+			'command' => 'answer',
+			'expiry' => 60,
+			'params' => Array(
+				"USER_ID" => $GLOBALS["USER"]->GetId(),
+				"ENTITY_XML_ID" => $_REQUEST["ENTITY_XML_ID"],
+				"TS" => time(),
+				"NAME" => $arUserInfo["NAME_FORMATED"],
+				"AVATAR" => $arUserInfo["PERSONAL_PHOTO_resized_30"]["src"]
+			)
+		)
+	);
+
 	die();
 }
 ?>

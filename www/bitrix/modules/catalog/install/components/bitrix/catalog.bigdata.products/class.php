@@ -1,5 +1,6 @@
 <?php
 use \Bitrix\Main;
+use Bitrix\Main\Application;
 use \Bitrix\Catalog\CatalogViewedProductTable as CatalogViewedProductTable;
 use \Bitrix\Main\Text\String as String;
 use \Bitrix\Main\Localization\Loc as Loc;
@@ -121,12 +122,16 @@ class CatalogBigdataProductsComponent extends CSaleBestsellersComponent
 	{
 		$ids = array();
 
+		// try cloud
 		if (!empty($this->ajaxItemsIds))
 		{
 			$recommendationId = Main\Context::getCurrent()->getRequest()->get('RID');
 			$ids = $this->ajaxItemsIds;
+			$ids = $this->filterByParams($ids);
 		}
-		else
+
+		// try bestsellers
+		if (empty($ids))
 		{
 			$bestsellers = parent::getProductIds();
 
@@ -134,33 +139,38 @@ class CatalogBigdataProductsComponent extends CSaleBestsellersComponent
 			{
 				$recommendationId = 'bestsellers';
 				$ids = Main\Analytics\Catalog::getProductIdsByOfferIds($bestsellers);
-			}
-
-			if (empty($ids))
-			{
-				$recommendationId = 'mostviewed';
-				$dublicate = array();
-				// top viewed
-				$result = CatalogViewedProductTable::getList(array(
-					'select' => array(
-						'ELEMENT_ID',
-						new Main\Entity\ExpressionField('SUM_HITS', 'SUM(%s)', 'VIEW_COUNT')
-					),
-					'filter' => array('=SITE_ID' => $this->getSiteId(), '>ELEMENT_ID' => 0),
-					'order' => array('SUM_HITS' => 'DESC'),
-					'limit' => $this->arParams['PAGE_ELEMENT_COUNT']
-				));
-
-				while ($row = $result->fetch())
-				{
-					if (!isset($dublicate[$row['ELEMENT_ID']]))
-						$ids[] = $row['ELEMENT_ID'];
-					$dublicate[$row['ELEMENT_ID']] = true;
-				}
-				unset($row, $result, $dublicate);
+				$ids = $this->filterByParams($ids);
 			}
 		}
 
+		// try top viewed
+		if (empty($ids))
+		{
+			$recommendationId = 'mostviewed';
+			$duplicate = array();
+
+			$result = CatalogViewedProductTable::getList(array(
+				'select' => array(
+					'ELEMENT_ID',
+					new Main\Entity\ExpressionField('SUM_HITS', 'SUM(%s)', 'VIEW_COUNT')
+				),
+				'filter' => array('=SITE_ID' => $this->getSiteId(), '>ELEMENT_ID' => 0),
+				'order' => array('SUM_HITS' => 'DESC'),
+				'limit' => $this->arParams['PAGE_ELEMENT_COUNT']
+			));
+
+			while ($row = $result->fetch())
+			{
+				if (!isset($duplicate[$row['ELEMENT_ID']]))
+					$ids[] = $row['ELEMENT_ID'];
+				$duplicate[$row['ELEMENT_ID']] = true;
+			}
+			unset($row, $result, $duplicate);
+
+			$ids = $this->filterByParams($ids);
+		}
+
+		// check if available
 		if (!empty($ids) && $this->arParams['HIDE_NOT_AVAILABLE'] == 'Y')
 		{
 			$filter = (count($ids) > 1000 ? array('ID' => $ids) : array('@ID' => $ids));
@@ -181,12 +191,134 @@ class CatalogBigdataProductsComponent extends CSaleBestsellersComponent
 			$ids = array_keys($ids);
 		}
 
+		// limit
 		$ids = array_slice($ids, 0, $this->arParams['PAGE_ELEMENT_COUNT']);
 
 		// remember recommendation id
 		$this->arResult['RID'] = $recommendationId;
 
 		return $ids;
+	}
+
+	protected function filterByParams($ids)
+	{
+		if (empty($ids))
+		{
+			return array();
+		}
+		
+		$sectionSearch = $this->arParams["SECTION_ID"] > 0 || $this->arParams["SECTION_CODE"] !== '';
+
+		if ($sectionSearch)
+			$sectionId = ($this->arParams["SECTION_ID"] > 0) ? $this->arParams["SECTION_ID"] : $this->getSectionIdByCode($this->arParams["SECTION_CODE"]);
+		else
+			$sectionId = $this->getSectionIdByElement($this->arParams["SECTION_ELEMENT_ID"], $this->arParams["SECTION_ELEMENT_CODE"]);
+
+		$map = $this->executeParametersFilter(
+			$ids,
+			$this->arParams['IBLOCK_ID'],
+			$sectionId,
+			$this->arParams['SECTION_ELEMENT_ID'],
+			$this->arParams['PAGE_ELEMENT_COUNT'],
+			$this->arParams['DEPTH']
+		);
+
+		return $map;
+	}
+
+	/**
+	 * @see \Bitrix\Catalog\CatalogViewedProductTable::getProductSkuMap
+	 *
+	 * @param      $productIds
+	 * @param      $iblockId
+	 * @param      $sectionId
+	 * @param      $excludeProductId
+	 * @param      $limit
+	 * @param int  $depth
+	 * @param null $siteId
+	 *
+	 * @return array
+	 */
+	protected function executeParametersFilter($productIds, $iblockId, $sectionId, $excludeProductId, $limit, $depth = 0, $siteId = null)
+	{
+		$map = array();
+
+		$iblockId = (int)$iblockId;
+		$sectionId = (int)$sectionId;
+		$excludeProductId = (int)$excludeProductId;
+		$limit = (int)$limit;
+		$depth = (int)$depth;
+		if ($depth < 0)
+			return $map;
+
+		if (empty($siteId))
+		{
+			$context = Application::getInstance()->getContext();
+			$siteId = $context->getSite();
+		}
+		if (empty($siteId))
+			return $map;
+
+		$con = Application::getConnection();
+
+		$subSections = array();
+		//TODO: change sql to api
+		if ($depth > 0)
+		{
+			$strSql = "SELECT BSprS.ID AS ID
+						FROM b_iblock_section BSprS
+							INNER JOIN b_iblock_section BS1
+							ON (
+								BSprS.IBLOCK_ID = BS1.IBLOCK_ID
+								AND BSprS.LEFT_MARGIN <= BS1.LEFT_MARGIN
+								AND BSprS.RIGHT_MARGIN >= BS1.RIGHT_MARGIN
+							)
+						WHERE BS1.ID = ".$sectionId." AND BSprS.DEPTH_LEVEL = " .$depth;
+
+			$result = $con->query($strSql, null);
+			while ($item = $result->fetch())
+				$subSections[] = $item['ID'];
+		}
+		if (!empty($subSections))
+			$subSections[] = 0;
+
+		if (empty($subSections) && $sectionId <= 0)
+		{
+			$strSql = "SELECT ID
+					FROM b_iblock_element BE
+					WHERE BE.ID IN (".join(', ', array_map("intval", $productIds)).")
+						AND BE.ID <> ".$excludeProductId."
+						AND BE.IBLOCK_ID = ".$iblockId."
+						AND (BE.WF_STATUS_ID = 1 AND BE.WF_PARENT_ELEMENT_ID IS NULL)";
+		}
+		else
+		{
+			$strSql = "SELECT ID
+					FROM b_iblock_element BE
+						INNER JOIN (
+							SELECT DISTINCT BSE.IBLOCK_ELEMENT_ID
+							FROM b_iblock_section_element BSE
+								INNER JOIN b_iblock_section BSubS ON BSE.IBLOCK_SECTION_ID = BSubS.ID
+								INNER JOIN b_iblock_section BS ON (BSubS.IBLOCK_ID = BS.IBLOCK_ID
+									AND BSubS.LEFT_MARGIN >= BS.LEFT_MARGIN
+									AND BSubS.RIGHT_MARGIN <= BS.RIGHT_MARGIN)
+							WHERE ".(!empty($subSections) ? "BS.ID IN (".implode(', ', $subSections).") OR " : "").
+								"BS.ID = ".$sectionId."
+						) BES ON BES.IBLOCK_ELEMENT_ID = BE.ID
+
+					WHERE BE.ID IN (".join(', ', array_map("intval", $productIds)).")
+						AND BE.ID <> ".$excludeProductId."
+						AND BE.IBLOCK_ID = ".$iblockId."
+						AND (BE.WF_STATUS_ID = 1 AND BE.WF_PARENT_ELEMENT_ID IS NULL)";
+		}
+		$result = $con->query($strSql, null, 0, $limit);
+
+		$map = array();
+
+		while($item = $result->fetch())
+			$map[] = $item['ID'];
+
+		return $map;
 	}
 
 	/**
@@ -315,6 +447,20 @@ class CatalogBigdataProductsComponent extends CSaleBestsellersComponent
 		$a['ib'] = join('.', $iblocks);
 
 		return $a;
+	}
+
+	/**
+	 * Check action variable.
+	 *
+	 * @param array $params			Component params.
+	 * @return string
+	 */
+	protected function prepareActionVariable($params)
+	{
+		$actionVariable = (isset($params['ACTION_VARIABLE']) ? trim($params['ACTION_VARIABLE']) : '');
+		if ($actionVariable === '' || !preg_match("/^[A-Za-z_][A-Za-z01-9_]*$/", $actionVariable))
+			$actionVariable = 'action_cbdp';
+		return $actionVariable;
 	}
 
 	/**

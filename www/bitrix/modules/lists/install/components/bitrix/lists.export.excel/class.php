@@ -8,6 +8,7 @@ Loc::loadMessages(__FILE__);
 
 class ListExportExcelComponent extends CBitrixComponent
 {
+	protected $listsPerm;
 	protected $arIBlock = array();
 
 	/* Processing of input parameter */
@@ -86,15 +87,18 @@ class ListExportExcelComponent extends CBitrixComponent
 			return;
 		}
 
-		$listsPerm = CListPermissions::CheckAccess(
+		$this->arResult["BIZPROC"] = (bool)CModule::includeModule("bizproc");
+		$this->arResult["DISK"] = (bool)CModule::includeModule("disk");
+
+		$this->listsPerm = CListPermissions::CheckAccess(
 			$USER,
 			$this->arParams["~IBLOCK_TYPE_ID"],
 			$this->arResult["IBLOCK_ID"],
 			$this->arParams["~SOCNET_GROUP_ID"]
 		);
-		if($listsPerm < 0)
+		if($this->listsPerm < 0)
 		{
-			switch($listsPerm)
+			switch($this->listsPerm)
 			{
 				case CListPermissions::WRONG_IBLOCK_TYPE:
 					ShowError(GetMessage("CC_BLL_WRONG_IBLOCK_TYPE"));
@@ -111,7 +115,7 @@ class ListExportExcelComponent extends CBitrixComponent
 			}
 		}
 		elseif(
-			$listsPerm < CListPermissions::CAN_READ
+			$this->listsPerm < CListPermissions::CAN_READ
 			&& !(
 				CIBlockRights::UserHasRightTo($this->arResult["IBLOCK_ID"], $this->arResult["IBLOCK_ID"], "element_read")
 				|| CIBlockSectionRights::UserHasRightTo($this->arResult["IBLOCK_ID"], $this->arResult["SECTION_ID"], "section_element_bind")
@@ -125,7 +129,8 @@ class ListExportExcelComponent extends CBitrixComponent
 		if(!(
 			!$this->arResult["IS_SOCNET_GROUP_CLOSED"]
 			&& (
-				$listsPerm > CListPermissions::CAN_READ
+				$this->listsPerm > CListPermissions::CAN_READ
+				|| CIBlockSectionRights::UserHasRightTo($this->arResult["IBLOCK_ID"], $this->arResult["SECTION_ID"], "element_read")
 				|| CIBlockSectionRights::UserHasRightTo($this->arResult["IBLOCK_ID"], $this->arResult["SECTION_ID"], "section_element_bind")
 			)
 		))
@@ -175,22 +180,14 @@ class ListExportExcelComponent extends CBitrixComponent
 			if ($fieldId == "MODIFIED_BY")
 				$arSelect[] = "USER_NAME";
 
-			$this->arResult["ELEMENTS_HEADERS"][$fieldId] = array(
-				"name"  => htmlspecialcharsex($arField["NAME"]),
-				"default" => true,
-				"sort" => $arField["MULTIPLE"] == "Y" ? "" : $fieldId,
-			);
+			$this->arResult["ELEMENTS_HEADERS"][$fieldId] = $arField["NAME"];
 		}
 
 		if (!count($gridColumns) || in_array("IBLOCK_SECTION_ID", $gridColumns))
 		{
 			$arSelect[] = "IBLOCK_SECTION_ID";
 		}
-		$this->arResult["ELEMENTS_HEADERS"]["IBLOCK_SECTION_ID"] = array(
-			"name" => Loc::getMessage("CC_BLL_COLUMN_SECTION"),
-			"default" => true,
-			"sort" => false,
-		);
+		$this->arResult["ELEMENTS_HEADERS"]["IBLOCK_SECTION_ID"] = Loc::getMessage("CC_BLL_COLUMN_SECTION");
 
 		/* FILTER */
 		$sections = array();
@@ -210,6 +207,7 @@ class ListExportExcelComponent extends CBitrixComponent
 
 		$i = 1;
 		$arFilterable = array();
+		$arCustomFilter = array();
 		$arDateFilter = array();
 		foreach ($arListFields as $fieldId => $arField)
 		{
@@ -245,6 +243,7 @@ class ListExportExcelComponent extends CBitrixComponent
 					"id" => $fieldId,
 					"name" => htmlspecialcharsex($arField["NAME"]),
 					"type" => "custom",
+					"fieldsType" => $arField["TYPE"],
 					"enable_settings" => false,
 					"value" => call_user_func_array($arField["PROPERTY_USER_TYPE"]["GetPublicFilterHTML"], array(
 						$arField,
@@ -256,6 +255,11 @@ class ListExportExcelComponent extends CBitrixComponent
 					)),
 				);
 				$arFilterable[$fieldId] = "";
+				if(array_key_exists("AddFilterFields", $arField["PROPERTY_USER_TYPE"]))
+					$arCustomFilter[$fieldId] = array(
+						"callback" => $arField["PROPERTY_USER_TYPE"]["AddFilterFields"],
+						"filter" => &$this->arResult["FILTER"][$i],
+					);
 			}
 			elseif ($arField["TYPE"] == "SORT" || $arField["TYPE"] == "N")
 			{
@@ -324,6 +328,7 @@ class ListExportExcelComponent extends CBitrixComponent
 				$this->arResult["FILTER"][$i] = array(
 					"id" => $fieldId,
 					"name" => htmlspecialcharsex($arField["NAME"]),
+					"fieldsType" => $arField["TYPE"]
 				);
 				$arFilterable[$fieldId] = "";
 			}
@@ -363,7 +368,22 @@ class ListExportExcelComponent extends CBitrixComponent
 			}
 		}
 
+		foreach($arCustomFilter as $fieldId => $arCallback)
+		{
+			$filtered = false;
+			call_user_func_array($arCallback["callback"], array(
+				$arListFields[$fieldId],
+				array(
+					"VALUE" => $fieldId,
+					"GRID_ID" => $this->arResult["GRID_ID"],
+				),
+				&$arFilter,
+				&$filtered,
+			));
+		}
+
 		$arFilter["IBLOCK_ID"] = $this->arIBlock["ID"];
+		$arFilter["CHECK_PERMISSIONS"] = ($this->listsPerm >= CListPermissions::CAN_READ ? "N": "Y");
 		if (!$this->arResult["ANY_SECTION"])
 			$arFilter["SECTION_ID"] = $this->arResult["SECTION_ID"];
 
@@ -374,6 +394,13 @@ class ListExportExcelComponent extends CBitrixComponent
 		$this->arResult["EXCEL_COLUMN_NAME"] = array();
 		$this->arResult["EXCEL_CELL_VALUE"] = array();
 		$count = 0;
+
+		$comments = false;
+		if(in_array("COMMENTS", $gridColumns) && CModule::includeModule("forum"))
+		{
+			$comments = true;
+		}
+
 		while ($obElement = $rsElements->GetNextElement())
 		{
 			$data = $obElement->GetFields();
@@ -389,6 +416,45 @@ class ListExportExcelComponent extends CBitrixComponent
 
 						if (is_array($arField["PROPERTY_USER_TYPE"]) && is_array($arField["PROPERTY_USER_TYPE"]["GetPublicViewHTML"]))
 						{
+							if($arProp["USER_TYPE"] == "map_yandex")
+							{
+								$data[$fieldId] = !empty($arProp["VALUE"]) ? $arProp["VALUE"] : '';
+								continue;
+							}
+							elseif($arProp["USER_TYPE"] == "DiskFile")
+							{
+								if(!empty($arProp["VALUE"]) && $this->arResult["DISK"])
+								{
+									$listValue = current($arProp["VALUE"]);
+									if(!is_array($listValue))
+										$listValue = $arProp["VALUE"];
+
+									$number = 0;
+									$countFiles = count($listValue);
+									foreach($listValue as $idAttached)
+									{
+										$number++;
+										list($type, $realId) = Bitrix\Disk\Uf\FileUserType::detectType($idAttached);
+										if($type == Bitrix\Disk\Uf\FileUserType::TYPE_ALREADY_ATTACHED)
+										{
+											$attachedModel = Bitrix\Disk\AttachedObject::loadById($realId);
+											if(!$attachedModel)
+											{
+												continue;
+											}
+											$fileModel = Bitrix\Disk\File::loadById($attachedModel->getObjectId(), array('STORAGE'));
+											if(!$fileModel)
+											{
+												continue;
+											}
+											$data[$fieldId] .= $fileModel->getName();
+											$data[$fieldId] .= ($countFiles != $number) ? ', ' : '';
+										}
+									}
+								}
+								continue;
+							}
+
 							if(is_array($arProp["~VALUE"]))
 							{
 								foreach($arProp["~VALUE"] as $propValue)
@@ -409,6 +475,48 @@ class ListExportExcelComponent extends CBitrixComponent
 								));
 							}
 						}
+						elseif ($arField["PROPERTY_TYPE"] == "E")
+						{
+							if(empty($arProp['VALUE']))
+							{
+								continue;
+							}
+
+							if(!is_array($arProp['VALUE']))
+							{
+								$arProp['VALUE'] = array($arProp['VALUE']);
+							}
+
+							$elementQuery = CIBlockElement::getList(
+								array(),
+								array("=ID" => $arProp['VALUE']),
+								false,
+								false,
+								array("NAME")
+							);
+							while($element = $elementQuery->fetch())
+							{
+								$data[$fieldId][] = $element['NAME'];
+							}
+						}
+						elseif ($arField["PROPERTY_TYPE"] == "G")
+						{
+							if(empty($arProp['VALUE']))
+							{
+								continue;
+							}
+
+							if(!is_array($arProp['VALUE']))
+							{
+								$arProp['VALUE'] = array($arProp['VALUE']);
+							}
+
+							$sectionQuery = CIBlockSection::getList(array(), array("=ID" => $arProp['VALUE']));
+							while($section = $sectionQuery->fetch())
+							{
+								$data[$fieldId][] = $section['NAME'];
+							}
+						}
 						elseif ($arField["PROPERTY_TYPE"] == "L")
 						{
 							$data[$fieldId] = htmlspecialcharsex($arProp["VALUE_ENUM"]);
@@ -416,10 +524,14 @@ class ListExportExcelComponent extends CBitrixComponent
 						elseif ($arField["PROPERTY_TYPE"] == "F")
 						{
 							$files = is_array($arProp["VALUE"]) ? $arProp["VALUE"] : array($arProp["VALUE"]);
+							$number = 1;
+							$countFiles = count($files);
 							foreach ($files as $file)
 							{
 								$value = CFile::MakeFileArray($file);
-								$data[$fieldId] .= $value["name"]."\r\n";
+								$data[$fieldId] .= $value["name"];
+								$data[$fieldId] .= ($countFiles != $number) ? ', ' : '';
+								$number++;
 							}
 						}
 						else
@@ -439,6 +551,11 @@ class ListExportExcelComponent extends CBitrixComponent
 					$data["BIZPROC"] = $this->getArrayBizproc($data);
 			}
 
+			if($comments)
+			{
+				$countComments = $this->getCommentsProcess($data["ID"]);
+			}
+
 			if (isset($data["CREATED_BY"]))
 				$data["CREATED_BY"] = "[".$data["CREATED_BY"]."] ".$data["CREATED_USER_NAME"];
 
@@ -455,8 +572,20 @@ class ListExportExcelComponent extends CBitrixComponent
 
 			foreach ($gridColumns as $position => $id)
 			{
+				if($id == "COMMENTS")
+				{
+					if($comments)
+					{
+						$data[$id] = $countComments;
+					}
+					else
+					{
+						continue;
+					}
+				}
+
 				$this->arResult["EXCEL_CELL_VALUE"][$count][$position] = is_array($data[$id]) ? implode('/', $data[$id]) : $data[$id];
-				$this->arResult["EXCEL_COLUMN_NAME"][$position] = $this->arResult["ELEMENTS_HEADERS"][$id]["name"];
+				$this->arResult["EXCEL_COLUMN_NAME"][$position] = $this->arResult["ELEMENTS_HEADERS"][$id];
 			}
 			$count++;
 		}
@@ -465,17 +594,18 @@ class ListExportExcelComponent extends CBitrixComponent
 	/* Data business process */
 	protected function getArrayBizproc($data = array())
 	{
+		if(!$this->arResult["BIZPROC"])
+		{
+			return '';
+		}
+
 		$currentUserId = $GLOBALS["USER"]->GetID();
 
 		$html = "";
 
-		if ($this->arResult["IBLOCK"]["BIZPROC"] == "Y" && CModule::IncludeModule('bizproc'))
+		if ($this->arResult["IBLOCK"]["BIZPROC"] == "Y")
 		{
-			$this->arResult["ELEMENTS_HEADERS"]["BIZPROC"] = array(
-				"name" => Loc::getMessage("CC_BLL_COLUMN_BIZPROC"),
-				"default" => true,
-				"sort" => false,
-			);
+			$this->arResult["ELEMENTS_HEADERS"]["BIZPROC"] = Loc::getMessage("CC_BLL_COLUMN_BIZPROC");
 
 			$arDocumentStates = CBPDocument::GetDocumentStates(
 				BizProcDocument::generateDocumentComplexType($this->arParams["IBLOCK_TYPE_ID"], $this->arResult["IBLOCK_ID"]),
@@ -499,5 +629,39 @@ class ListExportExcelComponent extends CBitrixComponent
 		}
 
 		return $html;
+	}
+
+	protected function getCommentsProcess($elementId)
+	{
+		$countComments = 0;
+
+		$this->arResult["ELEMENTS_HEADERS"]["COMMENTS"] = Loc::getMessage("CC_BLL_COMMENTS");
+
+		if(!$this->arResult["BIZPROC"] || !$elementId)
+		{
+			return $countComments;
+		}
+
+		$documentStates = CBPDocument::GetDocumentStates(
+			BizProcDocument::generateDocumentComplexType($this->arParams["IBLOCK_TYPE_ID"], $this->arResult["IBLOCK_ID"]),
+			BizProcDocument::getDocumentComplexId($this->arParams["IBLOCK_TYPE_ID"], $elementId)
+		);
+
+		if(!empty($documentStates))
+		{
+			$state = current($documentStates);
+		}
+		else
+		{
+			return $countComments;
+		}
+
+		$query = CForumTopic::getList(array(), array("@XML_ID" => 'WF_'.$state["ID"]));
+		while ($row = $query->fetch())
+		{
+			$countComments = $row["POSTS"];
+		}
+
+		return $countComments;
 	}
 }

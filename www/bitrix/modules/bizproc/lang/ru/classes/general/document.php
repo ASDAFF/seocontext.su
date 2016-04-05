@@ -14,4 +14,6 @@ $MESS ['BPCGDOC_YES'] = "Да";
 $MESS ['BPCGDOC_ERROR_DELEGATE'] = "Задание \"#NAME#\" не может быть делегировано: выбранный сотрудник уже участвует в выполнении задания";
 $MESS ['BPCGDOC_ERROR_ACTION'] = "Задание \"#NAME#\": #ERROR#";
 $MESS ['BPCGDOC_ERROR_TASK_IS_NOT_INLINE'] = "Задание \"#NAME#\" не может быть выполнено таким действием";
+$MESS ['BPCGDOC_WI_LOCKED_NOTICE_TITLE'] = "Помощник портала";
+$MESS ['BPCGDOC_WI_LOCKED_NOTICE_MESSAGE'] = "Некоторые бизнес-процессы(#CNT#), которые вы запустили, некорректно завершились.\n[URL=#PATH#]Перейдите в список, чтобы ознакомиться с ними[/URL].";
 ?>

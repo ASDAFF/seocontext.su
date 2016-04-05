@@ -8,7 +8,7 @@ class CAllSocNetFeatures
 	/***************************************/
 	/********  DATA MODIFICATION  **********/
 	/***************************************/
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
 		global $DB, $arSocNetAllowedEntityTypes;
 
@@ -116,7 +116,7 @@ class CAllSocNetFeatures
 		return True;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 
@@ -154,7 +154,7 @@ class CAllSocNetFeatures
 		return $bSuccess;
 	}
 
-	function DeleteNoDemand($userID)
+	public static function DeleteNoDemand($userID)
 	{
 		global $DB;
 
@@ -178,7 +178,7 @@ class CAllSocNetFeatures
 		return true;
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 
@@ -242,7 +242,7 @@ class CAllSocNetFeatures
 		return $ID;
 	}
 
-	function SetFeature($type, $id, $feature, $active, $featureName = false)
+	public static function SetFeature($type, $id, $feature, $active, $featureName = false)
 	{
 		global $arSocNetAllowedEntityTypes, $APPLICATION;
 
@@ -318,7 +318,7 @@ class CAllSocNetFeatures
 	/***************************************/
 	/**********  DATA SELECTION  ***********/
 	/***************************************/
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -339,7 +339,7 @@ class CAllSocNetFeatures
 	/***************************************/
 	/**********  COMMON METHODS  ***********/
 	/***************************************/
-	function IsActiveFeature($type, $id, $feature)
+	public static function IsActiveFeature($type, $id, $feature)
 	{
 		global $arSocNetAllowedEntityTypes;
 
@@ -468,7 +468,7 @@ class CAllSocNetFeatures
 		}
 	}
 
-	function GetActiveFeatures($type, $id)
+	public static function GetActiveFeatures($type, $id)
 	{
 		global $arSocNetAllowedEntityTypes;
 
@@ -534,7 +534,7 @@ class CAllSocNetFeatures
 		return $arReturn;
 	}
 
-	function GetActiveFeaturesNames($type, $id)
+	public static function GetActiveFeaturesNames($type, $id)
 	{
 		global $arSocNetAllowedEntityTypes;
 
@@ -567,7 +567,7 @@ class CAllSocNetFeatures
 			$cache = new CPHPCache;
 			$cache_time = 31536000;
 			$cache_id = $type."_".$id;
-			$cache_path = "/sonet/features/";
+			$cache_path = "/sonet/features/".$type."/".intval($id / 1000)."/".$id."/";
 
 			if ($cache->InitCache($cache_time, $cache_id, $cache_path))
 			{
@@ -596,11 +596,11 @@ class CAllSocNetFeatures
 				$arCacheData = Array(
 					"FEATURES" => $arFeatures
 				);
-				$cache->EndDataCache($arCacheData);
 				if(defined("BX_COMP_MANAGED_CACHE"))
 				{
-					$GLOBALS["CACHE_MANAGER"]->EndTagCache();				
+					$GLOBALS["CACHE_MANAGER"]->EndTagCache();
 				}
+				$cache->EndDataCache($arCacheData);
 			}
 
 			if (!array_key_exists("SONET_FEATURES_CACHE", $GLOBALS) || !is_array($GLOBALS["SONET_FEATURES_CACHE"]))
@@ -636,4 +636,3 @@ class CAllSocNetFeatures
 		return $arReturn;
 	}
 }
-?>

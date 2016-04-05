@@ -7,6 +7,7 @@ BX.ListClass = (function ()
 		this.iblockId = parameters.iblockId;
 		this.sectionId = parameters.sectionId;
 		this.randomString = parameters.randomString;
+		this.socnetGroupId = parameters.socnetGroupId;
 	};
 
 	ListClass.prototype.removeElement = function (elem)
@@ -306,6 +307,7 @@ BX.ListClass = (function ()
 				workflowId: workflowId,
 				elementId: elementId,
 				action: action,
+				socnetGroupId: this.socnetGroupId,
 				sessid: BX.bitrix_sessid()
 			},
 			onsuccess: BX.delegate(function (result)
@@ -316,7 +318,7 @@ BX.ListClass = (function ()
 						status: 'success',
 						message: result.message
 					});
-					setTimeout('location.reload()', 2000)
+					setTimeout('location.reload()', 1000)
 				}
 				else
 				{

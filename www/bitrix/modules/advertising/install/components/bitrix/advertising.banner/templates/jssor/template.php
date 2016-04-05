@@ -67,7 +67,7 @@
 </style>
 
 <script>
-	jssor_slider_starter_<?=$arParams['ID']?> = function (containerId) {
+	jssor_slider_starter_<?=$arResult['ID']?> = function (containerId) {
 		var _SlideshowTransitions = [
 			<?=$arParams['EFFECTS']?>
 			];
@@ -129,14 +129,14 @@
 			}
 		};
 
-		var jssor_slider_<?=$arParams['ID']?> = new $JssorSlider$("slider_container_<?=$arParams['ID']?>", options);
+		var jssor_slider_<?=$arResult['ID']?> = new $JssorSlider$("slider_container_<?=$arResult['ID']?>", options);
 
 		<?if($arParams['SCALE'] == 'Y'):?>
 		//responsive code begin
 		function ScaleSlider() {
-			var width = jssor_slider_<?=$arParams['ID']?>.$Elmt.parentNode.clientWidth;
+			var width = jssor_slider_<?=$arResult['ID']?>.$Elmt.parentNode.clientWidth;
 			if (width)
-				jssor_slider_<?=$arParams['ID']?>.$ScaleWidth(Math.min(width, 1920));
+				jssor_slider_<?=$arResult['ID']?>.$ScaleWidth(Math.min(width, 1920));
 			else
 				window.setTimeout(ScaleSlider, 30);
 		}
@@ -148,7 +148,7 @@
 		<?endif;?>
 	};
 </script>
-<div id="slider_container_<?=$arParams['ID']?>" style="position: relative; margin: 0 auto;
+<div id="slider_container_<?=$arResult['ID']?>" style="position: relative; margin: 0 auto;
 	top: 0px; left: 0px; width: <?=$arParams['WIDTH']?>px; height: <?=$arParams['HEIGHT']?>px; overflow: hidden;">
 	<div data-u="loading" style="position: absolute; top: 0px; left: 0px;">
 		<div style="filter: alpha(opacity=70); opacity:0.7; display: block;
@@ -176,7 +176,7 @@
 </div>
 <script>
 	BX.ready(function(){
-		jssor_slider_starter_<?=$arParams['ID']?>('slider_container_<?=$arParams['ID']?>');
+		jssor_slider_starter_<?=$arResult['ID']?>('slider_container_<?=$arResult['ID']?>');
 	});
 </script>
 

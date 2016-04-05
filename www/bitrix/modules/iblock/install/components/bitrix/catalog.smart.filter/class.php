@@ -270,16 +270,7 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 			if ($existCurrency)
 				$currency = $this->facet->lookupDictionaryValue($currency);
 
-			if ($this->convertCurrencyId && $existCurrency)
-			{
-				$priceValue = CCurrencyRates::ConvertCurrency($arElement["MIN_VALUE_NUM"], $currency, $this->convertCurrencyId);
-				$this->currencyTagList[$currency] = $currency;
-			}
-			else
-			{
-				$priceValue = $arElement["MIN_VALUE_NUM"];
-			}
-
+			$priceValue = $this->convertPrice($arElement["MIN_VALUE_NUM"], $currency);
 			if (
 				!isset($resultItem["VALUES"]["MIN"]["VALUE"])
 				|| $resultItem["VALUES"]["MIN"]["VALUE"] > $priceValue
@@ -287,19 +278,15 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 			{
 				$resultItem["VALUES"]["MIN"]["VALUE"] = $priceValue;
 				if ($existCurrency)
-					$resultItem["VALUES"]["MIN"]["CURRENCY"] = $currency;
+				{
+					if ($this->convertCurrencyId)
+						$resultItem["VALUES"]["MIN"]["CURRENCY"] = $this->convertCurrencyId;
+					else
+						$resultItem["VALUES"]["MIN"]["CURRENCY"] = $currency;
+				}
 			}
 
-			if ($this->convertCurrencyId && $existCurrency)
-			{
-				$priceValue = CCurrencyRates::ConvertCurrency($arElement["MAX_VALUE_NUM"], $currency, $this->convertCurrencyId);
-				$this->currencyTagList[$currency] = $currency;
-			}
-			else
-			{
-				$priceValue = $arElement["MAX_VALUE_NUM"];
-			}
-
+			$priceValue = $this->convertPrice($arElement["MAX_VALUE_NUM"], $currency);
 			if (
 				!isset($resultItem["VALUES"]["MAX"]["VALUE"])
 				|| $resultItem["VALUES"]["MAX"]["VALUE"] < $priceValue
@@ -307,7 +294,12 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 			{
 				$resultItem["VALUES"]["MAX"]["VALUE"] = $priceValue;
 				if ($existCurrency)
-					$resultItem["VALUES"]["MAX"]["CURRENCY"] = $currency;
+				{
+					if ($this->convertCurrencyId)
+						$resultItem["VALUES"]["MAX"]["CURRENCY"] = $this->convertCurrencyId;
+					else
+						$resultItem["VALUES"]["MAX"]["CURRENCY"] = $currency;
+				}
 			}
 		}
 		else
@@ -335,7 +327,12 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 				{
 					$resultItem["VALUES"]["MIN"]["VALUE"] = $price;
 					if ($existCurrency)
-						$resultItem["VALUES"]["MIN"]["CURRENCY"] = $currency;
+					{
+						if ($this->convertCurrencyId)
+							$resultItem["VALUES"]["MIN"]["CURRENCY"] = $this->convertCurrencyId;
+						else
+							$resultItem["VALUES"]["MIN"]["CURRENCY"] = $currency;
+					}
 				}
 
 				if(
@@ -346,7 +343,12 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 				{
 					$resultItem["VALUES"]["MAX"]["VALUE"] = $price;
 					if ($existCurrency)
-						$resultItem["VALUES"]["MAX"]["CURRENCY"] = $currency;
+					{
+						if ($this->convertCurrencyId)
+							$resultItem["VALUES"]["MAX"]["CURRENCY"] = $this->convertCurrencyId;
+						else
+							$resultItem["VALUES"]["MAX"]["CURRENCY"] = $currency;
+					}
 				}
 			}
 		}
@@ -375,6 +377,20 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 				);
 			}
 		}
+	}
+
+	public function convertPrice($price, $currency)
+	{
+		if ($this->convertCurrencyId && $currency)
+		{
+			$priceValue = CCurrencyRates::ConvertCurrency($price, $currency, $this->convertCurrencyId);
+			$this->currencyTagList[$currency] = $currency;
+		}
+		else
+		{
+			$priceValue = $price;
+		}
+		return $priceValue;
 	}
 
 	public function fillItemValues(&$resultItem, $arProperty, $flag = null)
@@ -630,7 +646,7 @@ class CBitrixCatalogSmartFilter extends CBitrixComponent
 
 		if ($url_id)
 		{
-			$resultItem["VALUES"][$htmlKey]['URL_ID'] = $url_id;
+			$resultItem["VALUES"][$htmlKey]['URL_ID'] = urlencode($url_id);
 		}
 
 		return $htmlKey;

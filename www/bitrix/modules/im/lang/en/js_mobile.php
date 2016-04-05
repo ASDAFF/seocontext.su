@@ -45,4 +45,7 @@ $MESS["IM_CHAT_MUTE_ON"] = "Enable notifications";
 $MESS["IM_CHAT_MUTE_OFF"] = "Disable notifications";
 $MESS["IM_MENU_SAVE"] = "Save";
 $MESS["IM_MENU_CANCEL"] = "Cancel";
+$MESS["IM_FILE_LISTEN_NA"] = "Playing sound files on the phone is temporarily unavailable.";
+$MESS["IM_MENU_WARN"] = "Attention";
+$MESS["IM_MENU_LEAVE_CONFIRM"] = "Are you sure you want to leave this chat?";
 ?>

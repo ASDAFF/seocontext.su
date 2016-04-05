@@ -16,7 +16,7 @@ if (CSocNetFeatures::IsActiveFeature(SONET_ENTITY_USER, $arResult["VARIABLES"]["
 			".default",
 			Array(
 				"USER_ID" => $arResult["VARIABLES"]["user_id"],
-				"ITEMS_COUNT" => $arParams["ITEM_DETAIL_COUNT"],
+				"ITEMS_COUNT" => "50",
 				"PAGE_VAR" => $arResult["ALIASES"]["page"],
 				"USER_VAR" => $arResult["ALIASES"]["user_id"],
 				"VIEW_VAR" => $arResult["ALIASES"]["view_id"],

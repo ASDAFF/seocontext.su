@@ -28,7 +28,7 @@
 <?endif;?>
 
 <div class="slider-wrapper theme-default">
-	<div id="slider-<?=$arParams['ID']?>" class="nivoSlider">
+	<div id="slider-<?=$arResult['ID']?>" class="nivoSlider">
 		<?foreach($arResult["BANNERS"] as $k => $banner):?>
 			<?=$banner?>
 		<?endforeach;?>
@@ -37,7 +37,7 @@
 
 <script type="text/javascript">
 	$(window).load(function() {
-		$('#slider-<?=$arParams['ID']?>').nivoSlider({
+		$('#slider-<?=$arResult['ID']?>').nivoSlider({
 			effect: '<?=$arParams['EFFECT']?>',
 			slices: 15, // For slice animations
 			boxCols: 8, // For box animations

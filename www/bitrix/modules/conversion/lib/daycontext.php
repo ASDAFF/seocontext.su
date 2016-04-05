@@ -43,18 +43,19 @@ final class DayContext extends Internals\BaseContext
 	public function addDayCounter($name, $value)
 	{
 		$session =& self::$session;
-		$unique =& $session['UNIQUE'];
 
-		if (! in_array($name, $unique, true))
+		if (($id = $this->id) === null)
 		{
-			$unique []= $name;
+			$session['PENDING_DAY_COUNTERS'][$name] = $value;
+		}
+		else
+		{
+			$unique =& $session['UNIQUE'];
 
-			if (($id = $this->id) === null)
+			if (! in_array($name, $unique, true))
 			{
-				$session['PENDING_DAY_COUNTERS'][$name] = $value;
-			}
-			else
-			{
+				$unique [] = $name;
+
 				$this->addCounter($name, $value);
 				$this->setCookie(); // TODO HACK save to database into session
 			}

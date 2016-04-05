@@ -16,6 +16,13 @@ else
 	$APPLICATION->SetUniqueJS('live_feed_v2'.($arParams["IS_CRM"] != "Y" ? "" : "_crm"));
 	$APPLICATION->SetUniqueCSS('live_feed_v2'.($arParams["IS_CRM"] != "Y" ? "" : "_crm"));
 
+	if ($arParams["IS_CRM"] !== "Y")
+	{
+		$bodyClass = $APPLICATION->GetPageProperty("BodyClass");
+		$bodyClass = $bodyClass ? $bodyClass." no-paddings" : "no-paddings";
+		$APPLICATION->SetPageProperty("BodyClass", $bodyClass);
+	}
+
 	$log_content_id = "sonet_log_content_".RandString(8);
 	$event_cnt = 0;
 
@@ -861,9 +868,9 @@ else
 	$arParams["FORM_ID"] = "sonetCommentForm".$arParams["UID"];
 	$arParams["ALLOW_VIDEO"] = ($arParams["ALLOW_VIDEO"] == "Y" ? "Y" : "N");
 
-	$arSmiles = array();
-	if(!empty($arResult["Smiles"]))
+	if (is_array($arResult["Smiles"]))
 	{
+		$arSmiles = array();
 		foreach($arResult["Smiles"] as $arSmile)
 		{
 			$arSmiles[] = array(
@@ -875,6 +882,11 @@ else
 				'height' => $arSmile["IMAGE_HEIGHT"],
 			);
 		}
+		$smiles = Array("VALUE" => $arSmiles);
+	}
+	else
+	{
+		$smiles = intval($arResult["Smiles"]);
 	}
 
 	$formParams = array(
@@ -923,7 +935,7 @@ else
 			"DEL_LINK" => $arResult["urlToDelImage"],
 			"SHOW" => "N"
 		),
-		"SMILES" => Array("VALUE" => $arSmiles),
+		"SMILES" => $smiles,
 		"LHE" => array(
 			"id" => "id".$arParams["FORM_ID"],
 			"documentCSS" => "body {color:#434343;}",
@@ -932,6 +944,19 @@ else
 			"fontSize" => "12px",
 			"bInitByJS" => true,
 			"height" => 80
+		),
+		"PROPERTIES" => array(
+			array_merge(
+				(
+					isset($arResult["COMMENT_PROPERTIES"])
+					&& isset($arResult["COMMENT_PROPERTIES"]["DATA"])
+					&& isset($arResult["COMMENT_PROPERTIES"]["DATA"]["UF_SONET_COM_URL_PRV"])
+					&& is_array($arResult["COMMENT_PROPERTIES"]["DATA"]["UF_SONET_COM_URL_PRV"])
+						? $arResult["COMMENT_PROPERTIES"]["DATA"]["UF_SONET_COM_URL_PRV"]
+						: array()
+				),
+				array('ELEMENT_ID' => 'url_preview_'.$arParams["FORM_ID"])
+			)
 		)
 	);
 

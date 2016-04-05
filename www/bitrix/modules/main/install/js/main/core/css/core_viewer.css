@@ -356,7 +356,7 @@
 .bx-viewer-cap-file .bx-viewer-cap{margin-top: 30px; height:318px;}
 
 .bx-viewer-icon {
-	background: url("../images/bx-viewer-icons.png?23") no-repeat center -129px;
+	background: url("../images/bx-viewer-icons.png?223") no-repeat center -129px;
 	height: 120px;
 	left: 47px;
 	top: 85px;
@@ -400,7 +400,7 @@
 }
 
 .bx-viewer-too-big-title {
-	background: url("../images/bx-viewer-icons.png?23") no-repeat -58px -1524px;
+	background: url("../images/bx-viewer-icons.png?223") no-repeat -58px -1524px;
 	color: #999;
 	font-size: 12px;
 	margin-top: -3px;
@@ -463,7 +463,7 @@
 }
 
 .bx-viewer-btn-save:before {
-	background: url(../images/bx-viewer-icons.png?23) no-repeat -59px -1563px;
+	background: url(../images/bx-viewer-icons.png?223) no-repeat -59px -1563px;
 	content: "";
 	height: 7px;
 	top: 10px;
@@ -637,7 +637,7 @@
 }
 
 .bx-viewer-btn-split-r .bx-viewer-btn-split-bg:before {
-	background: url(../images/bx-viewer-icons.png?23) no-repeat -59px -1563px;
+	background: url(../images/bx-viewer-icons.png?223) no-repeat -59px -1563px;
 	content: "";
 	height: 7px;
 	top: 10px;
@@ -677,7 +677,7 @@
 }
 
 .bx-viewer-popup-item .menu-popup-item-icon{
-	background: url(../images/bx-viewer-icons.png?23) no-repeat 100px;
+	background: url(../images/bx-viewer-icons.png?223) no-repeat 100px;
 	display: inline-block;
 	height: 29px;
 	margin:0;
@@ -693,6 +693,8 @@
 .item-edit .menu-popup-item-icon {background-position: center -1812px;}
 .item-history .menu-popup-item-icon {background-position: center -1851px;}
 .item-local .menu-popup-item-icon {background-position: center -2071px;}
+.item-b24-office .menu-popup-item-icon {background-position: center -2218px;}
+.item-office365 .menu-popup-item-icon {background-position: center -2257px}
 .item-setting .menu-popup-item-icon {background-position: center -2125px;}
 .item-toload .menu-popup-item-icon {background-position: center -2178px;}
 .item-enable-auto-comment .menu-popup-item-icon {background-position: center -2232px;}
@@ -715,7 +717,7 @@
 }
 .status-sky-drive:before,
 .status-google:before {
-	background: url(../images/bx-viewer-icons.png?23) no-repeat 100px 100px;
+	background: url(../images/bx-viewer-icons.png?223) no-repeat 100px 100px;
 	content: "";
 	height: 13px;
 	left: 0;
@@ -817,7 +819,7 @@
 }
 
 .bx-viewer-alert-close-icon {
-	background: url(../images/bx-viewer-icons.png?232) no-repeat center -1742px;
+	background: url(../images/bx-viewer-icons.png?2232) no-repeat center -1742px;
 	height: 23px;
 	opacity: 0.5;
 	right: 5px;

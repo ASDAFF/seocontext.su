@@ -45,9 +45,6 @@ endif;
 	$arParams["EDITOR_CODE_DEFAULT"] = ($arParams["EDITOR_CODE_DEFAULT"] == "Y" ? "Y" : "N");
 	$arParams['AJAX_POST'] = ($arParams["AJAX_POST"] == "Y" ? "Y" : "N");
 	
-	$arParams["PATH_TO_SMILE"] = (empty($arParams["PATH_TO_SMILE"]) ? "/bitrix/images/forum/smile/" : $arParams["PATH_TO_SMILE"]);
-	$arParams["PATH_TO_ICON"] = (empty($arParams["PATH_TO_ICON"]) ? "/bitrix/images/forum/icon/" : $arParams["PATH_TO_ICON"]);
-	$arParams["SMILE_TABLE_COLS"] = (intval($arParams["SMILE_TABLE_COLS"]) > 0 ? intval($arParams["SMILE_TABLE_COLS"]) : 3);
 	$arParams["VOTE_CHANNEL_ID"] = intVal($arParams["VOTE_CHANNEL_ID"]);
 	$arParams["SHOW_VOTE"] = ($arParams["SHOW_VOTE"] == "Y" && $arParams["VOTE_CHANNEL_ID"] > 0 && IsModuleInstalled("vote") ? "Y" : "N");
 	$arParams["AUTOSAVE"] = CForumAutosave::GetInstance();
@@ -415,13 +412,11 @@ if ($arResult["SHOW_PANEL"]["GUEST"] == "Y")
 	$arResult["DATA"]["AUTHOR_NAME"] = (!empty($arResult["DATA"]["AUTHOR_NAME"]) ? $arResult["DATA"]["AUTHOR_NAME"] : GetMessage("FPF_GUEST"));
 }
 if ($arResult["SHOW_PANEL"]["TOPIC"] == "Y") {
-	$arResult["ICONS_LIST"] = ForumPrintIconsList(7, "ICON_ID", $arResult["DATA"]["ICON_ID"],
-		GetMessage("FPF_NO_ICON"), LANGUAGE_ID, $arParams["PATH_TO_ICON"], $arParams["CACHE_TIME"]);
+	$arResult["ICONS_LIST"] = ForumPrintIconsList(7, $arResult["DATA"]["ICON_ID"]);
 }
 if ($arResult["FORUM"]["ALLOW_SMILES"] == "Y")
 {
-	$arResult["SMILES_LIST"] = ForumPrintSmilesList($arParams["SMILE_TABLE_COLS"], LANGUAGE_ID,
-		$arParams["PATH_TO_SMILE"], $arParams["CACHE_TIME"]);
+	$arResult["SMILES_LIST"] = ForumPrintSmilesList(3, LANGUAGE_ID);
 	$arResult["SMILES"] = CForumSmile::GetByType("S", LANGUAGE_ID);
 }
 

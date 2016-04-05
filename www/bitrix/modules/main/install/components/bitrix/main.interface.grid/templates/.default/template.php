@@ -147,7 +147,7 @@ foreach($arParams["ROWS"] as $index=>$aRow):
 			onclick="bxGrid_<?=$arParams["GRID_ID"]?>.ShowActionMenu(this, <?=$index?>);"
 			title="<?echo GetMessage("interface_grid_act")?>" class="bx-action"><div class="empty"></div></a></td>
 	<?else:?>
-		<td>&nbsp;</td>
+		<td class="bx-actions-col">&nbsp;</td>
 	<?endif?>
 <?foreach($arResult["HEADERS"] as $id=>$header):?>
 		<td<?=($header["sort_state"] <> ''? ' class="bx-sorted"':'')?><?

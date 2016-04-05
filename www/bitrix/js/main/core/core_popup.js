@@ -90,6 +90,20 @@ BX.PopupWindow = function(uniquePopupId, bindElement, params)
 	this.closeByEsc = !!this.params.closeByEsc;
 	this.isCloseByEscBinded = false;
 
+	if (this.params.parentPopup instanceof BX.PopupWindow)
+	{
+		this.parentPopup = this.params.parentPopup;
+		this.appendContainer = this.params.parentPopup.contentContainer;
+
+		this.params.offsetTop = (this.params.offsetTop? this.params.offsetTop: 0) - (BX.PopupWindow.fullscreenStatus? 0: this.parentPopup.popupContainer.offsetTop);
+		this.params.offsetLeft = (this.params.offsetLeft? this.params.offsetLeft: 0) - (BX.PopupWindow.fullscreenStatus? 0: this.parentPopup.popupContainer.offsetLeft);
+	}
+	else
+	{
+		this.parentPopup = null;
+		this.appendContainer = document.body;
+	}
+
 	this.dragged = false;
 	this.dragPageX = 0;
 	this.dragPageY = 0;
@@ -146,7 +160,8 @@ BX.PopupWindow = function(uniquePopupId, bindElement, params)
 			<td class="popup-window-right-column"></td> \
 		</tr> \
 	</table>'].join("");
-	document.body.appendChild(this.popupContainer);
+
+	this.appendContainer.appendChild(this.popupContainer);
 
 	if (params.closeIcon)
 	{
@@ -446,7 +461,8 @@ BX.PopupWindow.prototype.setOverlay = function(params)
 
 		this.adjustOverlayZindex();
 		this.resizeOverlay();
-		document.body.appendChild(this.overlay.element);
+
+		this.appendContainer.appendChild(this.overlay.element);
 	}
 
 	if (params && params.opacity && BX.type.isNumber(params.opacity) && params.opacity >= 0 && params.opacity <= 100)
@@ -488,9 +504,23 @@ BX.PopupWindow.prototype.resizeOverlay = function()
 {
 	if (this.overlay != null && this.overlay.element != null)
 	{
-		var windowSize = BX.GetWindowScrollSize();
-		this.overlay.element.style.width = windowSize.scrollWidth + "px";
-		this.overlay.element.style.height = windowSize.scrollHeight + "px";
+		if (this.parentPopup)
+		{
+			this.overlay.element.style.width = this.parentPopup.popupContainer.offsetWidth + "px";
+			this.overlay.element.style.height = this.parentPopup.popupContainer.offsetHeight + "px";
+		}
+		else
+		{
+			var windowSize = BX.GetWindowScrollSize();
+			var scrollHeight = Math.max(
+				document.body.scrollHeight, document.documentElement.scrollHeight,
+				document.body.offsetHeight, document.documentElement.offsetHeight,
+				document.body.clientHeight, document.documentElement.clientHeight
+			);
+
+			this.overlay.element.style.width = windowSize.scrollWidth + "px";
+			this.overlay.element.style.height = scrollHeight + "px";
+		}
 	}
 };
 
@@ -626,6 +656,57 @@ BX.PopupWindow.prototype.destroy = function()
 	this.removeOverlay();
 };
 
+BX.PopupWindow.prototype.enterFullScreen = function()
+{
+	if (BX.PopupWindow.fullscreenStatus)
+	{
+		if (document.cancelFullScreen)
+			document.cancelFullScreen();
+		else if (document.mozCancelFullScreen)
+			document.mozCancelFullScreen();
+		else if (document.webkitCancelFullScreen)
+			document.webkitCancelFullScreen();
+	}
+	else
+	{
+		if (BX.browser.IsChrome() || BX.browser.IsSafari())
+		{
+			this.contentContainer.webkitRequestFullScreen(this.contentContainer.ALLOW_KEYBOARD_INPUT);
+			BX.bind(window, "webkitfullscreenchange", this.fullscreenBind = BX.proxy(this.eventFullScreen, this));
+		}
+		else if (BX.browser.IsFirefox())
+		{
+			this.contentContainer.mozRequestFullScreen(this.contentContainer.ALLOW_KEYBOARD_INPUT);
+			BX.bind(window, "mozfullscreenchange", this.fullscreenBind = BX.proxy(this.eventFullScreen, this));
+		}
+	}
+};
+
+BX.PopupWindow.prototype.eventFullScreen = function(event)
+{
+	if (BX.PopupWindow.fullscreenStatus)
+	{
+		if (BX.browser.IsChrome() || BX.browser.IsSafari())
+			BX.unbind(window, "webkitfullscreenchange", this.fullscreenBind);
+		else if (BX.browser.IsFirefox())
+			BX.unbind(window, "mozfullscreenchange", this.fullscreenBind);
+
+		BX.removeClass(this.contentContainer, 'popup-window-fullscreen', [this.contentContainer]);
+
+		BX.PopupWindow.fullscreenStatus = false;
+		BX.onCustomEvent(this, "onPopupFullscreenLeave");
+		this.adjustPosition();
+	}
+	else
+	{
+		BX.addClass(this.contentContainer, 'popup-window-fullscreen');
+		BX.PopupWindow.fullscreenStatus = true;
+		BX.onCustomEvent(this, "onPopupFullscreenEnter", [this.contentContainer]);
+		this.adjustPosition();
+
+	}
+};
+
 BX.PopupWindow.prototype.adjustPosition = function(bindOptions)
 {
 	if (bindOptions && typeof(bindOptions) == "object")
@@ -637,7 +718,9 @@ BX.PopupWindow.prototype.adjustPosition = function(bindOptions)
 		 bindElementPos.top == this.bindElementPos.top &&
 		 bindElementPos.left == this.bindElementPos.left
 	)
+	{
 		return;
+	}
 
 	this.bindElementPos = bindElementPos;
 
@@ -697,7 +780,6 @@ BX.PopupWindow.prototype.adjustPosition = function(bindOptions)
 	else
 	{
 		top = this.bindElementPos.bottom + this.offsetTop + this.getAngleHeight();
-
 		if ( !this.bindOptions.forceTop &&
 			(top + popupHeight) > (windowSize.innerHeight + windowScroll.scrollTop) &&
 			(this.bindElementPos.top - popupHeight - this.getAngleHeight()) >= 0) //Can we place the PopupWindow above the bindElement?
@@ -719,7 +801,7 @@ BX.PopupWindow.prototype.adjustPosition = function(bindOptions)
 		}
 	}
 
-	if (top < 0)
+	if (!this.parentPopup && top < 0)
 		top = 0;
 
 	BX.adjust(this.popupContainer, { style: {
@@ -749,7 +831,7 @@ BX.PopupWindow.prototype.move = function(offsetX, offsetY)
 	if (typeof(this.params.draggable) == "object" && this.params.draggable.restrict)
 	{
 		//Left side
-		if (left < 0)
+		if (!this.parentPopup && left < 0)
 			left = 0;
 
 		//Right side
@@ -764,7 +846,7 @@ BX.PopupWindow.prototype.move = function(offsetX, offsetY)
 			top = scrollSize.scrollHeight - floatHeight;
 
 		//Top side
-		if (top < 0)
+		if (!this.parentPopup && top < 0)
 			top = 0;
 	}
 

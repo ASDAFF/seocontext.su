@@ -1727,7 +1727,9 @@ select::-ms-expand {
 	box-sizing: border-box;
 	font-size: 15px;
 }
-
+.bxu-popup.bxu-popup-nondescription .adm-photoeditor-desc{
+	opacity : 0;
+}
 .adm-photoeditor-active-image-block {
 	position: absolute;
 	display: inline-block;

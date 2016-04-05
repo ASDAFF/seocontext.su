@@ -1,4 +1,5 @@
 <?
+define("NOT_CHECK_FILE_PERMISSIONS", true);
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_js.php");
 
@@ -9,57 +10,7 @@ $popupWindow = new CJSPopup(GetMessage("BIZPROC_AS_TITLE"));
 
 $popupWindow->ShowTitlebar(GetMessage("BIZPROC_AS_TITLE"));
 
-CUtil::DecodeUriComponent($_POST);
-
-/*if(LANG_CHARSET != "UTF-8" && is_array($_POST["arWorkflowParameters"]))
-{
-	foreach($_POST["arWorkflowParameters"] as $name=>$param)
-	{
-		if(is_array($_POST["arWorkflowParameters"][$name]["Options"]))
-		{
-			$newarr = Array();
-			foreach($_POST["arWorkflowParameters"][$name]["Options"] as $k=>$v)
-				$newarr[$GLOBALS["APPLICATION"]->ConvertCharset($k, "UTF-8", LANG_CHARSET)] = $v;
-			$_POST["arWorkflowParameters"][$name]["Options"] = $newarr;
-		}
-	}
-}
-
-if(LANG_CHARSET != "UTF-8" && is_array($_POST["arWorkflowVariables"]))
-{
-	foreach($_POST["arWorkflowVariables"] as $name=>$param)
-	{
-		if(is_array($_POST["arWorkflowVariables"][$name]["Options"]))
-		{
-			$newarr = Array();
-			foreach($_POST["arWorkflowVariables"][$name]["Options"] as $k=>$v)
-				$newarr[$GLOBALS["APPLICATION"]->ConvertCharset($k, "UTF-8", LANG_CHARSET)] = $v;
-			$_POST["arWorkflowVariables"][$name]["Options"] = $newarr;
-		}
-	}
-}*/
-
-if (LANG_CHARSET != "UTF-8")
-{
-	function BPasDecodeArrayKeys($item)
-	{
-		if (is_array($item))
-		{
-			$ar = array();
-
-			foreach ($item as $k => $v)
-				$ar[$GLOBALS["APPLICATION"]->ConvertCharset($k, "UTF-8", LANG_CHARSET)] = BPasDecodeArrayKeys($v);
-
-			return $ar;
-		}
-		else
-		{
-			return $item;
-		}
-	}
-
-	$_POST = BPasDecodeArrayKeys($_POST);
-}
+CBPHelper::decodeTemplatePostData($_POST);
 
 $activityName = $_REQUEST['id'];
 $activityType = $_REQUEST['activity'];
@@ -145,6 +96,7 @@ if($_POST["save"] == "Y" && check_bitrix_sessid())
 		arWorkflowParameters = <?=CUtil::PhpToJSObject($arWorkflowParameters)?>;
 		arWorkflowVariables = <?=CUtil::PhpToJSObject($arWorkflowVariables)?>;
 		arWorkflowTemplate = <?=CUtil::PhpToJSObject($arWorkflowTemplate[0])?>;
+		BPTemplateIsModified = true;
 		ReDraw();
 		<?=$popupWindow->jsPopup?>.CloseDialog();
 		</script>
@@ -155,19 +107,26 @@ if($_POST["save"] == "Y" && check_bitrix_sessid())
 
 function PHPToHiddens($ob, $name)
 {
-	if(is_array($ob))
+	global $APPLICATION;
+	if (strtolower(LANG_CHARSET) != 'utf-8')
 	{
-		$s="";
-		foreach($ob as $k=>$v)
-			$s .= PHPToHiddens($v, $name."[".$k."]");
-		return $s;
+		$ob = $APPLICATION->ConvertCharsetArray($ob, LANG_CHARSET, 'utf-8');
+		$ob = CBPHelper::decodeArrayKeys($ob, true);
 	}
+	$ob = json_encode($ob);
+	//if(is_array($ob))
+	//{
+	//	$s="";
+	//	foreach($ob as $k=>$v)
+	//		$s .= PHPToHiddens($v, $name."[".$k."]");
+	//	return $s;
+	//}
 	return '<input type="hidden" name="'.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx($ob).'">';
 }
 
-echo PHPToHiddens($_POST['arWorkflowTemplate'], 'arWorkflowTemplate');
-echo PHPToHiddens($_POST['arWorkflowParameters'], 'arWorkflowParameters');
-echo PHPToHiddens($_POST['arWorkflowVariables'], 'arWorkflowVariables');
+echo PHPToHiddens($arWorkflowTemplate, 'arWorkflowTemplate');
+echo PHPToHiddens($arWorkflowParameters, 'arWorkflowParameters');
+echo PHPToHiddens($arWorkflowVariables, 'arWorkflowVariables');
 
 CBPDocument::AddShowParameterInit(MODULE_ID, "all", $_POST['document_type'], ENTITY);
 ?>
@@ -264,7 +223,9 @@ setTimeout("document.getElementById('bpastitle').focus();", 100);
 			}
 		}
 	}
-
+	BX.namespace('BX.Bizproc');
+	if (typeof BX.Bizproc.Selector !== 'undefined')
+		BX.Bizproc.Selector.initSelectors();
 })();
 
 

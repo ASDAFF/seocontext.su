@@ -22,6 +22,14 @@ class AssetLocation
 	const AFTER_JS = 'AFTER_JS';
 }
 
+class AssetShowTargetType
+{
+    const ALL = 0;
+    const KERNEL = 1;
+    const TEMPLATE_PAGE = 2;
+    const BODY = 3;
+}
+
 class Asset
 {
 	private static $instance;
@@ -1471,7 +1479,7 @@ class Asset
 	 * Return css page assets
 	 * @return string
 	 */
-	public function getCss()
+    public function getCss($type = AssetShowTargetType::ALL)
 	{
 		$res = $res_content = '';
 		$cnt = $ruleCount = 0;
@@ -1569,15 +1577,35 @@ class Asset
 			$res .= '<script type="text/javascript">'."BX.loadCSS(['".implode("','", $arAjaxList)."']);".'</script>';
 		}
 
-		foreach($this->targetList as $setName => $set)
-		{
-			if($setName != 'TEMPLATE')
-			{
-				$res .= $this->showAsset($setList, 'css', $setName);
-			}
-		}
+        if($type == AssetShowTargetType::KERNEL)
+        {
+            $res .= $this->showAsset($setList, 'css', 'KERNEL');
+        }
+        elseif($type == AssetShowTargetType::TEMPLATE_PAGE)
+        {
+            foreach($this->targetList as $setName => $set)
+            {
+                if($setName != 'TEMPLATE' && $setName != 'KERNEL')
+                {
+                    $res .= $this->showAsset($setList, 'css', $setName);
+                }
+            }
 
-		$res .= $this->showAsset($setList, 'css', 'TEMPLATE');
+            $res .= $this->showAsset($setList, 'css', 'TEMPLATE');
+        }
+        else
+        {
+            foreach($this->targetList as $setName => $set)
+            {
+                if($setName != 'TEMPLATE')
+                {
+                    $res .= $this->showAsset($setList, 'css', $setName);
+                }
+            }
+
+            $res .= $this->showAsset($setList, 'css', 'TEMPLATE');
+        }
+
 		return $res;
 	}
 
@@ -1586,18 +1614,17 @@ class Asset
 	 * @param int $type
 	 * @return string
 	 */
-	function getJs($type = 0)
+	function getJs($type = AssetShowTargetType::ALL)
 	{
 		static $firstExec = true;
 		static $setList = array();
 
 		$res = '';
 		$type = (int) $type;
-		$type = (($type == 1 && $this->headString && !$this->headScript) ? 0 : $type);
+		$type = (($type == AssetShowTargetType::KERNEL && $this->headString && !$this->headScript) ? AssetShowTargetType::ALL : $type);
 		$optimize = $this->optimizeJs();
 		if($firstExec)
 		{
-			//if(!empty($arScripts) || !empty($additionalJS) || !empty($this->sCssJsFList['CSS'])) { CJSCore::Init(); }
 			$this->prepareJs();
 			$setList = $this->getTargetList('JS');
 
@@ -1639,7 +1666,7 @@ class Asset
 			$firstExec = false;
 		}
 
-		if($type == 1 && ($this->mode & $this->targetList['KERNEL']['MODE']))
+		if($type == AssetShowTargetType::KERNEL && ($this->mode & $this->targetList['KERNEL']['MODE']))
 		{
 			$setName = 'KERNEL';
 			$res .= $this->getStrings(AssetLocation::AFTER_CSS);
@@ -1647,7 +1674,7 @@ class Asset
 			$res .= $this->showFilesList();
 			$res .= $this->getStrings(AssetLocation::AFTER_JS_KERNEL);
 		}
-		elseif($type == 2)
+		elseif($type == AssetShowTargetType::TEMPLATE_PAGE)
 		{
 			foreach($this->targetList as $setName => $set)
 			{
@@ -1659,7 +1686,7 @@ class Asset
 			}
 			$res .= $this->getStrings(AssetLocation::AFTER_JS);
 		}
-		elseif($type == 3 && ($this->mode & $this->targetList['BODY']['MODE']))
+		elseif($type == AssetShowTargetType::BODY && ($this->mode & $this->targetList['BODY']['MODE']))
 		{
 			$setName = 'BODY';
 			$res .= $this->showAsset($setList,'js', $setName);

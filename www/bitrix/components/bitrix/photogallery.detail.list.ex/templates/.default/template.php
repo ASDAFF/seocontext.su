@@ -13,7 +13,7 @@ if (!$this->__component->__parent || strpos($this->__component->__parent->__name
 if ($arParams["USE_RATING"] == "Y" && $arParams["DISPLAY_AS_RATING"] != "rating_main")
 	$GLOBALS['APPLICATION']->AddHeadScript('/bitrix/components/bitrix/iblock.vote/templates/ajax_photo/script1.js');
 
-CUtil::InitJSCore(array('window', 'ajax', 'tooltip', 'popup'));
+CJSCore::Init(array('window', 'ajax', 'tooltip', 'popup'));
 
 /********************************************************************
 				Input params
@@ -27,10 +27,9 @@ if ($arParams["PICTURES_SIGHT"] != "standart" && intVal($arParams["PICTURES"][$a
 	$arParams["THUMBNAIL_SIZE"] = $arParams["PICTURES"][$arParams["PICTURES_SIGHT"]]["size"];
 
 $arParams["ID"] = md5(serialize(array("default", $arParams["FILTER"], $arParams["SORTING"])));
-
-$arParams["SHOW_RATING"] = ($arParams["SHOW_RATING"] == "Y" ? "Y" : "N");
-$arParams["SHOW_SHOWS"] = ($arParams["SHOW_SHOWS"] == "Y" ? "Y" : "N");
-$arParams["SHOW_COMMENTS"] = ($arParams["SHOW_COMMENTS"] == "Y" ? "Y" : "N");
+$arParams["SHOW_RATING"] = ($arParams["SHOW_RATING"] == "N" ? "N" : "Y");
+$arParams["SHOW_SHOWS"] = ($arParams["SHOW_SHOWS"] == "N" ? "N" : "Y");
+$arParams["SHOW_COMMENTS"] = ($arParams["SHOW_COMMENTS"] == "N" ? "N" : "Y");
 $arParams["COMMENTS_TYPE"] = (strToLower($arParams["COMMENTS_TYPE"]) == "blog" ? "blog" : "forum");
 $arParams["SHOW_DATETIME"] = ($arParams["SHOW_DATETIME"] == "Y" ? "Y" : "N");
 $arParams["SHOW_DESCRIPTION"] = ($arParams["SHOW_DESCRIPTION"] == "Y" ? "Y" : "N");
@@ -210,6 +209,7 @@ BX.ready(function(){
 		currentPage: '<?= intVal($arResult["NAV_RESULT_NavPageNomer"])?>',
 		useComments: '<?= $arParams["USE_COMMENTS"]?>',
 		useRatings: '<?= $arParams["USE_RATING"]?>',
+		showViewsCont: '<?= $arParams["SHOW_SHOWS"]?>',
 		commentsCount: '<?= $arParams["COMMENTS_COUNT"]?>',
 		pElementsCont: pPhotoCont<?=$ucid?>,
 		reloadItemsOnload: <?= ($arResult["MIN_ID"] > 0 ? $arResult["MIN_ID"] : 'false')?>,

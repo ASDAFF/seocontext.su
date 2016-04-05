@@ -10,4 +10,6 @@ $MESS["IM_NS_CHAT"] = "Private chat messages";
 $MESS["IM_NS_LIKE"] = "Chat likes";
 $MESS["IM_NS_MENTION"] = "You have been mentioned in a public chat";
 $MESS["IM_NS_OPEN"] = "Messages in public chats";
+$MESS["IM_NS_MESSAGE_2"] = "Messages in <nobr>person-to-person chat</nobr>";
+$MESS["IM_NS_CHAT_2"] = "Messages in private chats";
 ?>

@@ -18,6 +18,10 @@ else if ($GLOBALS['USER'] && intval($GLOBALS['USER']->GetID()) > 0)
 {
 	$userId = intval($GLOBALS['USER']->GetID());
 }
+else if (IsModuleInstalled('statistic') && intval($_SESSION["SESS_SEARCHER_ID"]) <= 0 && intval($_SESSION["SESS_GUEST_ID"]) > 0 && COption::GetOptionString("pull", "guest") == 'Y')
+{
+	$userId = intval($_SESSION["SESS_GUEST_ID"])*-1;
+}
 
 if ($userId == 0)
 	return;

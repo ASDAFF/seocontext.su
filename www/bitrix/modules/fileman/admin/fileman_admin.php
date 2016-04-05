@@ -457,9 +457,11 @@ else // Displaying search result
 
 $db_DirContent = new CDBResult;
 $db_DirContent->InitFromArray($arDirContent);
-$db_DirContent->sSessInitAdd = $path;
 $db_DirContent = new CAdminResult($db_DirContent, $sTableID);
-$db_DirContent->NavStart(20);
+$db_DirContent->NavStart(array(
+	"sNavID" => "fileman_admin".$path,
+	"nPageSize" => 20,
+));
 
 // Init list params
 

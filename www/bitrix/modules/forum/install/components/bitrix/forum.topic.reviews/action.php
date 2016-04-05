@@ -199,7 +199,7 @@ elseif ((empty($_REQUEST["preview_comment"]) || $_REQUEST["preview_comment"] == 
 			endif;
 			if (!empty($res)):
 				$arUserStart = $res;
-				$sName = ($res["SHOW_NAME"] == "Y" ? CUser::FormatName("#NAME# #LAST_NAME#", $res) : "");
+				$sName = ($res["SHOW_NAME"] == "Y" ? CUser::FormatName("#NAME# #LAST_NAME#", $res, true, false) : "");
 				$arUserStart["NAME"] = trim(empty($sName) ? $res["LOGIN"] : $sName);
 			else:
 				$arUserStart["ID"] = 0;

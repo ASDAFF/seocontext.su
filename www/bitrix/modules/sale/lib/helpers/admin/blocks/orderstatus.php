@@ -13,6 +13,7 @@ class OrderStatus
 	public static function getEdit(Order $order, \CUser $user, $showCancel, $showSaveButton)
 	{
 		$data = self::prepareData($order);
+		$orderLocked = \Bitrix\Sale\Order::isLocked($order->getId());
 
 		if($showCancel)
 			$bUserCanCancelOrder = \CSaleOrder::CanUserCancelOrder($order->getId(), $user->GetUserGroupArray(), $user->GetID());
@@ -54,6 +55,14 @@ class OrderStatus
 						'</tr>';
 		}
 
+		$attr = array(
+				"class" => "adm-bus-select",
+				"id" => "STATUS_ID"
+		);
+
+		if($orderLocked)
+			$attr["disabled"] = "disabled";
+
 		$result .= '<tr>
 						<td class="adm-detail-content-cell-l">'.Loc::getMessage("SALE_ORDER_STATUS").':</td>
 						<td class="adm-detail-content-cell-r">'.
@@ -62,13 +71,10 @@ class OrderStatus
 								self::getStatusesList($user->GetID(), $data["STATUS_ID"]),
 								 $data["STATUS_ID"],
 								false,
-								array(
-									"class" => "adm-bus-select",
-									"id" => "STATUS_ID"
-								)
+								$attr
 							);
 
-		if($showSaveButton)
+		if($showSaveButton && !$orderLocked)
 		{
 			$result .= '
 									&nbsp;
@@ -81,7 +87,7 @@ class OrderStatus
 			</tr>';
 
 		if($showCancel && $bUserCanCancelOrder)
-			$result .= self::getCancelBlockHtml($order, $data);
+			$result .= self::getCancelBlockHtml($order, $data, $orderLocked);
 
 		$result .= '</tbody>
 			</table>
@@ -90,7 +96,7 @@ class OrderStatus
 		return $result;
 	}
 
-	protected static function getCancelBlockHtml(Order $order, array $data)
+	protected static function getCancelBlockHtml(Order $order, array $data, $orderLocked = false)
 	{
 		$isCanceled = ($order->getField('CANCELED') == "Y" ? true : false);
 
@@ -142,10 +148,10 @@ class OrderStatus
 				<td class="adm-detail-content-cell-l">&nbsp;</td>
 				<td class="adm-detail-content-cell-r">
 					<div class="adm-s-select-popup-box">
-						<div class="adm-s-select-popup-container">
-							<div class="adm-s-select-popup-element-selected-control" onclick="BX.Sale.Admin.OrderEditPage.toggleCancelDialog();"></div>
-							'.$text.'
-						</div>
+						<div class="adm-s-select-popup-container">'.
+							($orderLocked ? '' : '<div class="adm-s-select-popup-element-selected-control" onclick="BX.Sale.Admin.OrderEditPage.toggleCancelDialog();"></div>').
+							$text.
+						'</div>
 						<div class="adm-s-select-popup-modal /*active*/" id="sale-adm-status-cancel-dialog">
 							<div class="adm-s-select-popup-modal-content">
 								'.$reasonHtml.'

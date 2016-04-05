@@ -45,7 +45,7 @@ if($arParams["USE_COMPARE"]=="Y")
 		"NAME" => $arParams["COMPARE_NAME"],
 		"DETAIL_URL" => $arResult["FOLDER"].$arResult["URL_TEMPLATES"]["element"],
 		"COMPARE_URL" => $arResult["FOLDER"].$arResult["URL_TEMPLATES"]["compare"],
-		"ACTION_VARIABLE" => $arParams["ACTION_VARIABLE"],
+		"ACTION_VARIABLE" => (!empty($arParams["ACTION_VARIABLE"]) ? $arParams["ACTION_VARIABLE"] : "action")."_ccl",
 		"PRODUCT_ID_VARIABLE" => $arParams["PRODUCT_ID_VARIABLE"],
 		'POSITION_FIXED' => isset($arParams['COMPARE_POSITION_FIXED']) ? $arParams['COMPARE_POSITION_FIXED'] : '',
 		'POSITION' => isset($arParams['COMPARE_POSITION']) ? $arParams['COMPARE_POSITION'] : ''
@@ -135,4 +135,3 @@ if($arParams["SHOW_TOP_ELEMENTS"]!="N")
 );?><?
 	unset($basketAction);
 }
-?>

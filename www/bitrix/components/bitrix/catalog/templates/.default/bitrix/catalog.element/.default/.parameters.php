@@ -59,9 +59,7 @@ if (isset($arCurrentValues['IBLOCK_ID']) && 0 < intval($arCurrentValues['IBLOCK_
 	$arListPropList = array(
 		'-' => GetMessage('CP_BCE_TPL_PROP_EMPTY')
 	);
-	$arHighloadPropList = array(
-		'-' => GetMessage('CP_BCE_TPL_PROP_EMPTY')
-	);
+	$arHighloadPropList = array();
 	$rsProps = CIBlockProperty::GetList(
 		array('SORT' => 'ASC', 'ID' => 'ASC'),
 		array('IBLOCK_ID' => $arCurrentValues['IBLOCK_ID'], 'ACTIVE' => 'Y')
@@ -419,4 +417,3 @@ if (ModuleManager::isModuleInstalled("highloadblock"))
 		);
 	}
 }
-?>

@@ -152,11 +152,16 @@ final class Loc
 	 * @param string $language
 	 * @return array
 	 */
-	public static function loadLanguageFile($file, $language = null)
+	public static function loadLanguageFile($file, $language = null, $normalize = true)
 	{
 		if($language === null)
 		{
 			$language = self::getCurrentLang();
+		}
+
+		if($normalize)
+		{
+			$file = Path::normalize($file);
 		}
 
 		if(!isset(self::$messages[$language]))
@@ -237,7 +242,7 @@ final class Loc
 		if($currentFile !== null && isset(self::$lazyLoadFiles[$currentFile]))
 		{
 			//in most cases we know the file containing the "code" - load it directly
-			self::loadLanguageFile($currentFile, $language);
+			self::loadLanguageFile($currentFile, $language, false);
 			unset(self::$lazyLoadFiles[$currentFile]);
 		}
 
@@ -249,7 +254,7 @@ final class Loc
 			{
 				do
 				{
-					self::loadLanguageFile($file, $language);
+					self::loadLanguageFile($file, $language, false);
 					$unset[] = $file;
 					if(isset(self::$messages[$language][$code]))
 					{

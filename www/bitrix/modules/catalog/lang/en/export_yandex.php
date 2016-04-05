@@ -107,4 +107,5 @@ $MESS["YANDEX_ERR_NO_SECTION_LIST"] = "Section list is not provided.";
 $MESS["YANDEX_ERR_FILE_ACCESS_DENIED"] = "Insufficient permission to write to the file #FILE#.";
 $MESS["YANDEX_ERR_FILE_OPEN_WRITING"] = "Cannot open #FILE# for writing.";
 $MESS["YANDEX_ERR_SETUP_FILE_WRITE"] = "Cannot write to #FILE#.";
+$MESS["YANDEX_BASE_CURRENCY"] = "Currency to convert product prices to";
 ?>

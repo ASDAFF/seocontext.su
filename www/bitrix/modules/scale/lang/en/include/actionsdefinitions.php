@@ -48,4 +48,6 @@ $MESS["SCALE_ADEF_SPHINX_DEL_ROLE"] = "Delete Sphinx role";
 $MESS["SCALE_ADEF_CHPASS_UP_NET_ADDRESS"] = "Network address";
 $MESS["SCALE_ADEF_CHPASS_UP_HOSTNAME"] = "Host name";
 $MESS["SCALE_ADEF_SPHINX_ADD_ROLE_INDEX"] = "Re-index website after new role is added";
+$MESS["SCALE_ADEF_CREATE_PULL_NET_IFACE"] = "Pool network interface";
+$MESS["SCALE_ADEF_SET_EMAIL_SITE_NAME_CONF"] = "Site configuration name";
 ?>

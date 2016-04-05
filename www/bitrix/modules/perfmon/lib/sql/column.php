@@ -238,10 +238,32 @@ class Column extends BaseObject
 			if (
 				$this->type === $target->type
 				&& $this->default === $target->default
-				&& intval($this->length) < intval($target->length)
+				&& (
+					intval($this->length) < intval($target->length)
+					|| (
+						intval($target->length) < intval($this->length)
+						&& strtoupper($this->type) === "CHAR"
+					)
+				)
 			)
 			{
-				return "ALTER TABLE ".$this->parent->name." ALTER COLUMN ".$this->name." ".$target->body.$nullDdl;
+				$sql = array();
+				foreach ($this->parent->indexes->getList() as $index)
+				{
+					if (in_array($this->name, $index->columns))
+					{
+						$sql[] = $index->getDropDdl($dbType);
+					}
+				}
+				$sql[] = "ALTER TABLE ".$this->parent->name." ALTER COLUMN ".$this->name." ".$target->body.$nullDdl;
+				foreach ($this->parent->indexes->getList() as $index)
+				{
+					if (in_array($this->name, $index->columns))
+					{
+						$sql[] = $index->getCreateDdl($dbType);
+					}
+				}
+				return $sql;
 			}
 			elseif (
 				$this->type === $target->type
@@ -260,7 +282,13 @@ class Column extends BaseObject
 			if (
 				$this->type === $target->type
 				&& $this->default === $target->default
-				&& intval($this->length) < intval($target->length)
+				&& (
+					intval($this->length) < intval($target->length)
+					|| (
+						intval($target->length) < intval($this->length)
+						&& strtoupper($this->type) === "CHAR"
+					)
+				)
 			)
 			{
 				return "ALTER TABLE ".$this->parent->name." MODIFY (".$this->name." ".$target->type."(".$target->length.")".")";

@@ -393,13 +393,38 @@ BX.ajax.processRequestData = function(data, config)
 	switch (config.dataType.toUpperCase())
 	{
 		case 'JSON':
+
 			BX.addCustomEvent(config.xhr, 'onParseJSONFailure', BX.proxy(BX.ajax._onParseJSONFailure, config));
 			result = BX.parseJSON(data, config.xhr);
 			BX.removeCustomEvent(config.xhr, 'onParseJSONFailure', BX.proxy(BX.ajax._onParseJSONFailure, config));
 
+			if(!!result && BX.type.isArray(result['bxjs']))
+			{
+				for(var i = 0; i < result['bxjs'].length; i++)
+				{
+					if(BX.type.isNotEmptyString(result['bxjs'][i]))
+					{
+						scripts.push({
+							"isInternal": false,
+							"JS": result['bxjs'][i],
+							"bRunFirst": config.scriptsRunFirst
+						});
+					}
+					else
+					{
+						scripts.push(result['bxjs'][i])
+					}
+				}
+			}
+
+			if(!!result && BX.type.isArray(result['bxcss']))
+			{
+				styles = result['bxcss'];
+			}
+
 		break;
 		case 'SCRIPT':
-			scripts.push({"isInternal": true, "JS": data, bRunFirst: config.scriptsRunFirst});
+			scripts.push({"isInternal": true, "JS": data, "bRunFirst": config.scriptsRunFirst});
 			result = data;
 		break;
 
@@ -865,6 +890,7 @@ BX.ajax.prepareForm = function(obForm, data)
 				case 'text':
 				case 'textarea':
 				case 'password':
+				case 'number':
 				case 'hidden':
 				case 'select-one':
 					_data.push({name: el.name, value: el.value});
@@ -1409,7 +1435,7 @@ BX.ajax.component.prototype.getState = function()
 	if (null != obNavChain)
 		state.nav_chain = obNavChain.innerHTML;
 
-	BX.onCustomEvent(state.node, "onComponentAjaxHistoryGetState", [state]);
+	BX.onCustomEvent(BX(state.node), "onComponentAjaxHistoryGetState", [state]);
 
 	return state;
 };
@@ -1424,7 +1450,7 @@ BX.ajax.component.prototype.setState = function(state)
 		BX.ajax.UpdatePageNavChain(state.nav_chain);
 	}
 
-	BX.onCustomEvent(state.node, "onComponentAjaxHistorySetState", [state]);
+	BX.onCustomEvent(BX(state.node), "onComponentAjaxHistorySetState", [state]);
 };
 
 var jsAjaxHistoryContainer = {

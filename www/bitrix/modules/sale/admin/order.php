@@ -234,7 +234,7 @@ if(strlen($filter_date_allow_delivery_to)>0)
 	}
 }
 
-if(strlen($filter_lang)>0 && $filter_lang!="NOT_REF") $arFilter["LID"] = trim($filter_lang);
+if(strlen($filter_lang)>0 && $filter_lang!="NOT_REF") $arFilter["=LID"] = trim($filter_lang);
 if(strlen($filter_currency)>0) $arFilter["CURRENCY"] = trim($filter_currency);
 
 if(isset($filter_status) && !is_array($filter_status) && strlen($filter_status) > 0)
@@ -246,10 +246,10 @@ if(isset($filter_status) && is_array($filter_status) && count($filter_status) > 
 	{
 		$filter_status[$i] = trim($filter_status[$i]);
 		if(strlen($filter_status[$i]) > 0)
-			$arFilter["STATUS_ID"][] = $filter_status[$i];
+			$arFilter["=STATUS_ID"][] = $filter_status[$i];
 	}
 }
-if (strlen($filter_by_recommendation)>0) $arFilter["BY_RECOMMENDATION"] = trim($filter_by_recommendation);
+if (strlen($filter_by_recommendation)>0) $arFilter["=BY_RECOMMENDATION"] = trim($filter_by_recommendation);
 if(strlen($filter_date_status_from)>0) $arFilter[">=DATE_STATUS"] = trim($filter_date_status_from);
 if(strlen($filter_date_status_to)>0)
 {
@@ -271,15 +271,15 @@ if(strlen($filter_date_status_to)>0)
 	}
 }
 
-if(strlen($filter_payed)>0) $arFilter["PAYED"] = trim($filter_payed);
-if(strlen($filter_canceled)>0) $arFilter["CANCELED"] = trim($filter_canceled);
-if(strlen($filter_deducted)>0) $arFilter["DEDUCTED"] = trim($filter_deducted);
-if(strlen($filter_allow_delivery)>0) $arFilter["ALLOW_DELIVERY"] = trim($filter_allow_delivery);
-if(strlen($filter_marked)>0) $arFilter["MARKED"] = trim($filter_marked);
+if(strlen($filter_payed)>0) $arFilter["=PAYED"] = trim($filter_payed);
+if(strlen($filter_canceled)>0) $arFilter["=CANCELED"] = trim($filter_canceled);
+if(strlen($filter_deducted)>0) $arFilter["=DEDUCTED"] = trim($filter_deducted);
+if(strlen($filter_allow_delivery)>0) $arFilter["=ALLOW_DELIVERY"] = trim($filter_allow_delivery);
+if(strlen($filter_marked)>0) $arFilter["=MARKED"] = trim($filter_marked);
 if(strlen($filter_buyer)>0) $arFilter["%BUYER"] = trim($filter_buyer);
 if(strlen($filter_user_login)>0) $arFilter["USER.LOGIN"] = trim($filter_user_login);
 if(strlen($filter_user_email)>0) $arFilter["USER.EMAIL"] = trim($filter_user_email);
-if(IntVal($filter_user_id)>0) $arFilter["USER_ID"] = IntVal($filter_user_id);
+if(IntVal($filter_user_id)>0) $arFilter["=USER_ID"] = IntVal($filter_user_id);
 if(is_array($filter_group_id) && count($filter_group_id) > 0)
 {
 	foreach($filter_group_id as $v)
@@ -316,7 +316,7 @@ if(isset($filter_person_type) && is_array($filter_person_type) && count($filter_
 	for ($i = 0; $i < $countFilterPerson; $i++)
 	{
 		if(IntVal($filter_person_type[$i]) > 0)
-			$arFilter["PERSON_TYPE_ID"][] = $filter_person_type[$i];
+			$arFilter["=PERSON_TYPE_ID"][] = $filter_person_type[$i];
 	}
 }
 
@@ -414,34 +414,34 @@ foreach ($arOrderPropsCode as $key => $value)
 if($saleModulePermissions < "W")
 {
 	if(strlen($filter_lang) <= 0 && count($arAccessibleSites) > 0)
-		$arFilter["LID"] = $arAccessibleSites;
+		$arFilter["=LID"] = $arAccessibleSites;
 }
 
 $allowedStatusesView = \Bitrix\Sale\OrderStatus::getStatusesUserCanDoOperations($intUserID, array('view'));
 
 if($saleModulePermissions < "W")
 {
-	if(!$arFilter["STATUS_ID"])
-		$arFilter["STATUS_ID"] = array();
+	if(!$arFilter["=STATUS_ID"])
+		$arFilter["=STATUS_ID"] = array();
 
-	$intersected = array_intersect($arFilter["STATUS_ID"], $allowedStatusesView);
+	$intersected = array_intersect($arFilter["=STATUS_ID"], $allowedStatusesView);
 
-	if(!empty($arFilter["STATUS_ID"]))
+	if(!empty($arFilter["=STATUS_ID"]))
 	{
 		if(empty($intersected))
 		{
-			$arFilter[]["STATUS_ID"] = $arFilter["STATUS_ID"];
-			$arFilter[]["STATUS_ID"] = $allowedStatusesView;
-			unset($arFilter["STATUS_ID"]);
+			$arFilter[]["=STATUS_ID"] = $arFilter["=STATUS_ID"];
+			$arFilter[]["=STATUS_ID"] = $allowedStatusesView;
+			unset($arFilter["=STATUS_ID"], $arFilter["=STATUS_ID"]);
 		}
 		else
 		{
-			$arFilter["STATUS_ID"] = $intersected;
+			$arFilter["=STATUS_ID"] = $intersected;
 		}
 	}
 	else
 	{
-		$arFilter["STATUS_ID"] = $allowedStatusesView;
+		$arFilter["=STATUS_ID"] = $allowedStatusesView;
 	}
 
 }
@@ -643,7 +643,7 @@ if(($arID = $lAdmin->GroupAction()) && $saleModulePermissions >= "U")
 	{
 		$filter = array(
 			"ID" => $arID,
-			"STATUS_ID" => $allowedStatusesView
+			"=STATUS_ID" => $allowedStatusesView
 		);
 	}
 
@@ -976,15 +976,20 @@ if($saleModulePermissions < "W")
 	}
 }
 
-if(!isset($order))
-	$order = "DESC";
+$arFilterOrder = array();
 
-if($by == "STATUS_ID")
-	$arFilterOrder["DATE_STATUS"] = $order;
-elseif($by == "CANCELED")
-	$arFilterOrder["DATE_CANCELED"] = $order;
-else
-	$arFilterOrder[$by] = $order;
+if(!empty($by) && in_array($by, $arSelectFields))
+{
+	if(!isset($order))
+		$order = "DESC";
+
+	if($by == "STATUS_ID")
+		$arFilterOrder["DATE_STATUS"] = $order;
+	elseif($by == "CANCELED")
+		$arFilterOrder["DATE_CANCELED"] = $order;
+	else
+		$arFilterOrder[$by] = $order;
+}
 
 $sScript = "";
 $usePageNavigation = true;
@@ -1033,12 +1038,14 @@ if(array_key_exists('=SOURCE.TRADING_PLATFORM_ID', $arFilterTmp) || in_array('SO
 }
 
 $getListParams = array(
-	'order' => $arFilterOrder,
 	'filter' => $arFilterTmp,
 	'group' => $arGroupByTmp,
 	'select' => $arSelectFields,
 	'runtime' => $runtimeFields
 );
+
+if(!empty($arFilterOrder))
+	$getListParams['order'] = $arFilterOrder;
 
 if ($usePageNavigation)
 {
@@ -1100,8 +1107,14 @@ $ordersIds = array();
 $shipmentStatuses = array();
 $rowsList = array();
 $basketSeparator = '<hr size="1" width="90%">';
+$basketSetSeparator = '<br>&nbsp;-&nbsp;';
+
 if ($bExport)
+{
 	$basketSeparator = "<br>";
+	$basketSetSeparator = "<br>";
+}
+
 $users = array();
 $userIdFields = array('EMP_ALLOW_DELIVERY', 'EMP_DEDUCTED_ID', 'EMP_MARKED_ID', 'EMP_STATUS_ID', 'EMP_CANCELED_ID', 'EMP_PAYED_ID');
 $formattedUserNames = array();
@@ -1159,7 +1172,7 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 	if(!$bExport)
 		$idTmp .= "<img src='".$lamp."' hspace='4' alt='".htmlspecialcharsbx($lamp_alt)."' title='".htmlspecialcharsbx($lamp_alt)."' />";
 	$idTmp .= "</td>
-		<td><b><a href='/bitrix/admin/sale_order_view.php?ID=".$f_ID.GetFilterParams("filter_")."&lang=".LANGUAGE_ID."' title='".Loc::getMessage("SALE_DETAIL_DESCR")."'>".Loc::getMessage("SO_ORDER_ID_PREF").$arOrder["ID"]."</a></b></td>";
+		<td><b><a href='/bitrix/admin/sale_order_view.php?ID=".$f_ID.GetFilterParams("filter_")."&lang=".LANGUAGE_ID."' title='".Loc::getMessage("SALE_DETAIL_DESCR")."'>##ID##</a></b></td>";
 	$idTmp .= "</tr>";
 
 	if($isRecommended)
@@ -1172,8 +1185,15 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 	}
 
 	$idTmp .= "</table>";
+	$row->AddField("ID", str_replace('##ID##', Loc::getMessage("SO_ORDER_ID_PREF").$arOrder["ID"], $idTmp));
 
-	$row->AddField("ID", $idTmp);
+	//ACCOUNT_NUMBER
+	$fieldValue = "";
+	if(in_array("ACCOUNT_NUMBER", $arVisibleColumns))
+	{
+		$fieldValue = str_replace('##ID##', Loc::getMessage("SO_ORDER_ID_PREF").$arOrder["ACCOUNT_NUMBER"], $idTmp);
+	}
+	$row->AddField("ACCOUNT_NUMBER", $fieldValue);
 
 	//LID
 	$fieldValue = "";
@@ -1684,20 +1704,27 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 		{
 			$measure = (isset($arItem["MEASURE_TEXT"])) ? $arItem["MEASURE_TEXT"] : Loc::getMessage("SO_SHT");
 
-			if($bNeedLine && !CSaleBasketHelper::isSetItem($arItem))
+
+			if($bNeedLine)
 			{
-				$fieldName .= $basketSeparator;
-				$fieldQuantity .= $basketSeparator;
-				$fieldProductID .= $basketSeparator;
-				$fieldPrice .= $basketSeparator;
-				$fieldWeight .= $basketSeparator;
-				$fieldNotes .= $basketSeparator;
-				$fieldDiscountPrice .= $basketSeparator;
-				$fieldCatalogXML .= $basketSeparator;
-				$fieldProductXML .= $basketSeparator;
-				$fieldDiscountValue  .= $basketSeparator;
-				$fieldVatRate  .= $basketSeparator;
+				if(!CSaleBasketHelper::isSetItem($arItem))
+					$separator = $basketSeparator;
+				else
+					$separator = $basketSetSeparator;
 			}
+
+			$fieldName .= $separator;
+			$fieldQuantity .= $separator;
+			$fieldProductID .= $separator;
+			$fieldPrice .= $separator;
+			$fieldWeight .= $separator;
+			$fieldNotes .= $separator;
+			$fieldDiscountPrice .= $separator;
+			$fieldCatalogXML .= $separator;
+			$fieldProductXML .= $separator;
+			$fieldDiscountValue  .= $separator;
+			$fieldVatRate  .= $separator;
+
 			$bNeedLine = true;
 
 			$hidden = "";
@@ -1728,7 +1755,7 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 			if(strlen($arItem["DETAIL_PAGE_URL"]) > 0)
 				$fieldValue .= "</a>";
 
-			$fieldValue .= " <nobr>(".$arItem["QUANTITY"]." ".$measure.")</nobr>";
+			$fieldValue .= " <nobr>(".Sale\BasketItem::formatQuantity($arItem["QUANTITY"])." ".$measure.")</nobr>";
 
 			if($bShowBasketProps)
 			{
@@ -1767,7 +1794,7 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 			else
 				$fieldName .= "<br />";
 			if(strlen($arItem["QUANTITY"]) > 0)
-				$fieldQuantity .= htmlspecialcharsbx($arItem["QUANTITY"])." ".$measure;
+				$fieldQuantity .= htmlspecialcharsbx(Sale\BasketItem::formatQuantity($arItem["QUANTITY"]))." ".$measure;
 			else
 				$fieldQuantity .= "<br />";
 			if(strlen($arItem["PRODUCT_ID"]) > 0)
@@ -1859,7 +1886,7 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 	$row->AddField("EXTERNAL_ORDER", ($arOrder["EXTERNAL_ORDER"] !="Y" ? Loc::getMessage("SO_NO") : Loc::getMessage("SO_YES")));
 
 	//SHIPMENTS etc.
-	$shipmentFields = array("SHIPMENTS", "ALLOW_DELIVERY", "DATE_ALLOW_DELIVERY", "DELIVERY", "DEDUCTED", "DELIVERY_DOC_NUM", "DELIVERY_DOC_DATE");
+	$shipmentFields = array("SHIPMENTS", "ALLOW_DELIVERY", "DATE_ALLOW_DELIVERY", "DELIVERY", "DEDUCTED", "DELIVERY_DOC_NUM", "DELIVERY_DOC_DATE", "TRACKING_NUMBER");
 	$shipmentFields = array_intersect($arVisibleColumns, $shipmentFields);
 	if(!empty($shipmentFields))
 	{
@@ -1919,6 +1946,14 @@ while ($arOrder = $dbOrderList->NavNext(true, "f_"))
 
 			$row->AddField("SHIPMENTS", $fieldValue);
 		}
+
+		$fieldValue = '';
+
+		foreach($shipments as $shipment)
+			if(!empty($shipment["TRACKING_NUMBER"]))
+				$fieldValue .= $shipment["TRACKING_NUMBER"]."<br>";
+
+		$row->AddField("TRACKING_NUMBER", $fieldValue);
 
 		//ALLOW_DELIVERY
 		$fieldValue = "";
@@ -2160,8 +2195,9 @@ $arFooterArray = array(
 );
 
 // recommendation summary
-$rcmValue = array();
 $rcmCount = 0;
+$rcmValue = array();
+$rcmValueCur = array();
 
 $runtime = array(
 	new \Bitrix\Main\Entity\ExpressionField('SUM', 'SUM(sale_internals_order.PRICE)')
@@ -2193,13 +2229,42 @@ if($saleModulePermissions == "W")
 	// recommendation summary
 	$rcmFilter = $arFilterTmp;
 	$rcmFilter['>BASKET.RECOMMENDATION'] = 0;
+
+	$runtime = array(
+			new \Bitrix\Main\Entity\ExpressionField('SUM', 'SUM(%s * %s)', array('BASKET.PRICE', 'BASKET.QUANTITY')),
+			new \Bitrix\Main\Entity\ExpressionField('COUNT', 'COUNT(sale_internals_order.ID)')
+	);
+
+	if(!empty($runtimeFields) && is_array($runtimeFields))
+		$runtime = 	array_merge($runtime, $runtimeFields);
+
+	$getListParamsSum = array(
+		'order' => array("BASKET.CURRENCY" => "ASC"),
+		'filter' => $rcmFilter,
+		'group' => array("BASKET.CURRENCY"),
+		'select' => array(
+			"BASKET_CURRENCY" => "BASKET.CURRENCY",
+			"SUM",
+			"COUNT"
+		),
+		'runtime' => $runtime
+	);
+
+	$dbOrderList = \Bitrix\Sale\Internals\OrderTable::getList($getListParamsSum);
+
+	if($arOrderList = $dbOrderList->fetch())
+	{
+		$rcmCount += $arOrderList['COUNT'];
+
+		while(!isset($rcmValueCur[$arOrderList["BASKET_CURRENCY"]]))
+			$rcmValueCur[$arOrderList["BASKET_CURRENCY"]] = 0;
+
+		$rcmValueCur[$arOrderList["BASKET_CURRENCY"]] += $arOrderList["SUM"];
+	}
 }
 elseif ($saleModulePermissions < "W")
 {
 	// also count recommendation stats
-	$rcmValue = array();
-	$rcmValueCur = array();
-	$rcmCount = 0;
 	$arOrdersSum = array();
 
 	$arGroupByTmp[] = 'BASKET.RECOMMENDATION';
@@ -2214,9 +2279,9 @@ elseif ($saleModulePermissions < "W")
 			'ID',
 			'CURRENCY',
 			'PRICE',
-			'BASKET_RECOMMENDATION' => 'BASKET.RECOMMENDATION',
 			'BASKET_PRICE_TOTAL',
-			'BASKET_CURRENCY' => 'BASKET.CURRENCY'
+			'BASKET_CURRENCY' => 'BASKET.CURRENCY',
+			'BASKET_RECOMMENDATION' => 'BASKET.RECOMMENDATION',
 		)
 	);
 
@@ -2241,7 +2306,7 @@ elseif ($saleModulePermissions < "W")
 		// recommendation stats
 		if($arOrder['BASKET_RECOMMENDATION'])
 		{
-			if(!array_key_exists($arOrder["BASKET_CURRENCY"], $rcmValue))
+			if(!array_key_exists($arOrder["BASKET_CURRENCY"], $rcmValueCur))
 			{
 				$rcmValueCur[$arOrder["BASKET_CURRENCY"]] = 0;
 			}
@@ -2262,13 +2327,14 @@ elseif ($saleModulePermissions < "W")
 			);
 		}
 	}
-
-	// recommendation stats
-	foreach ($rcmValueCur as $currency => $sum)
-	{
-		$rcmValue[] = SaleFormatCurrency($sum, $currency);
-	}
 }
+
+// recommendation stats
+foreach ($rcmValueCur as $currency => $sum)
+{
+	$rcmValue[] = SaleFormatCurrency($sum, $currency);
+}
+
 $order_sum = "";
 foreach($arFooterArray as $val)
 {
@@ -2732,15 +2798,44 @@ $oFilter->Begin();
 	<tr>
 		<td><?=Loc::getMessage("SALE_F_PAY_SYSTEM")?>:</td>
 		<td>
-			<select name="filter_pay_system[]" multiple size="3">
-				<option value=""><?echo GetMessage("SALE_F_ALL")?></option>
-				<?
-				$l = Sale\Internals\PaySystemTable::getList(array(
+			<?
+				$ptRes = Sale\Internals\PersonTypeTable::getList(array(
 					'order' => array("SORT"=>"ASC", "NAME"=>"ASC")
 				));
 
-				while ($paySystem = $l->fetch()):
-					?><option value="<?echo htmlspecialcharsbx($paySystem["ID"])?>"<?if(is_array($filter_pay_system) && in_array($paySystem["ID"], $filter_pay_system)) echo " selected"?>>[<?echo htmlspecialcharsbx($paySystem["ID"]) ?>] <?echo htmlspecialcharsbx($paySystem["NAME"])?> <?echo "(".htmlspecialcharsbx($paySystem["LID"]).")";?></option><?
+				$personTypes = array();
+				while ($personType = $ptRes->fetch())
+					$personTypes[$personType['ID']] = $personType;
+			?>
+			<select name="filter_pay_system[]" multiple size="3">
+				<option value=""><?echo GetMessage("SALE_F_ALL")?></option>
+				<?
+				$res = \Bitrix\Sale\PaySystem\Manager::getList(array(
+					'select' => array('ID', 'NAME'),
+					'filter' => array('ACTIVE' => 'Y'),
+					'order' => array("SORT"=>"ASC", "NAME"=>"ASC")
+				));
+
+				while ($paySystem = $res->fetch()):
+					$dbRestRes = Sale\Services\PaySystem\Restrictions\Manager::getList(array(
+						'select' => array('PARAMS'),
+						'filter' => array(
+							'=CLASS_NAME' => '\Bitrix\Sale\Services\PaySystem\Restrictions\PersonType',
+							'SERVICE_ID' => $paySystem['ID']
+						)
+					));
+
+					$ptParams = $dbRestRes->fetch();
+					$personTypeString = '';
+					if ($ptParams['PARAMS']['PERSON_TYPE_ID'])
+					{
+						$psPt = array();
+						foreach ($ptParams['PARAMS']['PERSON_TYPE_ID'] as $id)
+							$psPt[] = ((strlen($personTypes[$id]['NAME']) > 15) ? substr($personTypes[$id]['NAME'], 0, 6)."...".substr($personTypes[$id]['NAME'], -7) : $personTypes[$id]['NAME'])."/".$personTypes[$id]["LID"]."";
+						if ($psPt)
+							$personTypeString = ' ('.join(', ', $psPt).')';
+					}
+					?><option title="<?echo htmlspecialcharsbx($paySystem["NAME"].$personTypeString);?>" value="<?echo htmlspecialcharsbx($paySystem["ID"])?>"<?if(is_array($filter_pay_system) && in_array($paySystem["ID"], $filter_pay_system)) echo " selected"?>>[<?echo htmlspecialcharsbx($paySystem["ID"]) ?>] <?echo htmlspecialcharsbx($paySystem["NAME"].$personTypeString);?></option><?
 				endwhile;
 				?>
 			</select>
@@ -2752,10 +2847,9 @@ $oFilter->Begin();
 			<select name="filter_person_type[]" multiple size="3">
 				<option value=""><?echo Loc::getMessage("SALE_F_ALL")?></option>
 				<?
-				$l = CSalePersonType::GetList(Array("SORT"=>"ASC", "NAME"=>"ASC"), Array());
-				while ($personType = $l->Fetch()):
-					?><option value="<?echo htmlspecialcharsbx($personType["ID"])?>"<?if(is_array($filter_person_type) && in_array($personType["ID"], $filter_person_type)) echo " selected"?>>[<?echo htmlspecialcharsbx($personType["ID"]) ?>] <?echo htmlspecialcharsbx($personType["NAME"])?> <?echo "(".htmlspecialcharsbx(implode(", ", $personType["LIDS"])).")";?></option><?
-				endwhile;
+				foreach ($personTypes as $personType):
+					?><option value="<?echo htmlspecialcharsbx($personType["ID"])?>"<?if(is_array($filter_person_type) && in_array($personType["ID"], $filter_person_type)) echo " selected"?>>[<?echo htmlspecialcharsbx($personType["ID"]) ?>] <?echo htmlspecialcharsbx($personType["NAME"])?> <?echo "(".htmlspecialcharsbx($personType["LID"]).")";?></option><?
+				endforeach;
 				?>
 			</select>
 		</td>
@@ -3013,6 +3107,7 @@ $oFilter->Begin();
 						${"filter_prop_".$key}
 					);
 					?>
+					<?=ShowFilterLogicHelp()?>
 				</td>
 			</tr>
 			<?

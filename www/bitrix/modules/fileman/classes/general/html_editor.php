@@ -224,6 +224,8 @@ class CHTMLEditor
 		$arParams["bodyId"] = COption::GetOptionString("fileman", "editor_body_id", "");
 
 		$this->content = $arParams['content'];
+		$this->content = preg_replace("/\r\n/is", "\n", $this->content);
+
 		$this->inputName = isset($arParams['inputName']) ? $arParams['inputName'] : $this->name;
 		$this->inputId = isset($arParams['inputId']) ? $arParams['inputId'] : 'html_editor_content_id';
 
@@ -327,8 +329,8 @@ class CHTMLEditor
 			'show_snippets' => 'Y',
 			'link_dialog_type' => 'internal'
 		);
-		$settingsKey = "user_settings_".$arParams["bbCode"]."_".$this->id;
 
+		$settingsKey = self::GetSettingKey($arParams);
 		$curSettings = CUserOptions::GetOption("html_editor", $settingsKey, false, $USER->GetId());
 		if (is_array($curSettings))
 		{
@@ -533,22 +535,59 @@ class CHTMLEditor
 
 	function Run($display = true)
 	{
-		?><script>
-		<?if($display):?>
-		window.BXHtmlEditor.Show(<?=CUtil::PhpToJSObject($this->jsConfig)?>);
-		<?else:?>
-		window.BXHtmlEditor.SaveConfig(<?=CUtil::PhpToJSObject($this->jsConfig)?>);
-		<?endif;?>
-	</script><?
+		try
+		{
+			$json = \Bitrix\Main\Web\Json::encode($this->jsConfig, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_PARTIAL_OUTPUT_ON_ERROR);
+		}
+		catch (Exception $e)
+		{
+			$json = $this->HealConfig();
+		}
+
+		?>
+		<script>
+			<?if($display):?>
+			window.BXHtmlEditor.Show(<?= $json?>);
+			<?else:?>
+			window.BXHtmlEditor.SaveConfig(<?= $json?>);
+			<?endif;?>
+		</script><?
+	}
+
+	function HealConfig()
+	{
+		// 1. Remove snippets if json crashed on them
+		$snippets = $this->jsConfig['snippets'];
+		try
+		{
+			\Bitrix\Main\Web\Json::encode($snippets, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PARTIAL_OUTPUT_ON_ERROR);
+		}
+		catch (Exception $e)
+		{
+			unset($this->jsConfig['snippets']);
+		}
+
+		// 2. Remove faulty template if we found some
+		$templates = $this->jsConfig['templates'];
+		foreach ($templates as $k => $template)
+		{
+			try
+			{
+				\Bitrix\Main\Web\Json::encode($template, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PARTIAL_OUTPUT_ON_ERROR);
+			}
+			catch (Exception $e)
+			{
+				unset($templates[$k]);
+			}
+		}
+		$this->jsConfig['templates'] = $templates;
+
+		return \Bitrix\Main\Web\Json::encode($this->jsConfig, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_PARTIAL_OUTPUT_ON_ERROR);
 	}
 
 	function InitLangMess()
 	{
-		$langPath = $_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/fileman/lang/'.LANGUAGE_ID.'/classes/general/html_editor_js.php';
-		if(!file_exists($langPath))
-			$langPath = $_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/fileman/lang/en/classes/general/html_editor_js.php';
-		$mess_lang = __IncludeLang($langPath, true, true);
-
+		$mess_lang = \Bitrix\Main\Localization\Loc::loadLanguageFile($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/fileman/classes/general/html_editor_js.php');
 		?><script>BX.message(<?=CUtil::PhpToJSObject($mess_lang, false);?>);</script><?
 	}
 
@@ -965,7 +1004,7 @@ class CHTMLEditor
 			if ($reqId)
 			{
 				?>
-				<script>top.BXHtmlEditorAjaxResponse['<?= $reqId?>'] = <?= CUtil::PhpToJSObject($Res)?>;</script>
+				<script>top.BXHtmlEditorAjaxResponse['<?= $reqId?>'] = <?= \Bitrix\Main\Web\Json::encode($Res)?>;</script>
 			<?
 			}
 		}
@@ -1220,6 +1259,26 @@ class CHTMLEditor
 		}
 
 		return $res;
+	}
+
+	private static function GetSettingKey($params = array())
+	{
+		$settingsKey = "user_settings_".$params["bbCode"];
+
+		if (isset($params["view"]))
+			$settingsKey .= '_'.$params["view"];
+
+		if (isset($params["controlsMap"]) && is_array($params["controlsMap"]))
+		{
+			foreach($params["controlsMap"] as $control)
+			{
+				if ($control && (strtolower($control['id']) == 'bbcode' || strtolower($control['id']) == 'changeview'))
+				{
+					$settingsKey .= '_'.$control['id'];
+				}
+			}
+		}
+		return $settingsKey;
 	}
 }
 ?>

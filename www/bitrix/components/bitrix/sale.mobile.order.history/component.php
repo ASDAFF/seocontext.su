@@ -139,13 +139,13 @@ $deliveryCache = array();
 
 while ($arHistory = $dbRecords->Fetch())
 {
-	if(isset($userCache[$arResult["ORDER"]["USER_ID"]]))
+	if(isset($userCache[$arHistory["USER_ID"]]))
 	{
-		$arHistory["USER"] = $userCache[$arResult["ORDER"]["USER_ID"]];
+		$arHistory["USER"] = $userCache[$arHistory["USER_ID"]];
 	}
 	else
 	{
-		$dbUser = CUser::GetByID($arResult["ORDER"]["USER_ID"]);
+		$dbUser = CUser::GetByID($arHistory["USER_ID"]);
 
 		if($arUser = $dbUser->Fetch())
 		{
@@ -154,7 +154,7 @@ while ($arHistory = $dbRecords->Fetch())
 			$arHistory["USER"]["NAME"] = htmlspecialcharsbx($arUser["NAME"]);
 			$arHistory["USER"]["LAST_NAME"] = htmlspecialcharsbx($arUser["LAST_NAME"]);
 
-			$userCache[$arResult["ORDER"]["USER_ID"]] = $arHistory["USER"];
+			$userCache[$arHistory["USER_ID"]] = $arHistory["USER"];
 		}
 	}
 

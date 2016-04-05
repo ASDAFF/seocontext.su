@@ -1,11 +1,15 @@
 <?php
 $im_default_option = array(
+	'general_chat_id' => 0,
+	'allow_send_to_general_chat_all' => 'Y',
+	'allow_send_to_general_chat_rights' => 'AU',
 	'turn_server_self' => 'N',
 	'turn_server' => 'turn.calls.bitrix24.com',
 	'turn_server_firefox' => '54.217.240.163',
 	'turn_server_login' => 'bitrix',
 	'turn_server_password' => 'bitrix',
-	'color_enable' => false,
+	'open_chat_enable' => IsModuleInstalled('intranet')? true: false,
+	'color_enable' => true,
 	'correct_text' => false,
 	'view_offline' => true,
 	'view_group' => true,

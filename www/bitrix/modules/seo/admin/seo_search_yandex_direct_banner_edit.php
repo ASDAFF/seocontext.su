@@ -133,6 +133,8 @@ $bShowAuto = $ID > 0 && $bAllowUpdate && IsModuleInstalled("catalog");
 if($ID <= 0)
 {
 	$host = str_replace(array(':80', ':443'), '', $request->getHttpHost());
+	$errors = null;
+	$host = \CBXPunycode::ToUnicode($host, $errors);
 
 	$banner = array(
 		"SETTINGS" => array(

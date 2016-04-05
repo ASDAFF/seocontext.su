@@ -104,7 +104,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_aft
 $arDefaultValues = array(
 	'DISCOUNT_ID' => '',
 	'ACTIVE' => 'Y',
-	'ONE_TIME' => Catalog\DiscountCouponTable::TYPE_ONE_ROW,
+	'ONE_TIME' => Catalog\DiscountCouponTable::TYPE_ONE_ORDER,
 	'COUPON' => '',
 	'DATE_APPLY' => '',
 	'DESCRIPTION' => '',

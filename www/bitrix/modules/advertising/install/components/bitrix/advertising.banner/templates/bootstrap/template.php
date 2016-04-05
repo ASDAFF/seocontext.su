@@ -26,7 +26,7 @@
 	<div id='tPreview' style="display:none;margin:auto;">
 <?endif;?>
 
-<div id="carousel-<?=$arParams['ID']?>" class="carousel <?=$arParams['BS_EFFECT']?><?=$arParams['BS_HIDE_FOR_TABLETS']?><?=$arParams['BS_HIDE_FOR_PHONES']?>" data-interval="<?=$arParams['BS_INTERVAL']?>" data-wrap="<?=$arParams['BS_WRAP']?>" data-pause="<?=$arParams['BS_PAUSE']?>" data-keyboard="<?=$arParams['BS_KEYBOARD']?>" data-ride="carousel">
+<div id="carousel-<?=$arResult['ID']?>" class="carousel <?=$arParams['BS_EFFECT']?><?=$arParams['BS_HIDE_FOR_TABLETS']?><?=$arParams['BS_HIDE_FOR_PHONES']?>" data-interval="<?=$arParams['BS_INTERVAL']?>" data-wrap="<?=$arParams['BS_WRAP']?>" data-pause="<?=$arParams['BS_PAUSE']?>" data-keyboard="<?=$arParams['BS_KEYBOARD']?>" data-ride="carousel">
 	<style>
 		<?if($arParams['BS_EFFECT']=='fade'):?>
 		.carousel.fade {opacity: 1;}
@@ -48,7 +48,7 @@
 		<ol class="carousel-indicators">
 		<?$i = 0;?>
 		<?while($i < count($arResult['BANNERS'])):?>
-			<li data-target="#carousel-<?=$arParams['ID']?>" data-slide-to="<?=$i?>" <?if($i==0) echo 'class="active"';$i++?>></li>
+			<li data-target="#carousel-<?=$arResult['ID']?>" data-slide-to="<?=$i?>" <?if($i==0) echo 'class="active"';$i++?>></li>
 		<?endwhile;?>
 		</ol>
 	<?endif;?>
@@ -64,12 +64,12 @@
 
 	<?if($arParams['BS_ARROW_NAV'] == 'Y' || $arParams['PREVIEW'] == 'Y'):?>
 		<!-- Controls -->
-		<a href="#carousel-<?=$arParams['ID']?>" class="left carousel-control" data-slide="prev">
+		<a href="#carousel-<?=$arResult['ID']?>" class="left carousel-control" data-slide="prev">
 		<span class="icon-prev fa-stack fa-lg">
 			<i class="fa fa-angle-left fa-stack-2x"></i>
 		</span>
 		</a>
-		<a href="#carousel-<?=$arParams['ID']?>" class="right carousel-control" data-slide="next">
+		<a href="#carousel-<?=$arResult['ID']?>" class="right carousel-control" data-slide="next">
 		<span class="icon-next fa-stack fa-lg">
 			<i class="fa fa-angle-right fa-stack-2x"></i>
 		</span>
@@ -77,7 +77,7 @@
 	<?endif;?>
 
 	<script>
-		BX("carousel-<?=$arParams['ID']?>").addEventListener("slid.bs.carousel", function (e) {
+		BX("carousel-<?=$arResult['ID']?>").addEventListener("slid.bs.carousel", function (e) {
 			var item = e.detail.curSlide.querySelector('.play-caption');
 			if (!!item)
 			{
@@ -86,7 +86,7 @@
 				item.style.opacity = 0;
 			}
 		}, false);
-		BX("carousel-<?=$arParams['ID']?>").addEventListener("slide.bs.carousel", function (e) {
+		BX("carousel-<?=$arResult['ID']?>").addEventListener("slide.bs.carousel", function (e) {
 			var item = e.detail.curSlide.querySelector('.play-caption');
 			if (!!item)
 			{
@@ -117,27 +117,27 @@
 			var firstScriptTag = document.getElementsByTagName('script')[0];
 			firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 		});
-		function onPlayerStateChange(event) {
-			event.target.mute();
+		function mutePlayer(e) {
+			e.target.mute();
+		}
+		function loopPlayer(e) {
+			if (e.data === YT.PlayerState.ENDED)
+				e.target.playVideo();
 		}
 		function onYouTubePlayerAPIReady() {
 			if (typeof yt_player !== 'undefined')
 			{
 				for (var i in yt_player)
 				{
-					if (yt_player[i].mute == true)
-					{
-						window[yt_player[i].id] = new YT.Player(yt_player[i].id, {
+					window[yt_player[i].id] = new YT.Player(
+							yt_player[i].id, {
 								events: {
-									'onReady': onPlayerStateChange
+									'onStateChange': loopPlayer
 								}
 							}
-						);
-					}
-					else
-					{
-						window[yt_player[i].id] = new YT.Player(yt_player[i].id);
-					}
+					);
+					if (yt_player[i].mute == true)
+						window[yt_player[i].id].addEventListener('onReady', mutePlayer);
 				}
 				delete yt_player;
 			}

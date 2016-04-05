@@ -58,6 +58,22 @@ if (is_array($arParams["DESTINATION"]['USERS']))
 if (!$arParams['EVENT_ID'])
 	$arParams["DESTINATION"]["SELECTED"] = array();
 
+$arResult['TIMEZONE_LIST'] = CCalendar::GetTimezoneList();
+$userTimezoneOffsetUTC = CCalendar::GetCurrentOffsetUTC($arParams['CUR_USER']);
+$arParams["USER_TIMEZONE_NAME"] = CCalendar::GetUserTimezoneName($arParams['CUR_USER']);
+$arParams["USER_TIMEZONE_DEFAULT"] = '';
+
+// We don't have default timezone for this offset for this user
+// We will ask him but we should suggest some suitable for his offset
+if (!$arParams["USER_TIMEZONE_NAME"])
+{
+	$arParams["USER_TIMEZONE_DEFAULT"] = CCalendar::GetGoodTimezoneForOffset($userTimezoneOffsetUTC);
+}
+
+$arParams["MEETING_ROOMS"] = CCalendar::GetMeetingRoomList();
+if (count($arParams["MEETING_ROOMS"]) == 0)
+	$arParams["MEETING_ROOMS"] = false;
+
 $this->IncludeComponentTemplate();
 
 ?>

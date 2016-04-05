@@ -127,6 +127,12 @@ abstract class CBPActivity
 		return $rootActivity->arFieldTypes[$rootActivity->arPropertiesTypes[$propertyName]["Type"]]["BaseType"];
 	}
 
+	public function getTemplatePropertyType($propertyName)
+	{
+		$rootActivity = $this->GetRootActivity();
+		return $rootActivity->arPropertiesTypes[$propertyName];
+	}
+
 	public function SetProperties($arProperties = array())
 	{
 		if (count($arProperties) > 0)
@@ -510,6 +516,20 @@ abstract class CBPActivity
 			/** @var CBPDocumentService $documentService */
 			$documentService = $this->workflow->GetService("DocumentService");
 			$document = $documentService->GetDocument($documentId);
+			$documentType = $this->GetDocumentType();
+			$documentFields = $documentService->GetDocumentFields($documentType);
+			//check aliases
+			$documentFieldsAliasesMap = CBPDocument::getDocumentFieldsAliasesMap($documentFields);
+			if (!isset($document[$fieldName]) && strtoupper(substr($fieldName, -strlen('_PRINTABLE'))) == '_PRINTABLE')
+			{
+				$fieldName = substr($fieldName, 0, -strlen('_PRINTABLE'));
+				if (!in_array('printable', $modifiers))
+					$modifiers[] = 'printable';
+			}
+			if (!isset($document[$fieldName]) && isset($documentFieldsAliasesMap[$fieldName]))
+			{
+				$fieldName = $documentFieldsAliasesMap[$fieldName];
+			}
 
 			$result = '';
 
@@ -521,9 +541,7 @@ abstract class CBPActivity
 
 				if (!empty($modifiers))
 				{
-					$documentType = $this->GetDocumentType();
-					$fields = $documentService->GetDocumentFields($documentType);
-					$property = isset($fields[$fieldName]) ? $fields[$fieldName] : null;
+					$property = isset($documentFields[$fieldName]) ? $documentFields[$fieldName] : null;
 				}
 			}
 		}
@@ -541,7 +559,7 @@ abstract class CBPActivity
 			{
 				case 'Variable':
 					$result = $rootActivity->GetVariable($fieldName);
-					$property = $rootActivity->arVariablesTypes[$fieldName];
+					$property = $rootActivity->getVariableType($fieldName);
 					break;
 				case 'Constant':
 					$result = $rootActivity->GetConstant($fieldName);
@@ -549,7 +567,7 @@ abstract class CBPActivity
 					break;
 				default:
 					$result = $rootActivity->{$fieldName};
-					$property = $rootActivity->arPropertiesTypes[$fieldName];
+					$property = $rootActivity->getTemplatePropertyType($fieldName);
 			}
 		}
 		elseif ($objectName == "Workflow")

@@ -15,5 +15,6 @@ $pull_default_option = array(
 	'nginx_headers' => 'Y',
 	'push' => 'N',
 	'websocket' => 'Y',
+	'guest' => 'N',
 );
 ?>

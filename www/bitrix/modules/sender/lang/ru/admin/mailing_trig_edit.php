@@ -70,6 +70,11 @@ $MESS["sender_chain_edit_field_subject_personalize"] = "Тэги персона�
 $MESS["sender_chain_edit_field_email_from"] = "Отправитель:";
 $MESS["sender_chain_edit_field_email_from_last"] = "Ваши адреса:";
 $MESS["sender_chain_edit_field_email_from_desc"] = "Адрес отобразится в строке Отправитель (From)";
+$MESS["sender_chain_edit_field_priority"] = "Важность:";
+$MESS["sender_chain_edit_field_priority_1"] = "Высокая";
+$MESS["sender_chain_edit_field_priority_3"] = "Нормальная";
+$MESS["sender_chain_edit_field_priority_5"] = "Низкая";
+$MESS["sender_chain_edit_field_linkparams"] = "Добавить параметры во все ссылки:";
 $MESS["sender_chain_edit_field_message"] = "Тело письма";
 
 $MESS["sender_chain_edit_pers_help"] = "Используйте тэги для персонализации рассылки.<br> При отправке произойдет автозамена тегов на установленные данные.<br> Например, адресат получит именное письмо с датой или названием товара-новинки";

@@ -220,4 +220,6 @@ $MESS["admin_lib_calend_direct_title"] = "Уточнение периода";
 $MESS["admin_lib_filter_goto_dfilter"] = "Перейти к фильтру &quot;По умолчанию&quot;";
 $MESS["admin_lib_required"] = "Обязательные поля";
 $MESS["admin_lib_menu_marketing"] = "Маркетинг";
+$MESS["admin_lib_sso_auth"] = "Авторизация";
+$MESS["admin_lib_sso_auth_title"] = "Для отображения списка сайтов необходимо авторизоваться с вашим аккаунтом Битрикс24 и разрешить доступ к списку сайтов.";
 ?>

@@ -43,4 +43,6 @@ $MESS["IM_START_CHAT_MESSAGE"] = "Once invited to a chat, a user can view messag
 $MESS["IM_START_CHAT_MESSAGE_LAST"] = "only messages after receiving invitation";
 $MESS["IM_START_CHAT_MESSAGE_FIRST"] = "all from the first message";
 $MESS["IM_COLOR_ENABLE"] = "Enable color themes for chats and users";
+$MESS["IM_OPEN_CHAT_ENABLE"] = "Enable public chats";
+$MESS["IM_OPTIONS_NAME_IN_IM_FORMAT"] = "Default format";
 ?>

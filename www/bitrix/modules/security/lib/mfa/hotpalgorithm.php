@@ -23,23 +23,6 @@ class HotpAlgorithm
 	}
 
 	/**
-	 * Set new secret
-	 *
-	 * @param string $secret Secret (binary).
-	 * @return $this
-	 */
-	public function setSecret($secret)
-	{
-		$this->secret = $secret;
-
-		// Backward compatibility. This is the old logic and i can't change it right now:-(
-		if (\CUtil::binStrlen($this->secret) > 25)
-			$this->digest = 'sha256';
-
-		return $this;
-	}
-
-	/**
 	 * Verify provided input
 	 *
 	 * @param string $input Input received from user.

@@ -307,6 +307,7 @@ class CPushManager
 	const SEND_IMMEDIATELY = 0;
 	const SEND_DEFERRED = 1;
 	const SEND_SKIP = 2;
+	const RECORD_NOT_FOUND = 3;
 
 	public static $pushServices = false;
 	private static $remoteProviderUrl = "https://cloud-messaging.bitrix24.com/send/";
@@ -338,10 +339,30 @@ class CPushManager
 
 		global $DB;
 
-		if (isset($arParams['USER_ID']) && intval($arParams['USER_ID']) != 0)
-			$arFields['USER_ID'] = intval($arParams['USER_ID']);
+		if (is_array($arParams['USER_ID']))
+		{
+			foreach ($arParams['USER_ID'] as $key => $userId)
+			{
+				$userId = intval($userId);
+				if ($userId > 0)
+				{
+					$arFields['USER_ID'][$userId] = $userId;
+				}
+			}
+			if (empty($arFields['USER_ID']))
+			{
+				return false;
+			}
+		}
+		else if (isset($arParams['USER_ID']) && intval($arParams['USER_ID']) > 0)
+		{
+			$userId = intval($arParams['USER_ID']);
+			$arFields['USER_ID'][$userId] = $userId;
+		}
 		else
+		{
 			return false;
+		}
 
 		if (isset($arParams['MESSAGE']) && strlen(trim($arParams['MESSAGE'])) > 0)
 		{
@@ -369,16 +390,48 @@ class CPushManager
 			}
 		}
 
+		$arFields['ADVANCED_PARAMS'] = Array();
+		if (isset($arParams['ADVANCED_PARAMS']) && is_array($arParams['ADVANCED_PARAMS']))
+		{
+			$arFields['ADVANCED_PARAMS'] = $arParams['ADVANCED_PARAMS'];
+		}
+		if (!isset($arParams['ADVANCED_PARAMS']['id']) && strlen($arFields['SUB_TAG']) > 0)
+		{
+			$arParams['ADVANCED_PARAMS']['id'] = $arFields['SUB_TAG'];
+		}
+
 		if (strlen($arParams['SOUND']) > 0)
 			$arFields['SOUND'] = $arParams['SOUND'];
 
 		$arFields['APP_ID'] = (strlen($arParams['APP_ID']) > 0)? $arParams['APP_ID']: "Bitrix24";
 
-		$sendMode = self::GetSendMode($arFields['USER_ID']);
-		if (isset($arParams['SEND_IMMEDIATELY']) && $arParams['SEND_IMMEDIATELY'] == 'Y' || $sendMode == self::SEND_IMMEDIATELY)
+		$groupMode = Array(
+			self::SEND_IMMEDIATELY => Array(),
+			self::SEND_DEFERRED => Array(),
+		);
+
+		$devices = Array();
+
+		$info = self::GetDeviceInfo($arFields['USER_ID'], $arFields['APP_ID']);
+		foreach ($info as $userId => $params)
+		{
+			if ($params['mode'] != self::RECORD_NOT_FOUND && isset($arParams['SEND_IMMEDIATELY']) && $arParams['SEND_IMMEDIATELY'] == 'Y')
+			{
+				$params['mode'] = self::SEND_IMMEDIATELY;
+			}
+			$groupMode[$params['mode']][$userId] = $userId;
+
+			if ($params['mode'] == self::SEND_IMMEDIATELY && !empty($params['device']))
+			{
+				$devices = array_merge($devices, $params['device']);
+			}
+		}
+
+		$pushImmediately = Array();
+		foreach ($groupMode[self::SEND_IMMEDIATELY] as $userId)
 		{
 			$arAdd = Array(
-				'USER_ID' => $arFields['USER_ID'],
+				'USER_ID' => $userId,
 			);
 			if (is_array($arFields['PARAMS']))
 			{
@@ -387,7 +440,7 @@ class CPushManager
 					$arAdd['CATEGORY'] = $arFields['PARAMS']['CATEGORY'];
 					unset($arFields['PARAMS']['CATEGORY']);
 				}
-				$arAdd['PARAMS'] = json_encode($arFields['PARAMS']);
+				$arAdd['PARAMS'] = Bitrix\Main\Web\Json::encode($arFields['PARAMS']);
 			}
 			elseif (strlen($arFields['PARAMS']) > 0)
 			{
@@ -401,19 +454,23 @@ class CPushManager
 				$arAdd['SOUND'] = $arFields['SOUND'];
 			if(strlen($arParams['EXPIRY']) > 0)
 				$arAdd['EXPIRY'] = $arParams['EXPIRY'];
+			if(count($arParams['ADVANCED_PARAMS']) > 0)
+				$arAdd['ADVANCED_PARAMS'] = $arParams['ADVANCED_PARAMS'];
 
 			$arAdd['APP_ID'] = $arFields['APP_ID'];
 
-			$CPushManager = new CPushManager();
-			$CPushManager->SendMessage(Array($arAdd));
+			$pushImmediately[] = $arAdd;
 		}
-		else if ($sendMode == self::SEND_DEFERRED)
+		if (!empty($pushImmediately))
 		{
-			if (strlen($arFields['MESSAGE'])>250)
-				$arFields['MESSAGE'] = substr($arFields['MESSAGE'], 0, 250).' ...';
+			$CPushManager = new CPushManager();
+			$CPushManager->SendMessage($pushImmediately, $devices);
+		}
 
+		foreach ($groupMode[self::SEND_DEFERRED] as $userId)
+		{
 			$arAdd = Array(
-				'USER_ID' => $arFields['USER_ID'],
+				'USER_ID' => $userId,
 				'TAG' => $arFields['TAG'],
 				'SUB_TAG' => $arFields['SUB_TAG'],
 				'~DATE_CREATE' => $DB->CurrentTimeFunction()
@@ -421,16 +478,18 @@ class CPushManager
 
 			if (strlen($arFields['MESSAGE']) > 0)
 				$arAdd['MESSAGE'] = $arFields['MESSAGE'];
+			if (is_array($arFields['ADVANCED_PARAMS']))
+				$arAdd['ADVANCED_PARAMS'] = Bitrix\Main\Web\Json::encode($arFields['ADVANCED_PARAMS']);
 			if (is_array($arFields['PARAMS']))
-				$arAdd['PARAMS'] = json_encode($arFields['PARAMS']);
+				$arAdd['PARAMS'] = Bitrix\Main\Web\Json::encode($arFields['PARAMS']);
 			else if (strlen($arFields['PARAMS']) > 0)
 				$arAdd['PARAMS'] = $arFields['PARAMS'];
 			if (intval($arFields['BADGE']) >= 0)
 				$arAdd['BADGE'] = $arFields['BADGE'];
 
 			$arAdd['APP_ID'] = $arFields['APP_ID'];
-
-			$DB->Add("b_pull_push_queue", $arAdd, Array("PARAMS"));
+			
+			$DB->Add("b_pull_push_queue", $arAdd, Array("MESSAGE", "PARAMS"));
 
 			CAgent::AddAgent("CPushManager::SendAgent();", "pull", "N", 30, "", "Y", ConvertTimeStamp(time()+CTimeZone::GetOffset()+30, "FULL"), 100, false, false);
 		}
@@ -438,7 +497,7 @@ class CPushManager
 		return true;
 	}
 
-	public static function DeleteFromQueueByTag($userId, $tag)
+	public static function DeleteFromQueueByTag($userId, $tag, $appId = 'Bitrix24')
 	{
 		global $DB;
 		if (strlen($tag) <= 0 || intval($userId) == 0)
@@ -447,10 +506,20 @@ class CPushManager
 		$strSql = "DELETE FROM b_pull_push_queue WHERE USER_ID = ".intval($userId)." AND TAG = '".$DB->ForSQL($tag)."'";
 		$DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 
+		$CPushManager = new CPushManager();
+		$CPushManager->AddQueue(Array(
+			'USER_ID' => intval($userId),
+			'ADVANCED_PARAMS' => Array(
+				"notificationsToCancel" => array($tag),
+			),
+			'SEND_IMMEDIATELY' => 'Y',
+			'APP_ID' => $appId
+		));
+
 		return true;
 	}
 
-	public static function DeleteFromQueueBySubTag($userId, $tag)
+	public static function DeleteFromQueueBySubTag($userId, $tag, $appId = 'Bitrix24')
 	{
 		global $DB;
 		if (strlen($tag) <= 0 || intval($userId) == 0)
@@ -459,52 +528,166 @@ class CPushManager
 		$strSql = "DELETE FROM b_pull_push_queue WHERE USER_ID = ".intval($userId)." AND SUB_TAG = '".$DB->ForSQL($tag)."'";
 		$DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 
+		$CPushManager = new CPushManager();
+		$CPushManager->AddQueue(Array(
+			'USER_ID' => intval($userId),
+			'ADVANCED_PARAMS' => Array(
+				"notificationsToCancel" => array($tag),
+			),
+			'SEND_IMMEDIATELY' => 'Y',
+			'APP_ID' => $appId
+		));
+
 		return true;
 	}
 
-	public static function GetSendMode($userId)
+	public static function GetDeviceInfo($userId, $appId = 'Bitrix24')
 	{
-		$result = self::SEND_IMMEDIATELY;
-
-		$isMobile = false;
-		if (CModule::IncludeModule('mobile'))
+		$result = Array();
+		if (is_array($userId))
 		{
-			$isMobile = Bitrix\Mobile\User::checkOnline($userId);
-		}
-
-		$isDesktop = false;
-		$isDesktopIdle = false;
-		if (CModule::IncludeModule('im'))
-		{
-			$arOnline = CIMStatus::GetList(Array('ID' => $userId, 'SKIP_CHECK' => 'Y'));
-			$isOnline = isset($arOnline['users'][$userId]) && $arOnline['users'][$userId]['status'] != 'offline';
-
-			$isDesktop = CIMMessenger::CheckDesktopStatusOnline($userId);
-			if ($isDesktop && intval($arOnline['users'][$userId]['idle']) > 0)
+			foreach ($userId as $key => $id)
 			{
-				$isDesktopIdle = true;
-			}
-		}
-		else
-		{
-			$isOnline = CUser::IsOnLine($userId, 120);
-		}
-
-		if ($isMobile)
-		{
-			$result = self::SEND_IMMEDIATELY;
-		}
-		else if ($isOnline)
-		{
-			$result = self::SEND_DEFERRED;
-			if ($isDesktop)
-			{
-				$result = self::SEND_SKIP;
-				if ($isDesktopIdle)
+				$id = intval($id);
+				if ($id > 0)
 				{
-					$result = self::SEND_IMMEDIATELY;
+					$result[$id] = Array(
+						'mode' => self::RECORD_NOT_FOUND,
+						'device' => Array(),
+					);
 				}
 			}
+		}
+		else if (intval($userId) > 0)
+		{
+			$result[intval($userId)] = Array(
+				'mode' => self::RECORD_NOT_FOUND,
+				'device' => Array(),
+			);
+		}
+		
+		if (empty($result))
+		{
+			return false;
+		}
+
+		$imInclude = false;
+		if (CModule::IncludeModule('im'))
+			$imInclude = true;
+
+		$query = new \Bitrix\Main\Entity\Query(\Bitrix\Main\UserTable::getEntity());
+
+		$sago = Bitrix\Main\Application::getConnection()->getSqlHelper()->addSecondsToDateTime('-180');
+		$query->registerRuntimeField('', new \Bitrix\Main\Entity\ExpressionField('IS_ONLINE_CUSTOM', 'CASE WHEN LAST_ACTIVITY_DATE > '.$sago.' THEN \'Y\' ELSE \'N\' END'));
+		$query->addSelect('ID')->addSelect('EMAIL')->addSelect('IS_ONLINE_CUSTOM');
+
+		if ($imInclude)
+		{
+			$query->registerRuntimeField('', new \Bitrix\Main\Entity\ReferenceField('im', 'Bitrix\Im\StatusTable', array('=this.ID' => 'ref.USER_ID')));
+			$query->addSelect('im.IDLE', 'IDLE')->addSelect('im.MOBILE_LAST_DATE', 'MOBILE_LAST_DATE');
+		}
+
+		$query->registerRuntimeField('', new \Bitrix\Main\Entity\ReferenceField('push', 'Bitrix\Pull\PushTable', array('=this.ID' => 'ref.USER_ID')));
+		$query->registerRuntimeField('', new \Bitrix\Main\Entity\ExpressionField('HAS_MOBILE', 'CASE WHEN main_user_push.USER_ID > 0 THEN \'Y\' ELSE \'N\' END'));
+		$query->addSelect('HAS_MOBILE')
+			->addSelect('push.APP_ID', 'APP_ID')
+			->addSelect('push.UNIQUE_HASH', 'UNIQUE_HASH')
+			->addSelect('push.DEVICE_TYPE', 'DEVICE_TYPE')
+			->addSelect('push.DEVICE_TOKEN', 'DEVICE_TOKEN');
+
+		$query->addFilter('=ID', array_keys($result));
+		$queryResult = $query->exec();
+
+		while ($user = $queryResult->fetch())
+		{
+			$uniqueHashes[] = CPullPush::getUniqueHash($user["ID"], $appId);
+			$uniqueHashes[] = CPullPush::getUniqueHash($user["ID"], $appId."_bxdev");
+
+			if (in_array($user['UNIQUE_HASH'], $uniqueHashes))
+			{
+				$result[$user['ID']]['device'][] = Array(
+					'APP_ID' => $user['APP_ID'],
+					'USER_ID' => $user['ID'],
+					'DEVICE_TYPE' => $user['DEVICE_TYPE'],
+					'DEVICE_TOKEN' => $user['DEVICE_TOKEN'],
+				);
+				//$result[$user['ID']]['email'] = $user['EMAIL'];
+			}
+			else
+			{
+				continue;
+			}
+
+			if ($result[$user['ID']]['mode'] != self::RECORD_NOT_FOUND)
+			{
+				continue;
+			}
+
+			$isMobile = false;
+			$isOnline = false;
+			$isDesktop = false;
+			$isDesktopIdle = false;
+
+			if ($user['HAS_MOBILE'] == 'N')
+			{
+				$result[$user['ID']]['mode'] = self::RECORD_NOT_FOUND;
+				$result[$user['ID']]['device'] = Array();
+				continue;
+			}
+
+			if ($user['IS_ONLINE_CUSTOM'] == 'Y')
+			{
+				$isOnline = true;
+			}
+
+			if ($imInclude)
+			{
+				$mobileLastDate = 0;
+				if (is_object($user['MOBILE_LAST_DATE']))
+				{
+					 $mobileLastDate = $user['MOBILE_LAST_DATE']->getTimestamp();
+				}
+				if ($mobileLastDate > 0 && $mobileLastDate + 180 > time())
+				{
+					$isMobile = true;
+				}
+
+				$isDesktop = CIMMessenger::CheckDesktopStatusOnline($user['ID']);
+				if ($isDesktop && $isOnline && is_object($user['IDLE']))
+				{
+					if ($user['IDLE']->getTimestamp() > 0)
+					{
+						$isDesktopIdle = true;
+					}
+				}
+			}
+
+			$status = self::SEND_IMMEDIATELY;
+			if ($isMobile)
+			{
+				$status = self::SEND_IMMEDIATELY;
+			}
+			else if ($isOnline)
+			{
+				$status = self::SEND_DEFERRED;
+				if ($isDesktop)
+				{
+					$status = self::SEND_SKIP;
+					if ($isDesktopIdle)
+					{
+						$status = self::SEND_IMMEDIATELY;
+					}
+					else
+					{
+						$result[$user['ID']]['device'] = Array();
+					}
+				}
+				else
+				{
+					$result[$user['ID']]['device'] = Array();
+				}
+			}
+			$result[$user['ID']]['mode'] = $status;
 		}
 
 		return $result;
@@ -531,14 +714,14 @@ class CPushManager
 		else if ($dbType == "oracle")
 			$sqlDate = " WHERE DATE_CREATE < SYSDATE-(1/24/60/60*15) ";
 
-		$strSql = $DB->TopSql("SELECT ID, USER_ID, MESSAGE, PARAMS, BADGE, APP_ID FROM b_pull_push_queue".$sqlDate, 280);
+		$strSql = $DB->TopSql("SELECT ID, USER_ID, MESSAGE, PARAMS, ADVANCED_PARAMS, BADGE, APP_ID FROM b_pull_push_queue".$sqlDate, 280);
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 		while ($arRes = $dbRes->Fetch())
 		{
 			if ($arRes['BADGE'] == '')
 				unset($arRes['BADGE']);
 
-			$arRes['PARAMS'] = json_decode($arRes['PARAMS'], true);
+			$arRes['PARAMS'] = $arRes['PARAMS']? Bitrix\Main\Web\Json::decode($arRes['PARAMS']): "";
 			if (is_array($arRes['PARAMS']))
 			{
 				if (isset($arRes['PARAMS']['CATEGORY']))
@@ -546,8 +729,9 @@ class CPushManager
 					$arRes['CATEGORY'] = $arRes['PARAMS']['CATEGORY'];
 					unset($arRes['PARAMS']['CATEGORY']);
 				}
-				$arRes['PARAMS'] = json_encode($arRes['PARAMS']);
+				$arRes['PARAMS'] = Bitrix\Main\Web\Json::encode($arRes['PARAMS']);
 			}
+			$arRes['ADVANCED_PARAMS'] = strlen($arRes['ADVANCED_PARAMS']) > 0? Bitrix\Main\Web\Json::decode($arRes['ADVANCED_PARAMS']): Array();
 
 			$arPush[$count][] = $arRes;
 			if ($pushLimit <= count($arPush[$count]))
@@ -588,7 +772,7 @@ class CPushManager
 		return false;
 	}
 
-	public function SendMessage($arMessages = Array())
+	public function SendMessage($arMessages = Array(), $arDevices = Array())
 	{
 		if(empty($arMessages))
 			return false;
@@ -609,12 +793,20 @@ class CPushManager
 		$filter = array(
 			"UNIQUE_HASH" => array_unique($uniqueHashes)
 		);
-
-		$dbDevices = CPullPush::GetList(Array("DEVICE_TYPE" => "ASC"), $filter);
+		
+		if (empty($arDevices))
+		{
+			$dbDevices = CPullPush::GetList(Array("DEVICE_TYPE" => "ASC"), $filter);
+			while($row = $dbDevices->Fetch())
+			{
+				$arDevices[] = $row;
+			}
+		}
 
 		$arServicesIDs = array_keys(self::$pushServices);
 		$arPushMessages = Array();
-		while($arDevice = $dbDevices->Fetch())
+
+		foreach ($arDevices as $arDevice)
 		{
 			if(in_array($arDevice["DEVICE_TYPE"], $arServicesIDs))
 			{
@@ -647,9 +839,6 @@ class CPushManager
 						$batch .= $obPush->getBatch($arPushMessages[$serviceID]);
 					}
 				}
-
-
-
 			}
 		}
 		$this->sendBatch($batch);

@@ -343,6 +343,7 @@ if($_REQUEST['action'] == 'sitemap_run' && check_bitrix_sessid())
 		$NS['IBLOCK_LASTMOD'] = 0;
 
 		$NS['IBLOCK'] = array();
+		$NS['IBLOCK_MAP'] = array();
 
 		if(count($arIBlockList) <= 0)
 		{
@@ -368,6 +369,12 @@ if($_REQUEST['action'] == 'sitemap_run' && check_bitrix_sessid())
 
 		$dbOldIblockResult = null;
 		$dbIblockResult = null;
+
+		if(isset($_SESSION["SEO_SITEMAP_".$PID]))
+		{
+			$NS['IBLOCK_MAP'] = $_SESSION["SEO_SITEMAP_".$PID];
+			unset($_SESSION["SEO_SITEMAP_".$PID]);
+		}
 
 		while(!$bFinished && microtime(true) <= $ts_finish)
 		{
@@ -479,18 +486,27 @@ if($_REQUEST['action'] == 'sitemap_run' && check_bitrix_sessid())
 
 					if($arElement)
 					{
-						$arElement['LANG_DIR'] = $arSitemap['SITE']['DIR'];
+						if(!is_array($NS['IBLOCK_MAP'][$iblockId]))
+						{
+							$NS['IBLOCK_MAP'][$iblockId] = array();
+						}
 
-						$bCheckFinished = false;
-						$elementLastmod = MakeTimeStamp($arElement['TIMESTAMP_X']);
-						$NS['IBLOCK_LASTMOD'] = max($NS['IBLOCK_LASTMOD'], $elementLastmod);
-						$NS['LAST_ELEMENT_ID'] = $arElement['ID'];
+						if(!array_key_exists($arElement['ID'], $NS['IBLOCK_MAP'][$iblockId]))
+						{
+							$arElement['LANG_DIR'] = $arSitemap['SITE']['DIR'];
 
-						$NS['IBLOCK'][$iblockId]['E']++;
+							$bCheckFinished = false;
+							$elementLastmod = MakeTimeStamp($arElement['TIMESTAMP_X']);
+							$NS['IBLOCK_LASTMOD'] = max($NS['IBLOCK_LASTMOD'], $elementLastmod);
+							$NS['LAST_ELEMENT_ID'] = $arElement['ID'];
 
-						$url = \CIBlock::ReplaceDetailUrl($arElement['DETAIL_PAGE_URL'], $arElement, false, "E");
+							$NS['IBLOCK'][$iblockId]['E']++;
+							$NS['IBLOCK_MAP'][$iblockId][$arElement["ID"]] = 1;
 
-						$sitemapFile->addIBlockEntry($url, $elementLastmod);
+							$url = \CIBlock::ReplaceDetailUrl($arElement['DETAIL_PAGE_URL'], $arElement, false, "E");
+
+							$sitemapFile->addIBlockEntry($url, $elementLastmod);
+						}
 					}
 					elseif(!$bCheckFinished)
 					{
@@ -944,6 +960,11 @@ if($_REQUEST['action'] == 'sitemap_run' && check_bitrix_sessid())
 
 	if($v < $arValueSteps['index'])
 	{
+		if(isset($NS['IBLOCK_MAP']))
+		{
+			$_SESSION["SEO_SITEMAP_".$PID] = $NS['IBLOCK_MAP'];
+			unset($NS['IBLOCK_MAP']);
+		}
 ?>
 <script>
 top.BX.runSitemap(<?=$ID?>, <?=$v?>, '<?=$PID?>', <?=CUtil::PhpToJsObject($NS)?>);

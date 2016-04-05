@@ -290,7 +290,7 @@ class ExportOffer implements \Iterator
 					$siteId
 				))
 				{
-					$minPrice = $arOptimalPrice['DISCOUNT_PRICE'];
+					$minPrice = $arOptimalPrice['RESULT_PRICE']['DISCOUNT_PRICE'];
 					$minPriceCurrency = $baseCurrency;
 					$minPriceRUR = \CCurrencyRates::ConvertCurrency($minPrice, $baseCurrency, $RUR);
 					$minPriceGroup = $arOptimalPrice['PRICE']['CATALOG_GROUP_ID'];
@@ -308,7 +308,7 @@ class ExportOffer implements \Iterator
 				$siteId
 			))
 			{
-				$minPrice = $arPrice['DISCOUNT_PRICE'];
+				$minPrice = $arPrice['RESULT_PRICE']['DISCOUNT_PRICE'];
 				$minPriceCurrency = $baseCurrency;
 				$minPriceRUR = \CCurrencyRates::ConvertCurrency($minPrice, $baseCurrency, $RUR);
 				$minPriceGroup = $arPrice['PRICE']['CATALOG_GROUP_ID'];

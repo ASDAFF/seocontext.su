@@ -23,4 +23,8 @@ $MESS["GD_SONET_USER_DESC_OTP_ACTIVATE"] = "Включить";
 $MESS["GD_SONET_USER_DESC_OTP_DEACTIVATE"] = "Отключить";
 $MESS["GD_SONET_USER_DESC_OTP_PROROGUE"] = "Отложить";
 $MESS["GD_SONET_USER_DESC_OTP_LEFT_DAYS"] = "(до подключения осталось #NUM#)";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO"] = "Пересылайте письма в свой Битрикс24";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_BLOG_POST"] = "Для создания поста в Живой ленте";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_TASK"] = "Для создания задачи";
+$MESS["GD_SONET_USER_DESC_FORWARD_TO_SHOW"] = "показать";
 ?>

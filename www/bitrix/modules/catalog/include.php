@@ -1,7 +1,9 @@
 <?
-use Bitrix\Main\Loader;
-use Bitrix\Main\Localization\Loc;
-use Bitrix\Iblock;
+use Bitrix\Main\Loader,
+	Bitrix\Main\Localization\Loc,
+	Bitrix\Main,
+	Bitrix\Iblock,
+	Bitrix\Catalog;
 
 Loc::loadMessages(__FILE__);
 
@@ -110,6 +112,7 @@ Loader::registerAutoLoadClasses(
 		'CCatalogAdmin' => 'general/admin.php',
 		'CGlobalCondCtrl' => 'general/catalog_cond.php',
 		'CGlobalCondCtrlComplex' => 'general/catalog_cond.php',
+		'CGlobalCondCtrlAtoms' => 'general/catalog_cond.php',
 		'CGlobalCondCtrlGroup' => 'general/catalog_cond.php',
 		'CGlobalCondTree' => 'general/catalog_cond.php',
 		'CCatalogCondCtrl' => 'general/catalog_cond.php',
@@ -123,6 +126,7 @@ Loader::registerAutoLoadClasses(
 		'CCatalogCondCtrlCatalogSettings' => 'general/sale_cond.php',
 		'CCatalogActionCtrlBasketProductFields' => 'general/sale_act.php',
 		'CCatalogActionCtrlBasketProductProps' => 'general/sale_act.php',
+		'CCatalogGifterProduct' => 'general/sale_act.php',
 		'CCatalogDiscountConvert' => 'general/discount_convert.php',
 		'CCatalogDiscountConvertTmp' => $strDBType.'/discount_convert.php',
 		'CCatalogProductProvider' => 'general/product_provider.php',
@@ -150,20 +154,28 @@ Loader::registerAutoLoadClasses(
 		'CCatalogCSVSettings' => 'general/csv_settings.php',
 		'CCatalogStepOperations' => 'general/step_operations.php',
 		'CCatalogProductSetAvailable' => 'general/step_operations.php',
+		'CCatalogProductAvailable' => 'general/step_operations.php',
+		'CCatalogProductSettings' => 'general/step_operations.php',
 		'CCatalogTools' => 'general/tools.php',
 		'\Bitrix\Catalog\Discount\DiscountManager' => 'lib/discount/discountmanager.php',
+		'\Bitrix\Catalog\Helpers\Admin\CatalogEdit' => 'lib/helpers/admin/catalogedit.php',
+		'\Bitrix\Catalog\Product\Price' => 'lib/product/price.php',
+		'\Bitrix\Catalog\Product\Sku' => 'lib/product/sku.php',
 		'\Bitrix\Catalog\CatalogIblockTable' => 'lib/catalogiblock.php',
 		'\Bitrix\Catalog\DiscountTable' => 'lib/discount.php',
 		'\Bitrix\Catalog\DiscountCouponTable' => 'lib/discountcoupon.php',
+		'\Bitrix\Catalog\DiscountRestrictionTable' => 'lib/discountrestriction.php',
 		'\Bitrix\Catalog\GroupTable' => 'lib/group.php',
 		'\Bitrix\Catalog\GroupLangTable' => 'lib/grouplang.php',
 		'\Bitrix\Catalog\MeasureRatioTable' => 'lib/measureratio.php',
+		'\Bitrix\Catalog\PriceTable' => 'lib/price.php',
 		'\Bitrix\Catalog\ProductTable' => 'lib/product.php',
 		'\Bitrix\Catalog\StoreTable' => 'lib/store.php',
 		'\Bitrix\Catalog\CatalogViewedProductTable' => 'lib/catalogviewedproduct.php',
 		'\Bitrix\Catalog\VatTable' => 'lib/vat.php',
 	)
 );
+unset($strDBType);
 
 if (defined('CATALOG_GLOBAL_VARS') && CATALOG_GLOBAL_VARS == 'Y')
 {
@@ -1152,6 +1164,11 @@ function Add2Basket($PRICE_ID, $QUANTITY = 1, $arRewriteFields = array(), $arPro
 		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_NO_PRODUCT'), "NO_PRODUCT");
 		return false;
 	}
+	if ($arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+	{
+		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_CANNOT_ADD_SKU'), "NO_PRODUCT");
+		return false;
+	}
 	$arCatalogProduct['MEASURE'] = (int)$arCatalogProduct['MEASURE'];
 	$arCatalogProduct['MEASURE_NAME'] = '';
 	$arCatalogProduct['MEASURE_CODE'] = 0;
@@ -1315,6 +1332,7 @@ function Add2Basket($PRICE_ID, $QUANTITY = 1, $arRewriteFields = array(), $arPro
  */
 function Add2BasketByProductID($PRODUCT_ID, $QUANTITY = 1, $arRewriteFields = array(), $arProductParams = false)
 {
+	/** @global CMain $APPLICATION */
 	global $APPLICATION;
 
 	/* for old use */
@@ -1375,6 +1393,11 @@ function Add2BasketByProductID($PRODUCT_ID, $QUANTITY = 1, $arRewriteFields = ar
 	if (!($arCatalogProduct = $rsProducts->Fetch()))
 	{
 		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_NO_PRODUCT'), "NO_PRODUCT");
+		return false;
+	}
+	if ($arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+	{
+		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_CANNOT_ADD_SKU'), "NO_PRODUCT");
 		return false;
 	}
 	$arCatalogProduct['MEASURE'] = (int)$arCatalogProduct['MEASURE'];
@@ -1646,6 +1669,11 @@ function SubscribeProduct($intProductID, $arRewriteFields = array(), $arProductP
 	if (!($arCatalogProduct = $rsProducts->Fetch()))
 	{
 		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_NO_PRODUCT'), "NO_PRODUCT");
+		return false;
+	}
+	if ($arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_SKU || $arCatalogProduct['TYPE'] == Catalog\ProductTable::TYPE_EMPTY_SKU)
+	{
+		$APPLICATION->ThrowException(Loc::getMessage('CATALOG_ERR_CANNOT_SUBSCRIBE_SKU'), "NO_PRODUCT");
 		return false;
 	}
 	if ($arCatalogProduct['SUBSCRIBE'] == 'N')
@@ -2290,24 +2318,15 @@ function __GetCatLangMessages($strBefore, $strAfter, $MessID, $strDefMess = fals
 	return $arResult;
 }
 
+/**
+ * @deprecated deprecated since catalog 16.0.0
+ * @see \Bitrix\Main\Type\Collection::normalizeArrayValuesByInt
+ *
+ * @param array &$arMap
+ * @param bool $boolSort
+ * @return void
+ */
 function CatalogClearArray(&$arMap, $boolSort = true)
 {
-	if (empty($arMap) || !is_array($arMap))
-		return;
-
-	$arValues = array();
-	foreach ($arMap as &$intOneValue)
-	{
-		$intOneValue = (int)$intOneValue;
-		if (0 < $intOneValue)
-			$arValues[$intOneValue] = true;
-	}
-	unset($intOneValue);
-	$arMap = array();
-	if (!empty($arValues))
-	{
-		$arMap = array_keys($arValues);
-		if ($boolSort)
-			sort($arMap);
-	}
+	Main\Type\Collection::normalizeArrayValuesByInt($arMap, $boolSort);
 }

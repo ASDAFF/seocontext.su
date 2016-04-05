@@ -190,10 +190,13 @@
 		},
 		quoteCheck : function() {
 			var text = '', range, author = null;
-			if (window.getSelection) {
+			if (window.getSelection)
+			{
 				range = window.getSelection();
 				text = range.toString();
-			} else if (document.selection) {
+			}
+			else if (document.selection)
+			{
 				range = document.selection;
 				text = range.createRange().text;
 			}
@@ -218,7 +221,8 @@
 					}
 				}
 			}
-			if (text == "") {
+			if (text == "")
+			{
 				if (!!this.quote.popup)
 					this.quote.popup.hide();
 				return false;
@@ -483,6 +487,7 @@
 						MODERATE_URL : this.params.MODERATE_URL,
 						DELETE_URL : this.params.DELETE_URL,
 						AUTHOR_URL : this.params.AUTHOR_URL,
+						AUTHOR_URL_PARAMS : this.params.AUTHOR_URL_PARAMS,
 
 						NAME_TEMPLATE : this.params.NAME_TEMPLATE,
 						SHOW_LOGIN : this.params.SHOW_LOGIN
@@ -538,16 +543,27 @@
 			if (!container)
 			{
 				container = BX.create("DIV", {
-						attrs : {id : ("record-" + id.join('-') + '-cover'), "className" : "feed-com-block-cover"},
-						style : {opacity : 0, height : 0, overflow: "hidden"},
-						html : ob.HTML});
+					attrs : {id : ("record-" + id.join('-') + '-cover'), "className" : "feed-com-block-cover"},
+					style : {opacity : 0, height : 0, overflow: "hidden"},
+					html : ob.HTML});
 				newCommentsContainer.appendChild(container);
 				changeOpacity = true;
 			}
 			else
 			{
+				var containerBody = BX.create("DIV", {
+					attrs : {id : ("record-" + id.join('-') + '-cover'), "className" : "feed-com-block-cover"},
+					style : {display : "none"},
+					html : ob.HTML}), containerForRemove = container;
+				container.parentNode.insertBefore(containerBody, container);
+				container.removeAttribute("id");
 				height = container.scrollHeight;
-				container.innerHTML = ob.HTML;
+				BX.hide(container);
+				BX.show(containerBody);
+				container = containerBody;
+				setTimeout(function() {
+					BX.remove(containerForRemove);
+				}, 1000);
 			}
 
 			if (animation !== "simple")
@@ -1196,6 +1212,7 @@
 				"AUTHOR_EXTRANET_STYLE" : '',
 				"SHOW_POST_FORM" : 'Y',
 				"VOTE_ID" : "",
+				"AUTHOR_TOOLTIP_PARAMS" : '',
 				"background:url('') no-repeat center;" : ""
 			};
 		if (!!res && !!data["messageFields"])
@@ -1208,6 +1225,23 @@
 				['yesterday', (params["TIME_FORMAT"].indexOf("yesterday") < 0 ? 'yesterday, '+params["TIME_FORMAT"] : params["TIME_FORMAT"])],
 				['', params["DATE_TIME_FORMAT"]]
 			];
+
+			var authorStyle = '';
+			if (typeof res["AUTHOR"]["TYPE"] != 'undefined')
+			{
+				if (res["AUTHOR"]["TYPE"] == 'EMAIL')
+				{
+					authorStyle = ' feed-com-name-email';
+				}
+				else if (res["AUTHOR"]["TYPE"] == 'EXTRANET')
+				{
+					authorStyle = ' feed-com-name-extranet';
+				}
+			}
+			else if (res["AUTHOR"]["IS_EXTRANET"] == "Y")
+			{
+				authorStyle = ' feed-com-name-extranet';
+			}
 
 			replacement = {
 				"ID" : res["ID"],
@@ -1247,10 +1281,17 @@
 					replace("#ID#", res["ID"]).
 					replace("#id#", res["ID"]).
 					replace("#USER_ID#", res["AUTHOR"]["ID"]).
-					replace("#user_id#", res["AUTHOR"]["ID"]),
+					replace("#user_id#", res["AUTHOR"]["ID"]) + (
+						typeof res["AUTHOR"]["EXTERNAL_AUTH_ID"] != 'undefined'
+						&& res["AUTHOR"]["EXTERNAL_AUTH_ID"] == 'email'
+						&& typeof params["AUTHOR_URL_PARAMS"] != 'undefined'
+							? (params["AUTHOR_URL"].indexOf("?") >= 0 ? '&' : '?') + 'entityType=' + params["AUTHOR_URL_PARAMS"]["entityType"] + '&entityId=' + params["AUTHOR_URL_PARAMS"]["entityId"]
+							: ''
+					),
 				"AUTHOR_NAME" : BX.formatName(res["AUTHOR"], params["NAME_TEMPLATE"], params["SHOW_LOGIN"]),
-				"AUTHOR_EXTRANET_STYLE" : (res["AUTHOR"]["IS_EXTRANET"] == "Y" ? ' feed-com-name-extranet' : ''),
+				"AUTHOR_EXTRANET_STYLE" : authorStyle,
 				"VOTE_ID" : (res["RATING"] && res["RATING"]["VOTE_ID"] ? res["RATING"]["VOTE_ID"] : ""),
+				"AUTHOR_TOOLTIP_PARAMS" : (typeof res["AUTHOR_TOOLTIP_PARAMS"] != 'undefined' ? res["AUTHOR_TOOLTIP_PARAMS"] : '{}'),
 				"background:url('') no-repeat center;" : ""
 			};
 		}

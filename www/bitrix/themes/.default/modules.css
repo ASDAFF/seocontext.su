@@ -5892,7 +5892,7 @@ a.add_store {
 }
 .adm-shipment-block-short-info td {
 	text-align: left;
-	padding: 5px 4px 7px 0;
+	padding: 5px 4px 7px 7px;
 	vertical-align: middle;
 }
 .adm-shipment-block-logo {
@@ -6447,7 +6447,7 @@ td.bdb-line{
 	cursor: pointer;
 	color: #2675d7;
 }
-.bx-admin-delivery-restricted {
+.bx-admin-service-restricted {
 	color: #D2D1D1;
 }
 .bx-adm-edit-pencil {
@@ -6458,6 +6458,177 @@ td.bdb-line{
 	cursor: pointer;
 	margin-left: 3px;
 }
+tr.adm-s-delivery-restriction-delcat a.adm-s-bus-morelinkqhsw{
+	display: none;
+	color: #808080;
+	text-decoration: none;
+	border-bottom: 1px dashed #808080;
+}
+tr.adm-s-delivery-restriction-delcat:hover a.adm-s-bus-morelinkqhsw{
+	display: inline-block;
+	color: #808080;
+	text-decoration: none;
+	border-bottom: 1px dashed #808080;
+}
+.adm-bus-section-container-section{
+	margin-bottom:10px;
+	border:1px solid #e3e8ea;
+}
+.adm-bus-section-container-section-title-container{
+	position:relative;
+	background:#e3e8ea;
+}
+.adm-bus-section-container-section-title{
+	font-size:13px;
+	line-height:25px;
+	min-height:25px;
+	padding-left:10px;
+	vertical-align:middle;
+	color:#646d7a;
+}
+.adm-bus-section-container-section-action{
+	font-size:12px;
+	line-height:16px;
+	position:absolute;
+	top:50%;
+	right:10px;
+	height:16px;
+	margin-top:-8px;
+	cursor:pointer;
+	color:#8b9a9e;
+	border-bottom:1px dashed #afbabd;
+}
+.adm-bus-section-container-section-action:hover{
+	color:#646d7a;
+	border-bottom:1px dashed #646d7a;
+}
+
+/*Content*/
+.adm-bus-section-container-section-content{
+	padding:25px;
+	background:#eef5f5;
+}
+
+/*Статус заказа*/
+.adm-bus-section-container-section-status{
+	width:100%;
+	padding:2px 5px;
+}
+.adm-bus-section-container-section-status td{
+	font-size:13px;
+	line-height:16px;
+	white-space:nowrap;
+}
+.adm-bus-section-container-section-status-img{
+	padding:2px;
+	border:1px solid #acbbc0;
+	background:#fff;
+}
+/*.adm-bus-section-container-section-status-img img{*/
+	/*width:60px;*/
+	/*max-width:60px;*/
+/*}*/
+.adm-bus-section-container-section-status-service{
+	padding-right:12px;
+	padding-left:25px;
+}
+.adm-bus-section-container-section-status-summ{
+	padding-right:12px;
+	padding-left:12px;
+}
+.adm-bus-section-container-section-status-status{
+	padding-left:12px;
+}
+.adm-s-detail-order-stas-block>span,
+.adm-bus-section-container-section-status td span{
+	font-weight:bold;
+	line-height:16px;
+	display:inline-block;
+	height:16px;
+	color:#658d0f;
+}
+/*SideBar*/
+.adm-bus-section-container-section-sidebar{
+	float:left;
+	width:230px;
+}
+.adm-bus-section-container-section-sidebar-service-logo{
+	display:inline-block;
+	margin-bottom:20px;
+	padding:3px;
+	border:1px solid #acbbc0;
+	background:#fff;
+}
+.adm-bus-section-container-section-sidebar-service-logo img{
+	display:block;
+	max-width:100%;
+	height:auto;
+}
+/*maps*/
+.adm-bus-section-container-section-sidebar-address-title{
+	font-size:13px;
+	font-weight:bold;
+	margin-bottom:5px;
+	color:#000;
+}
+.adm-bus-section-container-section-sidebar-address #deliverymap{
+	width:230px;
+	height:230px;
+	border:1px solid #acbbc0;
+}
+.adm-bus-section-container-section-sidebar-address p{
+	font-size:13px;
+	line-height:18px;
+}
+
+/*Right content*/
+.adm-bus-section-container-section-right{
+	margin-left:280px;
+}
+
+/**/
+.adm-s-detail-content-sale-link{
+	font-size:13px;
+	text-decoration:underline;
+	color:#75888c;
+}
+.adm-s-detail-content-sale-link:hover{
+	text-decoration:none;
+}
+.adm-s-detail-order-stas-block{
+	font-size:12px;
+	line-height:24px;
+	color:#75888c;
+}
+.adm-s-detail-order-stas-block a{
+	font-size:12px;
+	text-decoration:none;
+	color:#3d7fb5;
+}
+.adm-s-detail-order-stas-block a:hover{
+	text-decoration:underline;
+}
+
+
+/*----------*/
+
+.posr{
+	position:relative;
+}
+.clb{
+	clear:both;
+}
+.tac{
+	text-align:center;
+}
+.tar{
+	text-align:right;
+}
+.tal{
+	text-align:left;
+}
+
+
 /*Menu icon*/
 #security_menu_icon {background-image:url(icons/security/mnu_security.gif);}
 #security_page_icon {background-image:url(icons/security/title.gif);}
@@ -6748,10 +6919,13 @@ div.sender-group-address-counter .sender-group-address-counter-cnttext{
 .sender-test-recent{
     padding-bottom: 20px;
 }
-.sender-link-email, .sender-link-email:hover{
+.sender-link-email{
     text-decoration: none;
-    border-bottom: 1px dashed #2675d7;
     cursor: pointer;
+}
+.sender-link-email:hover{
+    text-decoration: none;
+    border-bottom: 1px dotted #2675d7;
 }
 
 
@@ -6905,6 +7079,14 @@ div.sender-group-address-counter .sender-group-address-counter-cnttext{
 
 .sender-template-list-container {
     width: 100%; margin-left: 20px;
+}
+.sender-template-btn-close{
+    background: url("/bitrix/panel/main/images/popup_sprite.png") no-repeat 0 -30px;
+    cursor: pointer;
+    display: inline-block;
+    height: 30px;
+    width: 28px;
+    background-position: 0 -90px
 }
 .sender-template-list-type-blockempty{
     margin: 50px;

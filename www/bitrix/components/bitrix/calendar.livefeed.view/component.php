@@ -8,11 +8,12 @@ if(!CModule::IncludeModule("calendar") || !class_exists("CCalendar"))
 $arParams['EVENT_ID'] = intval($arParams['EVENT_ID']);
 $arResult['ID'] = 'livefeed'.$arParams['EVENT_ID'];
 $arResult['EVENT'] = false;
+$arParams['CUR_USER'] = $USER->GetId();
 $Events = CCalendarEvent::GetList(
 	array(
 		'arFilter' => array(
 			"ID" => $arParams['EVENT_ID'],
-			"DELETED" => "N"
+			"DELETED" => false
 		),
 		'parseRecursion' => false,
 		'fetchAttendees' => true,
@@ -20,15 +21,35 @@ $Events = CCalendarEvent::GetList(
 		'setDefaultLimit' => false
 	)
 );
+
 if ($Events && is_array($Events[0]))
-	$arResult['EVENT'] =  $Events[0];
+	$arResult['EVENT'] = $Events[0];
+
+if (!$arResult['EVENT'])
+{
+	$Events = CCalendarEvent::GetList(
+		array(
+			'arFilter' => array(
+				"ID" => $arParams['EVENT_ID'],
+				"DELETED" => false
+			),
+			'parseRecursion' => false,
+			'checkPermissions' => false,
+			'setDefaultLimit' => false
+		)
+	);
+
+	// Clean damaged event from livefeed
+	if (!$Events || !is_array($Events[0]))
+		CCalendarLiveFeed::OnDeleteCalendarEventEntry($arParams['EVENT_ID']);
+	return false;
+}
 
 if ($arResult['EVENT']['LOCATION'] !== '')
 	$arResult['EVENT']['LOCATION'] = CCalendar::GetTextLocation($arResult['EVENT']["LOCATION"]);
 
 global $USER_FIELD_MANAGER;
-$UF = $USER_FIELD_MANAGER->GetUserFields("CALENDAR_EVENT", $arParams['EVENT_ID'], LANGUAGE_ID);
-
+$UF = CCalendarEvent::GetEventUserFields($arResult['EVENT']);
 $arResult['UF_CRM_CAL_EVENT'] = $UF['UF_CRM_CAL_EVENT'];
 if (empty($arResult['UF_CRM_CAL_EVENT']['VALUE']))
 	$arResult['UF_CRM_CAL_EVENT'] = false;
@@ -47,8 +68,15 @@ if (!isset($arParams['EVENT_TEMPLATE_URL']))
 	$arParams['EVENT_TEMPLATE_URL'] = $editUrl.((strpos($editUrl, "?") === false) ? '?' : '&').'EVENT_ID=#EVENT_ID#';
 }
 
-$arResult['EVENT']['FROM_WEEK_DAY'] = FormatDate('D', $arResult['EVENT']['DT_FROM_TS']);
-$arResult['EVENT']['FROM_MONTH_DAY'] = FormatDate('j', $arResult['EVENT']['DT_FROM_TS']);
+
+$fromDateTs = CCalendar::Timestamp($arResult['EVENT']['DATE_FROM']);
+if ($arResult['EVENT']['DT_SKIP_TIME'] !== "Y")
+{
+	$fromDateTs -= $arResult['EVENT']['~USER_OFFSET_FROM'];
+}
+
+$arResult['EVENT']['FROM_WEEK_DAY'] = FormatDate('D', $fromDateTs);
+$arResult['EVENT']['FROM_MONTH_DAY'] = FormatDate('j', $fromDateTs);
 
 if ($arResult['EVENT']['IS_MEETING'])
 {

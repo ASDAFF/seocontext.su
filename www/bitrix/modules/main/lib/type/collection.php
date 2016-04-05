@@ -163,4 +163,17 @@ class Collection
 				sort($map);
 		}
 	}
+
+	/**
+	 * Check array is associative.
+	 *
+	 * @param $array - Array for check.
+	 * @return bool
+	 */
+	public static function isAssociative(array $array)
+	{
+		$array = array_keys($array);
+
+		return ($array !== array_keys($array));
+	}
 }

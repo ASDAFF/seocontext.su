@@ -26,4 +26,6 @@ $MESS["SEC_SCANNER_NO_PROBLEMS"] = "No threats detected.";
 $MESS["SEC_SCANNER_TESTING_FAILURE_CODE"] = "(error code: #CODE#)";
 $MESS["SEC_SCANNER_ADDITIONAL_INFO_BUTTON_ON"] = "Hide";
 $MESS["SEC_SCANNER_ADDITIONAL_INFO_TITLE"] = "Details";
+$MESS["SEC_SCANNER_EXECUTION_TIME_TITLE"] = "Cannot start Security Scanner.";
+$MESS["SEC_SCANNER_EXECUTION_TIME_DESCRIPTION"] = "Your configuration specifies a way too small amount of time a PHP script is allowed to run before it is terminated (the max_execution_time parameter). Recommended value is no less than #MIN# sec.";
 ?>

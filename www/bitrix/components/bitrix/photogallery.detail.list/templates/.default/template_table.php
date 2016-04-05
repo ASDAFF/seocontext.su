@@ -1,6 +1,5 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/template_table.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 if (!function_exists("__photo_template_table"))
 {
 	function __photo_template_table($arItem, $arParams = array(), $component = false)
@@ -8,7 +7,7 @@ if (!function_exists("__photo_template_table"))
 		static $bFirstOnPage = true;
 		$arParams = (is_array($arParams) ? $arParams : array());
 		$arParams["mode"] = ($arParams["mode"] == "edit" ? "edit" : "read");
-		
+
 		$arParams["percent_width"] = intval(intval($arParams["percent_width"]) > 0 ? $arParams["percent_width"] : 100);
 		$arParams["percent_width"] = $arParams["percent_width"] / 100;
 		$arParams["percent_height"] = intval(intval($arParams["percent_height"]) > 0 ? $arParams["percent_height"] : 100);
@@ -18,20 +17,20 @@ if (!function_exists("__photo_template_table"))
 		$arParams["SHOW_SHOWS"] = ($arParams["SHOW_SHOWS"] == "Y" ? "Y" : "N");
 		$arParams["SHOW_COMMENTS"] = ($arParams["SHOW_COMMENTS"] == "Y" ? "Y" : "N");
 		$arParams["SHOW_ANCHOR"] = ($arParams["SHOW_ANCHOR"] == "Y" ? "Y" : "N");
-		
+
 		$arShows = array(
-			"RATING" => $arParams["SHOW_RATING"], 
-			"SHOWS" => $arParams["SHOW_SHOWS"], 
+			"RATING" => $arParams["SHOW_RATING"],
+			"SHOWS" => $arParams["SHOW_SHOWS"],
 			"SHOW_COMMENTS" => $arParams["SHOW_COMMENTS"]);
 
 		$arParams["MAX_HEIGHT"] = intval($arParams["MAX_HEIGHT"]);
 		$arParams["MAX_WIDTH"] = intval($arParams["MAX_WIDTH"]);
 		$bActiveElement = ($arItem["ACTIVE"] != "Y" ? false : true);
-		
+
 		$sImage = "";
 		if (is_array($arItem["PICTURE"]))
 		{
-			if($arItem["PICTURE"]["WIDTH"] > $arParams["MAX_WIDTH"] || $arItem["PICTURE"]["HEIGHT"] > $arParams["MAX_HEIGHT"]): 
+			if($arItem["PICTURE"]["WIDTH"] > $arParams["MAX_WIDTH"] || $arItem["PICTURE"]["HEIGHT"] > $arParams["MAX_HEIGHT"]):
 				$coeff = max($arItem["PICTURE"]["WIDTH"]/$arParams["MAX_WIDTH"], $arItem["PICTURE"]["HEIGHT"]/$arParams["MAX_HEIGHT"]);
 				$arItem["PICTURE"]["WIDTH"] = intval(roundEx($arItem["PICTURE"]["WIDTH"]/$coeff));
 				$arItem["PICTURE"]["HEIGHT"] = intval(roundEx($arItem["PICTURE"]["HEIGHT"]/$coeff));
@@ -40,19 +39,19 @@ if (!function_exists("__photo_template_table"))
 				"border=\"0\" vspace=\"0\" hspace=\"0\" alt=\"".$arItem["TITLE"]."\" title=\"".$arItem["TITLE"]."\" ".
 				"width=\"".$arItem["PICTURE"]["WIDTH"]."\" height=\"".$arItem["PICTURE"]["HEIGHT"]."\" />";
 		}
-		
+
 		$arParams["MAX_WIDTH"] = $arParams["percent_width"] * $arParams["MAX_WIDTH"];
 		$arParams["MAX_HEIGHT"] = $arParams["percent_height"] * $arParams["MAX_HEIGHT"];
-		
+
 		if (empty($sImage)):
 			$sImage = '<div class="photo-photo-image-empty" style="width:'.$arParams["MAX_WIDTH"].'px;height'.$arParams["MAX_HEIGHT"].':px;"></div>';
 			$arItem["PICTURE"]["WIDTH"] = $arParams["MAX_WIDTH"];
 			$arItem["PICTURE"]["HEIGHT"] = $arParams["MAX_HEIGHT"];
 		endif;
-		
+
 		$margin_left = 0 - intVal(($arItem["PICTURE"]["WIDTH"] - $arParams["MAX_WIDTH"])/2);
 		$margin_top = 0 - intVal(($arItem["PICTURE"]["HEIGHT"] - $arParams["MAX_HEIGHT"])/2);
-		
+
 		$sImage = '<div style="margin-top:'.$margin_top.'px;margin-left:'.$margin_left.'px;text-align:left;position:static;">'.$sImage.'</div>';
 ?>
 <table cellpadding="0" border="0" class="photo-photo-item photo-photo-item-table <?=($arParams["mode"] == "edit" ? " photo-photo-item-edit" : "")?><?
@@ -71,7 +70,7 @@ if (!function_exists("__photo_template_table"))
 							<?=$sImage?>
 						</div><?
 					}
-					elseif ($arParams["mode"] == "edit") 
+					elseif ($arParams["mode"] == "edit")
 					{
 						?><div class="photo-photo-item-outline" <?
 							?>style="width:<?=$arParams["MAX_WIDTH"]?>px;height:<?=$arParams["MAX_HEIGHT"]?>px;overflow:hidden;position:relative;">
@@ -99,7 +98,7 @@ if (!function_exists("__photo_template_table"))
 						</div><?
 					}
 			?>
-								
+
 							</div>
 						</div>
 					</div>
@@ -128,17 +127,17 @@ if (in_array("Y", $arShows))
 	if ($arParams["SHOW_RATING"] == "Y"):
 ?>
 					<div class="photo-photo-rating">
-			<?$GLOBALS["APPLICATION"]->IncludeComponent("bitrix:iblock.vote", 
-				"ajax", 
+			<?$GLOBALS["APPLICATION"]->IncludeComponent("bitrix:iblock.vote",
+				"ajax",
 				array(
 					"IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
 					"IBLOCK_ID" => $arParams["IBLOCK_ID"],
 					"ELEMENT_ID" => $arItem["ID"],
 					"MAX_VOTE" => $arParams["MAX_VOTE"],
 					"VOTE_NAMES" => $arParams["VOTE_NAMES"],
-					"DISPLAY_AS_RATING" => $arParams["DISPLAY_AS_RATING"], 
+					"DISPLAY_AS_RATING" => $arParams["DISPLAY_AS_RATING"],
 					"CACHE_TYPE" => $arParams["CACHE_TYPE"],
-					"CACHE_TIME" => $arParams["CACHE_TIME"], 
+					"CACHE_TIME" => $arParams["CACHE_TIME"],
 				),
 				(($component && $component->__component && $component->__component->__parent) ? $component->__component->__parent : null),
 				array("HIDE_ICONS" => "Y"));?>

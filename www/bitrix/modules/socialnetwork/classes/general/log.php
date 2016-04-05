@@ -309,7 +309,9 @@ class CAllSocNetLog
 		);
 		$arLog = $dbLog->Fetch();
 		if (!$arLog)
+		{
 			return $bAgent;
+		}
 
 		if (MakeTimeStamp($arLog["LOG_DATE"]) > (time() + CTimeZone::GetOffset()))
 		{
@@ -338,9 +340,13 @@ class CAllSocNetLog
 		)
 		{
 			$dbSiteCurrent = CSite::GetByID(SITE_ID);
-			if ($arSiteCurrent = $dbSiteCurrent->Fetch())
-				if ($arSiteCurrent["LANGUAGE_ID"] != LANGUAGE_ID)
-					$arLog["MAIL_LANGUAGE_ID"] = $arSiteCurrent["LANGUAGE_ID"];
+			if (
+				($arSiteCurrent = $dbSiteCurrent->Fetch())
+				&& $arSiteCurrent["LANGUAGE_ID"] != LANGUAGE_ID
+			)
+			{
+				$arLog["MAIL_LANGUAGE_ID"] = $arSiteCurrent["LANGUAGE_ID"];
+			}
 
 			$arLog["FIELDS_FORMATTED"] = call_user_func(array($arEvent["CLASS_FORMAT"], $arEvent["METHOD_FORMAT"]), $arLog, array(), true);
 		}
@@ -375,17 +381,21 @@ class CAllSocNetLog
 			$rsLogSite = CSocNetLog::GetSite($ID);
 
 			while($arLogSite = $rsLogSite->Fetch())
+			{
 				$arLogSites[] = $arLogSite["LID"];
+			}
 
 			if (CModule::IncludeModule("extranet"))
 			{
 				$arSites = array();
 				$dbSite = CSite::GetList($by="sort", $order="desc", array("ACTIVE" => "Y"));
 				while($arSite = $dbSite->Fetch())
+				{
 					$arSites[$arSite["ID"]] = array(
 						"DIR" => (strlen(trim($arSite["DIR"])) > 0 ? $arSite["DIR"] : "/"),
 						"SERVER_NAME" => (strlen(trim($arSite["SERVER_NAME"])) > 0 ? $arSite["SERVER_NAME"] : COption::GetOptionString("main", "server_name", $_SERVER["HTTP_HOST"]))
 					);
+				}
 
 				$extranet_site_id = CExtranet::GetExtranetSiteID();
 				$intranet_site_id = CSite::GetDefSite();
@@ -429,7 +439,9 @@ class CAllSocNetLog
 
 			$arUnSubscribers = array();
 			while ($arUnSubscriber = $dbUnSubscribers->Fetch())
+			{
 				$arUnSubscribers[] = $arUnSubscriber["USER_ID"]."_".$arUnSubscriber["ENTITY_TYPE"]."_".$arUnSubscriber["ENTITY_ID"]."_".$arUnSubscriber["ENTITY_MY"]."_".$arUnSubscriber["ENTITY_CB"]."_".$arUnSubscriber["EVENT_ID"];
+			}
 
 			$bHasAccessAll = CSocNetLogRights::CheckForUserAll($arLog["ID"]);
 
@@ -441,24 +453,29 @@ class CAllSocNetLog
 					&& !in_array($arSubscriber["USER_ID"], $arIntranetUsers)
 					&& !in_array($extranet_site_id, $arLogSites)
 				)
+				{
 					continue;
+				}
 
 				if (
 					array_key_exists($arSubscriber["TRANSPORT"], $arSentUserID)
 					&& in_array($arSubscriber["USER_ID"], $arSentUserID[$arSubscriber["TRANSPORT"]])
 				)
+				{
 					continue;
+				}
 
 				if (
 					intval($arSubscriber["ENTITY_ID"]) != 0
 					&& $arSubscriber["EVENT_ID"] == "all"
-					&&
-					(
+					&& (
 						in_array($arSubscriber["USER_ID"]."_".$arSubscriber["ENTITY_TYPE"]."_".$arSubscriber["ENTITY_ID"]."_N_".$arSubscriber["ENTITY_CB"]."_".$arLog["EVENT_ID"], $arUnSubscribers)
 						|| in_array($arSubscriber["USER_ID"]."_".$arSubscriber["ENTITY_TYPE"]."_".$arSubscriber["ENTITY_ID"]."_Y_".$arSubscriber["ENTITY_CB"]."_".$arLog["EVENT_ID"], $arUnSubscribers)
 					)
 				)
+				{
 					continue;
+				}
 				elseif (
 					intval($arSubscriber["ENTITY_ID"]) == 0
 					&& $arSubscriber["ENTITY_CB"] == "N"
@@ -471,7 +488,9 @@ class CAllSocNetLog
 						|| in_array($arSubscriber["USER_ID"]."_".$arSubscriber["ENTITY_TYPE"]."_".$arLog["ENTITY_ID"]."_N_N_".$arLog["EVENT_ID"], $arUnSubscribers)
 					)
 				)
+				{
 					continue;
+				}
 
 				$arSentUserID[$arSubscriber["TRANSPORT"]][] = $arSubscriber["USER_ID"];
 
@@ -479,7 +498,9 @@ class CAllSocNetLog
 				{
 					$bHasAccess = CSocNetLogRights::CheckForUserOnly($arLog["ID"], $arSubscriber["USER_ID"]);
 					if (!$bHasAccess)
+					{
 						continue;
+					}
 				}
 
 				if (CModule::IncludeModule("extranet"))
@@ -503,7 +524,9 @@ class CAllSocNetLog
 					);
 				}
 				else
+				{
 					$arLog["FIELDS_FORMATTED"]["EVENT_FORMATTED"]["MESSAGE_TO_SEND"] = $arLog["FIELDS_FORMATTED"]["EVENT_FORMATTED"]["MESSAGE"];
+				}
 
 				switch ($arSubscriber["TRANSPORT"])
 				{
@@ -590,7 +613,9 @@ class CAllSocNetLog
 						}
 
 						if (!$siteID)
+						{
 							$siteID = (defined("SITE_ID") ? SITE_ID : $arSubscriber["SITE_ID"]);
+						}
 
 						if (StrLen($siteID) <= 0)
 							$siteID = $arSubscriber["USER_LID"];
@@ -605,12 +630,44 @@ class CAllSocNetLog
 			}
 		}
 
-		CSocNetLog::CounterIncrement($arLog["ID"], $arLog["EVENT_ID"], $arOfEntities);
+		if (!$bHasAccessAll)
+		{
+			$arUserIdToPush = array();
+
+			$dbRight = CSocNetLogRights::GetList(array(), array("LOG_ID" => $arLog["ID"]));
+			while ($arRight = $dbRight->Fetch())
+			{
+				if (preg_match('/^U(\d+)$/', $arRight["GROUP_CODE"], $matches))
+				{
+					$arUserIdToPush[] = $matches[1];
+				}
+				elseif (!in_array($arRight["GROUP_CODE"], array("SA")))
+				{
+					$arUserIdToPush = array();
+					break;
+				}
+			}
+		}
+
+		CSocNetLog::CounterIncrement(
+			$arLog["ID"],
+			$arLog["EVENT_ID"],
+			$arOfEntities,
+			"L",
+			$bHasAccessAll,
+			(
+				$bHasAccessAll
+				|| empty($arUserIdToPush)
+				|| count($arUserIdToPush) > 20
+					? array()
+					: $arUserIdToPush
+			)
+		);
 
 		return true;
 	}
 
-	function CounterIncrement($entityId, $event_id = false, $arOfEntities = false, $type = "L", $bForAllAccess = false)
+	function CounterIncrement($entityId, $event_id = false, $arOfEntities = false, $type = "L", $bForAllAccess = false, $arUserIdToPush = array())
 	{
 		if (intval($entityId) <= 0)
 		{
@@ -622,20 +679,33 @@ class CAllSocNetLog
 			|| strtolower($GLOBALS["DB"]->type) != "mysql"
 		)
 		{
+			$arParams = array(
+				"SET_TIMESTAMP" => "Y"
+			);
+
+			if (!empty($arUserIdToPush))
+			{
+				$arParams["USERS_TO_PUSH"] = $arUserIdToPush;
+			}
+
 			CUserCounter::IncrementWithSelect(
 				CSocNetLogCounter::GetSubSelect2(
 					$entityId,
 					array(
 						"TYPE" => $type,
 						"FOR_ALL_ACCESS" => $bForAllAccess,
-						"MULTIPLE" => "Y"
+						"MULTIPLE" => "Y",
+						"SET_TIMESTAMP" => "Y"
 					)
-				)
+				),
+				true,
+				$arParams
 			);
 		}
 		else // for all, mysql only
 		{
 			$tag = time();
+
 			CUserCounter::IncrementWithSelect(
 				CSocNetLogCounter::GetSubSelect2(
 					$entityId,
@@ -643,11 +713,13 @@ class CAllSocNetLog
 						"TYPE" => $type,
 						"FOR_ALL_ACCESS_ONLY" => true,
 						"TAG_SET" => $tag,
-						"MULTIPLE" => "Y"
+						"MULTIPLE" => "Y",
+						"SET_TIMESTAMP" => "Y"
 					)
 				),
 				false, // sendpull
 				array(
+					"SET_TIMESTAMP" => "Y",
 					"TAG_SET" => $tag
 				)
 			);
@@ -658,11 +730,13 @@ class CAllSocNetLog
 					array(
 						"TYPE" => $type,
 						"FOR_ALL_ACCESS_ONLY" => false,
-						"MULTIPLE" => "Y"
+						"MULTIPLE" => "Y",
+						"SET_TIMESTAMP" => "Y"
 					)
 				),
 				true, // sendpull
 				array(
+					"SET_TIMESTAMP" => "Y",
 					"TAG_CHECK" => $tag
 				)
 			);

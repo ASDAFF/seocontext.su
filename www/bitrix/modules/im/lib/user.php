@@ -56,6 +56,36 @@ class User
 	}
 
 	/**
+	 * @return string
+	 */
+	public function getName()
+	{
+		$fields = $this->getFields();
+
+		return $fields? $fields['name']: '';
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getGender()
+	{
+		$fields = $this->getFields();
+
+		return $fields? $fields['gender']: '';
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getColor()
+	{
+		$fields = $this->getFields();
+
+		return $fields? $fields['color']: '';
+	}
+
+	/**
 	 * @return bool
 	 */
 	public function isExtranet()
@@ -73,6 +103,16 @@ class User
 		$fields = $this->getFields();
 
 		return $fields? (bool)$fields['network']: false;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isExists()
+	{
+		$fields = $this->getFields();
+
+		return $fields? true: false;
 	}
 
 	/**

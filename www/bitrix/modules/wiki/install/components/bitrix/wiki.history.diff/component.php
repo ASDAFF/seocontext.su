@@ -7,7 +7,7 @@ if (($arParent =  $this->GetParent()) !== NULL)
 
 if(empty($arParams['PAGE_VAR']))
 	$arParams['PAGE_VAR'] = 'title';
-if(empty($arParams['PAGE_OPER']))
+if(empty($arParams['OPER_VAR']))
 	$arParams['OPER_VAR'] = 'oper';
 $arParams['PATH_TO_POST'] = trim($arParams['PATH_TO_POST']);
 if(empty($arParams['SEF_MODE']))
@@ -166,7 +166,7 @@ CUtil::InitJSCore(array("ajax", "tooltip")); //http://jabber.bx/view.php?id=3069
 
 if($this->StartResultCache(false, array($USER->GetGroups(), $arCache), false))
 {
-	$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+	$arParams['ELEMENT_NAME'] = rawurldecode($arParams['ELEMENT_NAME']);
 	$arResult['ELEMENT'] = array();
 	if (empty($arParams['ELEMENT_NAME']))
 		$arParams['ELEMENT_NAME'] = CWiki::GetDefaultPage($arParams['IBLOCK_ID']);
@@ -308,13 +308,9 @@ if($this->StartResultCache(false, array($USER->GetGroups(), $arCache), false))
 		$arHp
 	);
 
-/* erase
-	if ($arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT_TYPE'] == 'text')
-		$arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT'] = nl2br($arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT']);
-	if ($arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT_TYPE'] == 'text')
-		$arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT'] = nl2br($arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT']);
-*/
-	$arResult['DIFF_NAME'] = CWikiDiff::getDiff(
+	$wikiDiff = new Bitrix\Wiki\Diff();
+
+	$arResult['DIFF_NAME'] = $wikiDiff->getDiffHtml(
 		$arHistoryResult['DOCUMENT']['FIELDS']['NAME'],
 		$arDiffResult['DOCUMENT']['FIELDS']['NAME']
 	);
@@ -322,12 +318,7 @@ if($this->StartResultCache(false, array($USER->GetGroups(), $arCache), false))
 	$arCat = array();
 	$CWikiParser = new CWikiParser();
 
-/* erase
-	$arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT'] = $CWikiParser->Clear($arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT']);
-	$arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT'] = $CWikiParser->Clear($arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT']);
- */
-
-	$arResult['DIFF'] = CWikiDiff::getDiff(
+	$arResult['DIFF'] = $wikiDiff->getDiffHtml(
 		$arHistoryResult['DOCUMENT']['FIELDS']['DETAIL_TEXT'],
 		$arDiffResult['DOCUMENT']['FIELDS']['DETAIL_TEXT']
 	);

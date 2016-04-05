@@ -73,7 +73,11 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 					"sessid", "comment_post_id", "act", "post", "comment",
 					"decode", "ACTION", "ENTITY_TYPE_ID", "ENTITY_ID",
 					"empty_get_form", "empty_get_comments"))
-		)
+		),
+		"AUTHOR_URL_PARAMS" => array(
+			"entityType" => 'LOG_ENTRY',
+			"entityId" => $arParams["LOG_ID"]
+		),
 	),
 	$this->__component
 );

@@ -193,7 +193,14 @@ class CUserTypeHlblock extends CUserTypeEnum
 
 			if ($hlblock)
 			{
-				$hlentity = \Bitrix\Highloadblock\HighloadBlockTable::compileEntity($hlblock);
+				if (class_exists($hlblock['NAME'].'Table'))
+				{
+					$hlentity = \Bitrix\Main\Entity\Base::getInstance($hlblock['NAME']);
+				}
+				else
+				{
+					$hlentity = \Bitrix\Highloadblock\HighloadBlockTable::compileEntity($hlblock);
+				}
 
 				return array(
 					new \Bitrix\Main\Entity\ReferenceField(

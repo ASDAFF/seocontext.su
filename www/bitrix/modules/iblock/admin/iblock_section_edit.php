@@ -1339,6 +1339,7 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 				left_margin="-1"
 				>
 				<td class="internal-left"><?echo GetMessage("IBSEC_E_PROP_TABLE_NAME");?></td>
+				<td><?echo GetMessage("IBSEC_E_PROP_TABLE_CODE");?></td>
 				<td><?echo GetMessage("IBSEC_E_PROP_TABLE_TYPE");?></td>
 				<td><?echo GetMessage("IBSEC_E_PROP_TABLE_SMART_FILTER");?></td>
 				<td><?echo GetMessage("IBSEC_E_PROP_TABLE_DISPLAY_TYPE");?></td>
@@ -1403,6 +1404,7 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 					style="display:none"
 					>
 					<td class="internal-left"><?echo GetMessage("IBSEC_E_PROP_TABLE_NAME");?></td>
+					<td><?echo GetMessage("IBSEC_E_PROP_TABLE_CODE");?></td>
 					<td><?echo GetMessage("IBSEC_E_PROP_TABLE_TYPE");?></td>
 					<td><?echo GetMessage("IBSEC_E_PROP_TABLE_SMART_FILTER");?></td>
 					<td><?echo GetMessage("IBSEC_E_PROP_TABLE_DISPLAY_TYPE");?></td>
@@ -1417,20 +1419,23 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 			$rows = 0;
 			$maxSort = 0;
 			while ($arProp = $rsProps->Fetch()):
+				$arProp['CODE'] = (string)$arProp['CODE'];
+				$propName = ($arProp['CODE'] != '' ? '['.$arProp['CODE'].'] ' : '').$arProp['NAME'];
 				$maxSort = $arProp["SORT"];
 				if(array_key_exists($arProp["ID"], $arPropLinks))
 				{
 					$rows++;
 					$arLink = $arPropLinks[$arProp["ID"]];
 					if($arLink["INHERITED"] == "N")
-						$arShadow[$arProp["ID"]] = $arProp["NAME"];
+						$arShadow[$arProp["ID"]] = $propName;
 				}
 				else
 				{
 					$arLink = false;
-					$arHidden[$arProp["ID"]] = $arProp["NAME"];
-					$arShadow[$arProp["ID"]] = $arProp["NAME"];
+					$arHidden[$arProp["ID"]] = $propName;
+					$arShadow[$arProp["ID"]] = $propName;
 				}
+				unset($propName);
 			?>
 			<tr
 				id="tr_SECTION_PROPERTY_<?echo $arProp["ID"]?>"
@@ -1446,6 +1451,7 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 					<?endif?>
 					<?echo htmlspecialcharsex($arProp["NAME"])?>
 				</td>
+				<td align="left"><?echo htmlspecialcharsex($arProp["CODE"])?></td>
 				<td align="left"><?
 					if($arProp['PROPERTY_TYPE'] == "S" && !$arProp['USER_TYPE'])
 						echo GetMessage("IBLOCK_PROP_S");
@@ -1819,20 +1825,22 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 
 				if($arProp["ID"] == $arCatalog["SKU_PROPERTY_ID"])
 					continue;
-
+				$arProp['CODE'] = (string)$arProp['CODE'];
+				$propName = ($arProp['CODE'] != '' ? '['.$arProp['CODE'].'] ' : '').$arProp['NAME'];
 				if(array_key_exists($arProp["ID"], $arPropLinks))
 				{
 					$rows++;
 					$arLink = $arPropLinks[$arProp["ID"]];
 					if($arLink["INHERITED"] == "N")
-						$arShadow[$arProp["ID"]] = $arProp["NAME"];
+						$arShadow[$arProp["ID"]] = $propName;
 				}
 				else
 				{
 					$arLink = false;
-					$arHidden[$arProp["ID"]] = $arProp["NAME"];
-					$arShadow[$arProp["ID"]] = $arProp["NAME"];
+					$arHidden[$arProp["ID"]] = $propName;
+					$arShadow[$arProp["ID"]] = $propName;
 				}
+				unset($propName);
 			?>
 			<tr id="tr_SECTION_PROPERTY_<?echo $arProp["ID"]?>" <?if(!is_array($arLink)) echo 'style="display:none"';?>>
 				<td align="left">
@@ -1841,6 +1849,7 @@ if($arIBlock["SECTION_PROPERTY"] === "Y")
 					<?endif?>
 					<?echo htmlspecialcharsex($arProp["NAME"])?>
 				</td>
+				<td align="left"><?echo htmlspecialcharsex($arProp["CODE"])?></td>
 				<td align="left"><?
 					if($arProp['PROPERTY_TYPE'] == "S" && !$arProp['USER_TYPE'])
 						echo GetMessage("IBLOCK_PROP_S");
@@ -1995,4 +2004,3 @@ if(CIBlockRights::UserHasRightTo($IBLOCK_ID, $IBLOCK_ID, "iblock_edit") && (!def
 }
 
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/epilog_admin.php");
-?>

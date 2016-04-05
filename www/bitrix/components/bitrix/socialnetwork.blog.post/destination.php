@@ -6,6 +6,7 @@ CJSCore::Init(array('socnetlogdest'));
 
 $arResult["DEST_SORT"] = CSocNetLogDestination::GetDestinationSort(array(
 	"DEST_CONTEXT" => "BLOG_POST",
+	"ALLOW_EMAIL_INVITATION" => $arResult["ALLOW_EMAIL_INVITATION"]
 ));
 
 $arResult["FEED_DESTINATION"]['LAST'] = array();

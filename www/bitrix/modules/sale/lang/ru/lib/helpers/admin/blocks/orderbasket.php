@@ -73,4 +73,6 @@ $MESS ['SALE_ORDER_BASKET_COUPON_STATUS'] = "Статус";
 $MESS ['SALE_ORDER_BASKET_COUPON_APPLY'] = "Применить";
 $MESS ['SALE_ORDER_BASKET_COUPON_DELETE'] = "Удалить купон";
 $MESS ['SALE_ORDER_BASKET_POSITION_EXISTS'] = "Товар \"#NAME#\" в заказе уже есть. Нажмите ОК для увеличения количества товара в существующей позиции";
+$MESS ['SALE_ORDER_BASKET_ACTUALIZE_DATA'] = "Пересчитать";
+$MESS["SALE_ORDER_BASKET_COUPONS_NOTE"] = "Купоны скидок на товар, привязанных к типам цен, не могут быть использованы";
 ?>

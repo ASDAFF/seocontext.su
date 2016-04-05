@@ -10,7 +10,7 @@ require_once($_SERVER["DOCUMENT_ROOT"].BX_ROOT."/modules/main/classes/general/us
 
 class CUser extends CAllUser
 {
-	function err_mess()
+	public static function err_mess()
 	{
 		return "<br>Class: CUser<br>File: ".__FILE__;
 	}
@@ -45,9 +45,6 @@ class CUser extends CAllUser
 			$arFields["CHECKWORD"] = $salt.md5($salt.$checkword);
 
 			$arFields["~CHECKWORD_TIME"] = $DB->CurrentTimeFunction();
-
-			if(is_set($arFields,"EMAIL"))
-				$arFields["EMAIL"] = strtolower($arFields["EMAIL"]);
 
 			if(is_set($arFields, "WORK_COUNTRY"))
 				$arFields["WORK_COUNTRY"] = intval($arFields["WORK_COUNTRY"]);
@@ -127,7 +124,7 @@ class CUser extends CAllUser
 		return $Result;
 	}
 
-	function GetDropDownList($strSqlSearch="and ACTIVE='Y'", $strSqlOrder="ORDER BY ID, NAME, LAST_NAME")
+	public static function GetDropDownList($strSqlSearch="and ACTIVE='Y'", $strSqlOrder="ORDER BY ID, NAME, LAST_NAME")
 	{
 		global $DB;
 		$err_mess = (CUser::err_mess())."<br>Function: GetDropDownList<br>Line: ";
@@ -146,7 +143,7 @@ class CUser extends CAllUser
 		return $res;
 	}
 
-	function GetList(&$by, &$order, $arFilter=Array(), $arParams=Array())
+	public static function GetList(&$by, &$order, $arFilter=Array(), $arParams=Array())
 	{
 		/** @global CUserTypeManager $USER_FIELD_MANAGER */
 		global $DB, $USER_FIELD_MANAGER;
@@ -589,7 +586,7 @@ class CUser extends CAllUser
 		return $res;
 	}
 
-	function IsOnLine($id, $interval = 120)
+	public static function IsOnLine($id, $interval = 120)
 	{
 		global $DB;
 
@@ -611,12 +608,12 @@ class CUser extends CAllUser
 
 class CGroup extends CAllGroup
 {
-	function err_mess()
+	public static function err_mess()
 	{
 		return "<br>Class: CGroup<br>File: ".__FILE__;
 	}
 
-	function Add($arFields)
+	public function Add($arFields)
 	{
 		/** @global CMain $APPLICATION */
 		global $DB, $APPLICATION;
@@ -699,7 +696,7 @@ class CGroup extends CAllGroup
 		return $ID;
 	}
 
-	function GetDropDownList($strSqlSearch="and ACTIVE='Y'", $strSqlOrder="ORDER BY C_SORT, NAME, ID")
+	public static function GetDropDownList($strSqlSearch="and ACTIVE='Y'", $strSqlOrder="ORDER BY C_SORT, NAME, ID")
 	{
 		global $DB;
 		$err_mess = (CGroup::err_mess())."<br>Function: GetDropDownList<br>Line: ";
@@ -718,7 +715,7 @@ class CGroup extends CAllGroup
 		return $res;
 	}
 
-	function GetList(&$by, &$order, $arFilter=Array(), $SHOW_USERS_AMOUNT="N")
+	public static function GetList(&$by, &$order, $arFilter=Array(), $SHOW_USERS_AMOUNT="N")
 	{
 		global $DB;
 
@@ -861,7 +858,7 @@ class CGroup extends CAllGroup
 	}
 
 	//*************** COMMON UTILS *********************/
-	function GetFilterOperation($key)
+	public static function GetFilterOperation($key)
 	{
 		$strNegative = "N";
 		if (substr($key, 0, 1)=="!")
@@ -920,7 +917,7 @@ class CGroup extends CAllGroup
 		return array("FIELD" => $key, "NEGATIVE" => $strNegative, "OPERATION" => $strOperation, "OR_NULL" => $strOrNull);
 	}
 
-	function PrepareSql(&$arFields, $arOrder, $arFilter, $arGroupBy, $arSelectFields)
+	public static function PrepareSql(&$arFields, $arOrder, $arFilter, $arGroupBy, $arSelectFields)
 	{
 		global $DB;
 
@@ -1209,7 +1206,7 @@ class CGroup extends CAllGroup
 			);
 	}
 
-	function GetListEx($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
+	public static function GetListEx($arOrder = Array("ID" => "DESC"), $arFilter = Array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
 
@@ -1303,7 +1300,7 @@ class CGroup extends CAllGroup
 		return $dbRes;
 	}
 
-	function GetByID($ID, $SHOW_USERS_AMOUNT = "N")
+	public static function GetByID($ID, $SHOW_USERS_AMOUNT = "N")
 	{
 		global $DB;
 

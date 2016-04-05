@@ -32,7 +32,7 @@ endif;
 			<td class="table-body">
 				<div class="photo-info-box photo-info-box-section-edit inner">
 					<div class="photo-info-box-inner">
-<?	
+<?
 	ShowError($arResult["ERROR_MESSAGE"]);
 
 if ($arParams["ACTION"] != "CHANGE_ICON")
@@ -45,20 +45,20 @@ if ($arParams["ACTION"] != "CHANGE_ICON")
 		</div>
 		<div class="photo-edit-field photo-edit-field-date">
 			<label for="DATE_CREATE"><?=GetMessage("P_ALBUM_DATE")?></label>
-			<?$APPLICATION->IncludeComponent( "bitrix:system.field.edit", 
-				$arResult["FORM"]["~DATE"]["USER_TYPE"]["USER_TYPE_ID"], 
+			<?$APPLICATION->IncludeComponent( "bitrix:system.field.edit",
+				$arResult["FORM"]["~DATE"]["USER_TYPE"]["USER_TYPE_ID"],
 				array(
-					"bVarsFromForm" => $arResult["bVarsFromForm"], 
-					"arUserField" => $arResult["FORM"]["~DATE"], 
-					"form_name" => "form_photo"), 
-				$component, 
+					"bVarsFromForm" => $arResult["bVarsFromForm"],
+					"arUserField" => $arResult["FORM"]["~DATE"],
+					"form_name" => "form_photo"),
+				$component,
 			array("HIDE_ICONS"=>"Y"));?>
 		</div>
 		<div class="photo-edit-field photo-edit-field-description">
 			<label for="DESCRIPTION"><?=GetMessage("P_ALBUM_DESCRIPTION")?></label>
 			<textarea name="DESCRIPTION" id="DESCRIPTION"><?=$arResult["FORM"]["DESCRIPTION"]?></textarea>
 		</div>
-		
+
 		<div class="photo-edit-field photo-edit-field-password" id="section_password">
 <?
 		if (!empty($arResult["FORM"]["~PASSWORD"]["VALUE"])):
@@ -69,7 +69,7 @@ if ($arParams["ACTION"] != "CHANGE_ICON")
 <?
 		else:
 ?>
-			<input type="checkbox" id="USE_PASSWORD" name="USE_PASSWORD" value="Y" onclick="this.form.PHOTO_PASSWORD.disabled=!this.checked;" />		
+			<input type="checkbox" id="USE_PASSWORD" name="USE_PASSWORD" value="Y" onclick="this.form.PHOTO_PASSWORD.disabled=!this.checked;" />
 			<label for="USE_PASSWORD"><?=GetMessage("P_SET_PASSWORD")?></label>
 			<div class="photo-edit-field photo-edit-field-password-edit"  style="padding-left:1em;">
 				<label for="PHOTO_PASSWORD"><?=GetMessage("P_PASSWORD")?></label>
@@ -105,13 +105,21 @@ if ($arParams["AJAX_CALL"] == "Y"):
 else:
 ?>
 <script>
-function CancelSubmit(pointer) {
-	if (pointer.form) {
-		pointer.form.edit.value = 'cancel'; 
-		pointer.form.submit();}
-	return false; }
-function CheckForm() {
-	return true; }
+function CancelSubmit(pointer)
+{
+	if (BX('photo_section_edit'))
+		BX('photo_section_edit').style.display = 'none';
+	if (pointer.form)
+	{
+		pointer.form.edit.value = 'cancel';
+		pointer.form.submit();
+	}
+	return false;
+}
+function CheckForm()
+{
+	return true;
+}
 </script>
 <?
 endif;

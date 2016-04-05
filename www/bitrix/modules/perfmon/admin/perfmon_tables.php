@@ -110,8 +110,8 @@ if (($arTABLES = $lAdmin->GroupAction()) && $RIGHT >= "W")
 			echo "&lt;", "?", "php\n";
 			echo "namespace Bitrix\\".$moduleNamespace.";\n";
 			echo "\n";
-			echo "use Bitrix\\Main;\n";
-			echo "use Bitrix\\Main\\Localization\\Loc;\n";
+			echo "use Bitrix\\Main,\n";
+			echo "	Bitrix\\Main\\Localization\\Loc;\n";
 			echo "Loc::loadMessages(_"."_FILE_"."_);\n";
 			echo "\n";
 			echo "/"."**\n";
@@ -593,7 +593,7 @@ if (strlen($strLastTables) > 0)
 		var ciNeedle = new RegExp(needle, 'i');
 		if (haystack.match(ciNeedle))
 			return true;
-		
+
 		var needleParts = needle.split('');
 		for (var i = 0; i < needleParts.length; i++)
 		{

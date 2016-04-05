@@ -5,4 +5,6 @@ $MESS["adv_banner_params_noindex"] = "Add noindex/nofollow attribute to links";
 $MESS["ADV_QUANTITY"] = "Number of banners for rotation";
 $MESS["ADV_SLIDE_SETTINGS"] = "Slide settings";
 $MESS["ADV_NAV_SETTINGS"] = "Navigation settings";
+$MESS["ADV_DEFAULT_TEMPLATE"] = "Default slider template";
+$MESS["ADV_NOT_SELECTED"] = "(not selected)";
 ?>

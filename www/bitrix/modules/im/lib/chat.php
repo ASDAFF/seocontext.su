@@ -12,6 +12,7 @@ Loc::loadMessages(__FILE__);
  * <ul>
  * <li> ID int mandatory
  * <li> TITLE string(255) optional
+ * <li> DESCRIPTION text optional
  * <li> TYPE string(2) optional
  * <li> AUTHOR_ID int mandatory
  * <li> AVATAR int optional
@@ -53,6 +54,10 @@ class ChatTable extends Entity\DataManager
 				'data_type' => 'string',
 				'validation' => array(__CLASS__, 'validateTitle'),
 				'title' => Loc::getMessage('CHAT_ENTITY_TITLE_FIELD'),
+			),
+			'DESCRIPTION' => array(
+				'data_type' => 'text',
+				'title' => Loc::getMessage('CHAT_ENTITY_DESCRIPTION_FIELD'),
 			),
 			'COLOR' => array(
 				'data_type' => 'string',

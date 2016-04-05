@@ -69,3 +69,4 @@ $arTemplateParameters["CONTROL_NAV"] = array(
 	"DEFAULT" => "Y"
 );
 $arTemplateParameters["CACHE_TIME"] = Array("DEFAULT"=>"0");
+$arTemplateParameters["NEED_TEMPLATE"] = "Y";

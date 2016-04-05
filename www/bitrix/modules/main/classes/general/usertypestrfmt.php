@@ -138,7 +138,7 @@ class CUserTypeStringFormatted extends CUserTypeString
 		return $result;
 	}
 
-	function GetPublicViewHTML($arUserField, $arHtmlControl)
+	public static function GetPublicViewHTML($arUserField, $arHtmlControl)
 	{
 		$val = $arHtmlControl["VALUE"];
 		if (strlen(trim($val)) <= 0)
@@ -147,4 +147,3 @@ class CUserTypeStringFormatted extends CUserTypeString
 		return $val;
 	}
 }
-?>

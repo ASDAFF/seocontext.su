@@ -166,6 +166,7 @@ Class calendar extends CModule
 		RegisterModuleDependences('socialnetwork', 'OnForumCommentIMNotify', 'calendar', 'CCalendarLiveFeed', 'OnForumCommentIMNotify');
 		RegisterModuleDependences('socialnetwork', 'onAfterCommentAddAfter', 'calendar', 'CCalendarLiveFeed', 'onAfterCommentAddAfter');
 		RegisterModuleDependences('socialnetwork', 'onAfterCommentUpdateAfter', 'calendar', 'CCalendarLiveFeed', 'onAfterCommentUpdateAfter');
+		RegisterModuleDependences('socialnetwork', 'OnSocNetGroupDelete', 'calendar', 'CCalendar', 'OnSocNetGroupDelete');
 		RegisterModuleDependences('search', 'BeforeIndex', 'calendar', 'CCalendarLiveFeed', 'FixForumCommentURL');
 		RegisterModuleDependences("main", "OnAfterRegisterModule", "main", "calendar", "InstallUserFields", 100, "/modules/calendar/install/index.php"); // check webdav UF
 
@@ -202,6 +203,7 @@ Class calendar extends CModule
 		UnRegisterModuleDependences('socialnetwork', 'OnForumCommentIMNotify', 'calendar', 'CCalendarLiveFeed', 'OnForumCommentIMNotify');
 		UnRegisterModuleDependences('socialnetwork', 'onAfterCommentAddAfter', 'calendar', 'CCalendarLiveFeed', 'onAfterCommentAddAfter');
 		UnRegisterModuleDependences('socialnetwork', 'onAfterCommentUpdateAfter', 'calendar', 'CCalendarLiveFeed', 'onAfterCommentUpdateAfter');
+		RegisterModuleDependences('socialnetwork', 'OnSocNetGroupDelete', 'calendar', 'CCalendar', 'OnSocNetGroupDelete');
 		UnRegisterModuleDependences('search', 'BeforeIndex', 'calendar', 'CCalendarLiveFeed', 'FixForumCommentURL');
 		UnRegisterModuleDependences("main", "OnAfterRegisterModule", "main", "calendar", "InstallUserFields", "/modules/calendar/install/index.php"); // check webdav UF
 

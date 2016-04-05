@@ -1,14 +1,17 @@
 <?
-use Bitrix\Main\Localization\Loc;
-use Bitrix\Main\Loader;
-use Bitrix\Main\Web\HttpClient;
-use Bitrix\Currency;
+/** @global CMain $APPLICATION */
+/** @global CDatabase $DB */
+use Bitrix\Main\Localization\Loc,
+	Bitrix\Main\Loader,
+	Bitrix\Main\Web\HttpClient,
+	Bitrix\Currency;
 
 define('STOP_STATISTICS', true);
 define('BX_SECURITY_SHOW_MESSAGE', true);
 define('NO_AGENT_CHECK', true);
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/prolog_admin_before.php');
+header('Content-Type: application/x-javascript; charset='.LANG_CHARSET);
 
 Loc::loadMessages(__FILE__);
 
@@ -57,10 +60,11 @@ else
 		}
 		else
 		{
+			$url = '';
 			switch ($baseCurrency)
 			{
 				case 'UAH':
-					$url = 'http://pfsoft.com.ua//service/currency/?date='.$DB->FormatDate($date, CLang::GetDateFormat('SHORT', LANGUAGE_ID), 'DMY');
+					$url = 'http://bank.gov.ua/NBUStatService/v1/statdirectory?exchange&date='.$DB->FormatDate($date, CLang::GetDateFormat('SHORT', LANGUAGE_ID), 'YMD');
 					break;
 				case 'BYR':
 					$url = 'http://www.nbrb.by//Services/XmlExRates.aspx?ondate='.$DB->FormatDate($date, CLang::GetDateFormat('SHORT', LANGUAGE_ID), 'Y-M-D');
@@ -93,49 +97,56 @@ else
 			switch ($baseCurrency)
 			{
 				case 'UAH':
-					if (is_array($data) && count($data["ValCurs"]["#"]["Valute"])>0)
+					if (is_array($data) && count($data["exchange"]["#"]['currency'])>0)
 					{
-						for ($j1 = 0, $intCount = count($data["ValCurs"]["#"]["Valute"]); $j1 < $intCount; $j1++)
+						$currencyList = $data['exchange']['#']['currency'];
+						foreach ($currencyList as &$currencyRate)
 						{
-							if ($data["ValCurs"]["#"]["Valute"][$j1]["#"]["CharCode"][0]["#"] == $currency)
+							if ($currencyRate['#']['cc'][0]['#'] == $currency)
 							{
+
 								$result['STATUS'] = 'OK';
-								$result['RATE_CNT'] = (int)$data["ValCurs"]["#"]["Valute"][$j1]["#"]["Nominal"][0]["#"];
-								$result['RATE'] = (float)str_replace(",", ".", $data["ValCurs"]["#"]["Valute"][$j1]["#"]["Value"][0]["#"]);
+								$result['RATE_CNT'] = 1;
+								$result['RATE'] = (float)str_replace(",", ".", $currencyRate['#']['rate'][0]['#']);
 								break;
 							}
 						}
+						unset($currencyRate, $currencyList);
 					}
 					break;
 				case 'BYR':
 					if (is_array($data) && count($data["DailyExRates"]["#"]["Currency"])>0)
 					{
-						for ($j1 = 0, $intCount = count($data["DailyExRates"]["#"]["Currency"]); $j1 < $intCount; $j1++)
+						$currencyList = $data['DailyExRates']['#']['Currency'];
+						foreach ($currencyList as &$currencyRate)
 						{
-							if ($data["DailyExRates"]["#"]["Currency"][$j1]["#"]["CharCode"][0]["#"] == $currency)
+							if ($currencyRate["#"]["CharCode"][0]["#"] == $currency)
 							{
 								$result['STATUS'] = 'OK';
-								$result['RATE_CNT'] = (int)$data["DailyExRates"]["#"]["Currency"][$j1]["#"]["Scale"][0]["#"];
-								$result['RATE'] = (float)str_replace(",", ".", $data["DailyExRates"]["#"]["Currency"][$j1]["#"]["Rate"][0]["#"]);
+								$result['RATE_CNT'] = (int)$currencyRate["#"]["Scale"][0]["#"];
+								$result['RATE'] = (float)str_replace(",", ".", $currencyRate["#"]["Rate"][0]["#"]);
 								break;
 							}
 						}
+						unset($currencyRate, $currencyList);
 					}
 					break;
 				case 'RUB':
 				case 'RUR':
 					if (is_array($data) && count($data["ValCurs"]["#"]["Valute"])>0)
 					{
-						for ($j1 = 0, $intCount = count($data["ValCurs"]["#"]["Valute"]); $j1 < $intCount; $j1++)
+						$currencyList = $data["ValCurs"]["#"]["Valute"];
+						foreach ($currencyList as &$currencyRate)
 						{
-							if ($data["ValCurs"]["#"]["Valute"][$j1]["#"]["CharCode"][0]["#"] == $currency)
+							if ($currencyRate["#"]["CharCode"][0]["#"] == $currency)
 							{
 								$result['STATUS'] = 'OK';
-								$result['RATE_CNT'] = (int)$data["ValCurs"]["#"]["Valute"][$j1]["#"]["Nominal"][0]["#"];
-								$result['RATE'] = (float)str_replace(",", ".", $data["ValCurs"]["#"]["Valute"][$j1]["#"]["Value"][0]["#"]);
+								$result['RATE_CNT'] = (int)$currencyRate["#"]["Nominal"][0]["#"];
+								$result['RATE'] = (float)str_replace(",", ".", $currencyRate["#"]["Value"][0]["#"]);
 								break;
 							}
 						}
+						unset($currencyRate, $currencyList);
 					}
 					break;
 			}
@@ -148,4 +159,3 @@ else
 	}
 }
 echo CUtil::PhpToJSObject($result, false, true, true);
-?>

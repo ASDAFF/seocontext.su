@@ -28,6 +28,7 @@ $MESS ['SCALE_ADEF_SET_EMAIL_USER_PASSWORD'] = "Пароль пользоват�
 $MESS ['SCALE_ADEF_SET_EMAIL_EMAIL'] = "Адрес email";
 $MESS ['SCALE_ADEF_SET_EMAIL_SMTPTLS'] = "Использовать TLS";
 $MESS ['SCALE_ADEF_SET_EMAIL_SITE'] = "Сайт";
+$MESS ['SCALE_ADEF_SET_EMAIL_SITE_NAME_CONF'] = "Конфигурационное имя сайта";
 $MESS ['SCALE_ADEF_CRON_SET'] = "Установить cron";
 $MESS ['SCALE_ADEF_CRON_UNSET'] = "Отключить cron";
 $MESS ['SCALE_ADEF_HTTP_OFF'] = "Отключить http";

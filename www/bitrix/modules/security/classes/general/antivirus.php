@@ -293,7 +293,7 @@ class CSecurityAntiVirus
 		if(preg_match('/(iblock_element_edit|iblock_element_search|posting_admin|fileman_file_view|sale_print|get_message|user_edit)\.php/', $this->body))
 			return 14;
 
-		if(preg_match('/BX\.(WindowManager|reload|message|browser|ready|tooltip|admin|hint_replace|CDebugDialog|adjust|ajax|bind|loadScript|addCustomEvent|timeman|Finder|Access|loadCSS|CrmProductEditor|COpener|file_input|setKernelJS|TreeConditions|PULL|runSitemap)/', $this->body))
+		if(preg_match('/BX\.(WindowManager|reload|message|browser|ready|tooltip|admin|hint_replace|CDebugDialog|adjust|ajax|bind|loadScript|addCustomEvent|timeman|Finder|Access|loadCSS|CrmProductEditor|COpener|file_input|setKernelJS|TreeConditions|PULL|runSitemap|setCSSList|setJSList)/', $this->body))
 			return 15;
 
 		if(preg_match('/window\.parent\.(InitActionProps|Tree|buildNoMenu)/', $this->body))
@@ -355,7 +355,10 @@ class CSecurityAntiVirus
 
 		if(preg_match('/^window\.open\(/', $this->body))
 			return 44;
-		
+
+		if(preg_match('/^\s*window\.__bxResult\[\'\d+\'\]\s*=\s*\{/', $this->body))
+			return 46;
+
 		if(strpos($this->body, 'showFLVPlayer') !== false)
 			return 37;
 
@@ -381,6 +384,9 @@ class CSecurityAntiVirus
 		//Voximplant document uploader
 		if($this->type == 'iframe' && preg_match('#\s*src=[\'"]https://verify.voximplant.com/#i', $this->atributes))
 			return 45;
+
+		if(preg_match('#function\s+bizvalChange#', $this->body))
+			return 46;
 
 		if($this->type === "script")
 		{

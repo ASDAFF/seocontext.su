@@ -418,6 +418,15 @@ if ($STEP == 2)
 			$file_id = fopen($_SERVER["DOCUMENT_ROOT"].$DATA_FILE_NAME, "rb");
 			$sContent = fread($file_id, 10000);
 			fclose($file_id);
+			if ($sContent != '')
+			{
+				$key = strrpos($sContent, "\r\n");
+				if ($key === false)
+					$key = strrpos($sContent, "\n");
+				if ($key !== false)
+					$sContent = substr($sContent, 0, $key);
+				unset($key);
+			}
 			?><textarea name="data" wrap="OFF" rows="7" cols="90"><? echo htmlspecialcharsbx($sContent); ?></textarea>
 		</td>
 	</tr>
@@ -811,6 +820,15 @@ if ($STEP == 3)
 			$file_id = fopen($_SERVER["DOCUMENT_ROOT"].$DATA_FILE_NAME, "rb");
 			$sContent = fread($file_id, 10000);
 			fclose($file_id);
+			if ($sContent != '')
+			{
+				$key = strrpos($sContent, "\r\n");
+				if ($key === false)
+					$key = strrpos($sContent, "\n");
+				if ($key !== false)
+					$sContent = substr($sContent, 0, $key);
+				unset($key);
+			}
 			?><textarea name="data" wrap="OFF" rows="7" cols="90"><? echo htmlspecialcharsbx($sContent); ?></textarea>
 		</td>
 	</tr><?

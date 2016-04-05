@@ -189,13 +189,13 @@ class RestActivityTable extends Entity\DataManager
 		$langId = strtoupper($langId);
 		if (is_string($field))
 			$result = $field;
-		elseif (isset($field[$langId]))
+		elseif (!empty($field[$langId]))
 			$result = $field[$langId];
-		elseif ($langId == 'UA' && isset($field['RU']))
+		elseif ($langId == 'UA' && !empty($field['RU']))
 			$result = $field['RU'];
-		elseif (isset($field['EN']))
+		elseif (!empty($field['EN']))
 			$result = $field['EN'];
-		elseif (isset($field['*']))
+		elseif (!empty($field['*']))
 			$result = $field['*'];
 		return $result;
 	}

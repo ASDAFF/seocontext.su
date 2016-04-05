@@ -132,6 +132,28 @@ else
 		$arResult["User"] = false;
 	}
 
+	$arContext = array();
+	if (
+		isset($_GET["entityType"])
+		&& strlen($_GET["entityType"]) > 0
+	)
+	{
+		$arContext["ENTITY_TYPE"] = $_GET["entityType"];
+	}
+
+	if (
+		isset($_GET["entityId"])
+		&& intval($_GET["entityId"]) > 0
+	)
+	{
+		$arContext["ENTITY_ID"] = intval($_GET["entityId"]);
+	}
+
+	if (!CSocNetUser::CanProfileView($USER->GetID(), $arResult["User"], SITE_ID, $arContext))
+	{
+		$arResult["User"] = false;
+	}
+
 	if (!is_array($arResult["User"]))
 	{
 		$arResult["FatalError"] = GetMessage("SONET_P_USER_NO_USER");

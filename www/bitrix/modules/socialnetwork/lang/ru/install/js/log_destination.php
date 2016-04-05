@@ -11,6 +11,7 @@ $MESS["LM_POPUP_TAB_LAST_LEADS"] = "Лиды";
 $MESS["LM_POPUP_TAB_LAST_DEALS"] = "Сделки";
 $MESS["LM_POPUP_TAB_LAST_SG"] = "Группы";
 $MESS["LM_POPUP_TAB_LAST_STRUCTURE"] = "Отделы";
+$MESS["LM_POPUP_TAB_SEARCH"] = "Поиск";
 $MESS["LM_POPUP_CHECK_STRUCTURE"] = "Все сотрудники отдела с подотделами";
 $MESS["LM_SEARCH_PLEASE_WAIT"] = "Пожалуйста подождите, идет поиск...";
 $MESS["LM_EMPTY_LIST"] = "Нет элементов для отображения";
@@ -18,5 +19,9 @@ $MESS["LM_PLEASE_WAIT"] = "Загрузка, пожалуйста подожди
 $MESS["LM_CREATE_SONETGROUP_TITLE"] = "Группа с таким названием не найдена, создать группу \"#TITLE#\"";
 $MESS["LM_CREATE_SONETGROUP_BUTTON_CREATE"] = "Создать";
 $MESS["LM_CREATE_SONETGROUP_BUTTON_CANCEL"] = "Отменить";
+$MESS["LM_INVITE_EMAIL_USER_BUTTON_OK"] = "OK";
+$MESS["LM_INVITE_EMAIL_USER_TITLE"] = "Сообщение будет направлено на e-mail";
+$MESS["LM_INVITE_EMAIL_USER_PLACEHOLDER_NAME"] = "Имя";
+$MESS["LM_INVITE_EMAIL_USER_PLACEHOLDER_LAST_NAME"] = "Фамилия";
 $MESS["LM_POPUP_WAITER_TEXT"] = "Идет поиск дополнительных результатов...";
 ?>

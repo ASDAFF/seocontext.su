@@ -1,4 +1,6 @@
 <?
+use Bitrix\Catalog;
+
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/catalog/general/product_set.php");
 
 class CCatalogProductSet extends CCatalogProductSetAll
@@ -32,11 +34,16 @@ class CCatalogProductSet extends CCatalogProductSetAll
 				$DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
 			}
 			unset($arOneItem);
-			if (self::TYPE_SET == $arSet['TYPE'])
+			switch ($arSet['TYPE'])
 			{
-				$setParams = self::createSetItemsParamsFromAdd($arFields['ITEMS']);
-				self::fillSetItemsParams($setParams);
-				self::calculateSetParams($arSet['ITEM_ID'], $setParams);
+				case self::TYPE_SET:
+					$setParams = self::createSetItemsParamsFromAdd($arFields['ITEMS']);
+					self::fillSetItemsParams($setParams);
+					self::calculateSetParams($arSet['ITEM_ID'], $setParams);
+					break;
+				case self::TYPE_GROUP:
+					CCatalogProduct::Update($arSet['ITEM_ID'], array('BUNDLE' => Catalog\ProductTable::STATUS_YES));
+					break;
 			}
 
 			foreach (GetModuleEvents("catalog", "OnProductSetAdd", true) as $arEvent)
@@ -107,11 +114,15 @@ class CCatalogProductSet extends CCatalogProductSetAll
 			$rsSets = $DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
 			if ($arSet = $rsSets->Fetch())
 			{
-				if (self::TYPE_SET == $arSet['TYPE'])
+				switch ($arSet['TYPE'])
 				{
-					$setParams = self::createSetItemsParamsFromUpdate($intID);
-					self::fillSetItemsParams($setParams);
-					self::calculateSetParams($arSet['ITEM_ID'], $setParams);
+					case self::TYPE_SET:
+						$setParams = self::createSetItemsParamsFromUpdate($intID);
+						self::fillSetItemsParams($setParams);
+						self::calculateSetParams($arSet['ITEM_ID'], $setParams);
+						break;
+					case self::TYPE_GROUP:
+						CCatalogProduct::Update($arSet['ITEM_ID'], array('BUNDLE' => Catalog\ProductTable::STATUS_YES));
 				}
 			}
 
@@ -145,8 +156,16 @@ class CCatalogProductSet extends CCatalogProductSetAll
 			$DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
 			$strSql = "delete from b_catalog_product_sets where ID=".$arItem['ID'];
 			$DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
-			if (self::TYPE_SET == $arItem['TYPE'])
-				CCatalogProduct::SetProductType($arItem['ITEM_ID'], CCatalogProduct::TYPE_PRODUCT);
+			switch ($arItem['TYPE'])
+			{
+				case self::TYPE_SET:
+					CCatalogProduct::SetProductType($arItem['ITEM_ID'], CCatalogProduct::TYPE_PRODUCT);
+					break;
+				case self::TYPE_GROUP:
+					if (!static::isProductHaveSet($arItem['ITEM_ID'], self::TYPE_GROUP))
+						CCatalogProduct::Update($arItem['ITEM_ID'], array('BUNDLE' => Catalog\ProductTable::STATUS_NO));
+					break;
+			}
 
 			foreach (GetModuleEvents("catalog", "OnProductSetDelete", true) as $arEvent)
 			{
@@ -406,35 +425,7 @@ class CCatalogProductSet extends CCatalogProductSetAll
 		return (!empty($arResult) ? $arResult : false);
 	}
 
-	public function deleteAllSetsByProduct($intProductID, $intSetType)
-	{
-		global $DB;
-
-		$intProductID = (int)$intProductID;
-		if (0 >= $intProductID)
-			return false;
-		$intSetType = (int)$intSetType;
-		if (self::TYPE_SET != $intSetType && self::TYPE_GROUP != $intSetType)
-			return false;
-
-		foreach (GetModuleEvents('catalog', 'OnBeforeProductAllSetsDelete', true) as $arEvent)
-		{
-			if (ExecuteModuleEventEx($arEvent, array($intProductID, $intSetType)) === false)
-				return false;
-		}
-
-		$strSql = 'delete from b_catalog_product_sets where OWNER_ID='.$intProductID.' and TYPE='.$intSetType;
-		$DB->Query($strSql, false, 'File: '.__FILE__.'<br>Line: '.__LINE__);
-		if (self::TYPE_SET == $intSetType)
-			CCatalogProduct::SetProductType($intProductID, CCatalogProduct::TYPE_PRODUCT);
-
-		foreach (GetModuleEvents('catalog', 'OnProductAllSetsDelete', true) as $arEvent)
-			ExecuteModuleEventEx($arEvent, array($intProductID, $intSetType));
-
-		return true;
-	}
-
-	public function recalculateSetsByProduct($product)
+	public static function recalculateSetsByProduct($product)
 	{
 		global $DB;
 
@@ -453,12 +444,10 @@ class CCatalogProductSet extends CCatalogProductSetAll
 			$setItem['ITEM_ID'] = (int)$setItem['ITEM_ID'];
 			if ($setItem['ITEM_ID'] === $setItem['OWNER_ID'])
 				continue;
-			$setsList[$setItem['SET_ID']] = array();
+			$setsList[$setItem['OWNER_ID']] = array();
 			$setsID[] = $setItem['SET_ID'];
 		}
-		if (isset($setItem))
-			unset($setItem);
-		unset($setIterator, $query);
+		unset($setItem, $setIterator, $query);
 
 		if (!empty($setsID))
 		{
@@ -494,18 +483,17 @@ class CCatalogProductSet extends CCatalogProductSetAll
 				if (!isset($productMap[$item['ID']]))
 					continue;
 				foreach ($productMap[$item['ID']] as &$setKey)
-				{
 					$setsList[$setKey][$item['ID']] = array_merge($setsList[$setKey][$item['ID']], $item);
-				}
 				unset($setKey);
 			}
-			if (isset($item))
-				unset($item);
-			unset($productIterator);
+			unset($item, $productIterator);
 
-			foreach ($setsList as $setKey => $oneSet)
+			$setsList = array_filter($setsList);
+			if (!empty($setsList))
 			{
-				self::calculateSetParams($setKey, $oneSet);
+				foreach ($setsList as $setKey => $oneSet)
+					static::calculateSetParams($setKey, $oneSet);
+				unset($setKey, $oneSet);
 			}
 		}
 	}
@@ -551,9 +539,12 @@ class CCatalogProductSet extends CCatalogProductSetAll
 		return true;
 	}
 
-	protected function calculateSetParams($productID, $items)
+	protected static function calculateSetParams($productID, $items)
 	{
 		global $DB;
+
+		if (empty($items) || !is_array($items))
+			return false;
 
 		$quantityTrace = 'N';
 		$canBuyZero = 'Y';
@@ -572,21 +563,16 @@ class CCatalogProductSet extends CCatalogProductSetAll
 			$quantityTrace = 'Y';
 			$canBuyZero = 'N';
 			foreach ($items as &$oneItem)
-			{
 				$weight += $oneItem['WEIGHT']*$oneItem['QUANTITY_IN_SET'];
-			}
 			unset($oneItem);
 		}
 		foreach ($tracedItems as &$oneItem)
 		{
 			if ($oneItem['QUANTITY'] <= 0)
-			{
 				$itemQuantity = 0;
-			}
 			else
-			{
 				$itemQuantity = (int)floor($oneItem['QUANTITY']/$oneItem['QUANTITY_IN_SET']);
-			}
+
 			if ($quantity === null || $quantity > $itemQuantity)
 				$quantity = $itemQuantity;
 			if ($allItems)
@@ -601,10 +587,10 @@ class CCatalogProductSet extends CCatalogProductSetAll
 			'QUANTITY' => $quantity,
 			'QUANTITY_TRACE' => $quantityTrace,
 			'CAN_BUY_ZERO' => $canBuyZero,
-			'NEGATIVE_AMOUNT_TRACE' => $canBuyZero,
 			'MEASURE' => $measure['ID'],
 			'TYPE' => CCatalogProduct::TYPE_SET
 		);
+		$fields['AVAILABLE'] = (CCatalogProduct::isAvailable($fields) ? 'Y' : 'N');
 
 		$update = $DB->PrepareUpdate('b_catalog_product', $fields);
 
@@ -672,4 +658,3 @@ class CCatalogProductSet extends CCatalogProductSetAll
 		return $result;
 	}
 }
-?>

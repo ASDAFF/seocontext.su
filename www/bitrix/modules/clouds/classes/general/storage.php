@@ -92,18 +92,27 @@ class CCloudStorage
 				foreach($bucket["FILE_RULES_COMPILED"] as $rule)
 				{
 					if($rule["MODULE_MASK"] != "")
-						$bMatch = preg_match($rule["MODULE_MASK"], $arFile["MODULE_ID"]) > 0;
-					else
-						$bMatch = true;
-
-					if($rule["EXTENTION_MASK"] != "")
-						$bMatch = $bMatch && (preg_match($rule["EXTENTION_MASK"], $strFileName) > 0);
-
-					if(empty($rule["SIZE_ARRAY"]))
 					{
-						$bMatchSize = true;
+						$bMatchModule = (preg_match($rule["MODULE_MASK"], $arFile["MODULE_ID"]) > 0);
 					}
 					else
+					{
+						$bMatchModule = true;
+					}
+
+					if($rule["EXTENTION_MASK"] != "")
+					{
+						$bMatchExtention =
+							(preg_match($rule["EXTENTION_MASK"], $strFileName) > 0)
+							|| (preg_match($rule["EXTENTION_MASK"], $arFile["ORIGINAL_NAME"]) > 0)
+						;
+					}
+					else
+					{
+						$bMatchExtention = true;
+					}
+
+					if($rule["SIZE_ARRAY"])
 					{
 						$bMatchSize = false;
 						foreach($rule["SIZE_ARRAY"] as $size)
@@ -115,11 +124,15 @@ class CCloudStorage
 								$bMatchSize = true;
 						}
 					}
+					else
+					{
+						$bMatchSize = true;
+					}
 
-					$bMatch = $bMatch && $bMatchSize;
-
-					if($bMatch)
+					if($bMatchModule && $bMatchExtention && $bMatchSize)
+					{
 						return new CCloudStorageBucket(intval($bucket["ID"]));
+					}
 				}
 			}
 		}

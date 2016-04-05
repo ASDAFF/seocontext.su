@@ -1,17 +1,15 @@
 <?
 if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 
-$arMapType=array("Yandex","Google");
-
-$arComponentParameters = Array(
-	"PARAMETERS" => Array(
-		"PHONE" => Array(
+$arComponentParameters = array(
+	"PARAMETERS" => array(
+		"PHONE" => array(
 			"NAME" => GetMessage("SHOW_PHONE"),
 			"TYPE" => "CHECKBOX",
 			"DEFAULT" => 'N',
 			"PARENT" => "ADDITIONAL_SETTINGS",
 		),
-		"SCHEDULE" => Array(
+		"SCHEDULE" => array(
 			"NAME" => GetMessage("SHOW_SCHEDULE"),
 			"TYPE" => "CHECKBOX",
 			"DEFAULT" => 'N',
@@ -27,11 +25,10 @@ $arComponentParameters = Array(
 			"PARENT" => "ADDITIONAL_SETTINGS",
 			"NAME" => GetMessage("MAP_TYPE"),
 			"TYPE" => "LIST",
-			"VALUES" => $arMapType,
+			"VALUES" => array("Yandex","Google"),
 			'DEFAULT' => "Yandex",
 		),
-		"SET_TITLE" => Array(),
-		"CACHE_TIME" => Array("DEFAULT"=>36000000),
+		"SET_TITLE" => array(),
+		"CACHE_TIME" => array("DEFAULT"=>36000000),
 	)
 );
-?>

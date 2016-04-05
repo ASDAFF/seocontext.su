@@ -291,6 +291,8 @@ class CSOAPServer
 
         $APPLICATION->RestartBuffer();
         echo $payload;
+
+		die();
     }
 
     /*!

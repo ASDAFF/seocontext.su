@@ -89,6 +89,14 @@ class MailingChainTable extends Entity\DataManager
 				'title' => Loc::getMessage('SENDER_ENTITY_MAILING_CHAIN_FIELD_TITLE_MESSAGE')
 			),
 
+			'TEMPLATE_TYPE' => array(
+				'data_type' => 'string',
+			),
+
+			'TEMPLATE_ID' => array(
+				'data_type' => 'string',
+			),
+
 			'IS_TRIGGER' => array(
 				'data_type' => 'string',
 				'required' => true,
@@ -112,6 +120,14 @@ class MailingChainTable extends Entity\DataManager
 				'data_type' => 'string',
 			),
 			'TIMES_OF_DAY' => array(
+				'data_type' => 'string',
+			),
+
+			'PRIORITY' => array(
+				'data_type' => 'string',
+			),
+
+			'LINK_PARAMS' => array(
 				'data_type' => 'string',
 			),
 
@@ -377,25 +393,25 @@ class MailingChainTable extends Entity\DataManager
 	 */
 	public static function getDefaultEmailFromList()
 	{
-		$arAddressFrom = array();
+		$addressFromList = array();
 		$siteEmailDb = \Bitrix\Main\SiteTable::getList(array('select'=>array('EMAIL')));
 		while($siteEmail = $siteEmailDb->fetch())
 		{
-			$arAddressFrom[] = $siteEmail['EMAIL'];
+			$addressFromList[] = $siteEmail['EMAIL'];
 		}
 
 		try
 		{
 			$mainEmail = \COption::GetOptionString('main', 'email_from');
 			if (!empty($mainEmail))
-				$arAddressFrom[] = $mainEmail;
+				$addressFromList[] = $mainEmail;
 
 			$saleEmail = \COption::GetOptionString('sale', 'order_email');
 			if(!empty($saleEmail))
-				$arAddressFrom[] = $saleEmail;
+				$addressFromList[] = $saleEmail;
 
-			$arAddressFrom = array_unique($arAddressFrom);
-			trimArr($arAddressFrom, true);
+			$addressFromList = array_unique($addressFromList);
+			trimArr($addressFromList, true);
 
 		}
 		catch(\Exception $e)
@@ -403,7 +419,7 @@ class MailingChainTable extends Entity\DataManager
 
 		}
 
-		return $arAddressFrom;
+		return $addressFromList;
 	}
 
 	/**
@@ -411,17 +427,17 @@ class MailingChainTable extends Entity\DataManager
 	 */
 	public static function getEmailFromList()
 	{
-		$arAddressFrom = static::getDefaultEmailFromList();
+		$addressFromList = static::getDefaultEmailFromList();
 		$email = \COption::GetOptionString('sender', 'address_from');
 		if(!empty($email))
 		{
 			$arEmail = explode(',', $email);
-			$arAddressFrom = array_merge($arEmail, $arAddressFrom);
-			$arAddressFrom = array_unique($arAddressFrom);
-			trimArr($arAddressFrom, true);
+			$addressFromList = array_merge($arEmail, $addressFromList);
+			$addressFromList = array_unique($addressFromList);
+			trimArr($addressFromList, true);
 		}
 
-		return $arAddressFrom;
+		return $addressFromList;
 	}
 
 	/**
@@ -432,11 +448,11 @@ class MailingChainTable extends Entity\DataManager
 		$emailList = \COption::GetOptionString('sender', 'address_from');
 		if(!empty($email))
 		{
-			$arAddressFrom = explode(',', $emailList);
-			$arAddressFrom = array_merge(array($email), $arAddressFrom);
-			$arAddressFrom = array_unique($arAddressFrom);
-			trimArr($arAddressFrom, true);
-			\COption::SetOptionString('sender', 'address_from', implode(',', $arAddressFrom));
+			$addressFromList = explode(',', $emailList);
+			$addressFromList = array_merge(array($email), $addressFromList);
+			$addressFromList = array_unique($addressFromList);
+			trimArr($addressFromList, true);
+			\COption::SetOptionString('sender', 'address_from', implode(',', $addressFromList));
 		}
 	}
 
@@ -445,16 +461,16 @@ class MailingChainTable extends Entity\DataManager
 	 */
 	public static function getEmailToMeList()
 	{
-		$arAddressTo = array();
+		$addressToList = array();
 		$email = \COption::GetOptionString('sender', 'address_send_to_me');
 		if(!empty($email))
 		{
-			$arAddressTo = explode(',', $email);
-			$arAddressTo = array_unique($arAddressTo);
-			trimArr($arAddressTo, true);
+			$addressToList = explode(',', $email);
+			$addressToList = array_unique($addressToList);
+			trimArr($addressToList, true);
 		}
 
-		return $arAddressTo;
+		return $addressToList;
 	}
 
 	/**
@@ -465,12 +481,50 @@ class MailingChainTable extends Entity\DataManager
 		$emailList = \COption::GetOptionString('sender', 'address_send_to_me');
 		if(!empty($email))
 		{
-			$arAddressTo = explode(',', $emailList);
-			$arAddressTo = array_merge(array($email), $arAddressTo);
-			$arAddressTo = array_unique($arAddressTo);
-			trimArr($arAddressTo, true);
-			\COption::SetOptionString('sender', 'address_send_to_me', implode(',', $arAddressTo));
+			$addressToList = explode(',', $emailList);
+			$addressToList = array_merge(array($email), $addressToList);
+			$addressToList = array_unique($addressToList);
+			trimArr($addressToList, true);
+			\COption::SetOptionString('sender', 'address_send_to_me', implode(',', $addressToList));
 		}
+	}
+
+	/**
+	 * @return array
+	 * @throws \Bitrix\Main\ArgumentException
+	 */
+	public static function onPresetTemplateList($templateType = null, $templateId = null)
+	{
+		$resultList = array();
+
+		if($templateType && $templateType !== 'MAILING')
+		{
+			return $resultList;
+		}
+
+		$filter = array();
+		if($templateId)
+		{
+			$filter['ID'] = $templateId;
+		}
+		$templateDb = static::getList(array(
+			'select' => array('ID', 'SUBJECT', 'MESSAGE'),
+			'filter' => $filter,
+			'order' => array('DATE_INSERT' => 'DESC'),
+			'limit' => 15
+		));
+		while($template = $templateDb->fetch())
+		{
+			$resultList[] = array(
+				'TYPE' => 'MAILING',
+				'ID' => $template['ID'],
+				'NAME' => $template['SUBJECT'],
+				'ICON' => '',
+				'HTML' => $template['MESSAGE']
+			);
+		}
+
+		return $resultList;
 	}
 }
 

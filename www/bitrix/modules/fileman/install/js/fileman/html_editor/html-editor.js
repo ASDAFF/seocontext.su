@@ -173,6 +173,8 @@
 				this.nodeNavi.Show();
 			}
 
+			this.pasteControl = new BXHtmlEditor.PasteControl(this);
+
 			this.InitEventHandlers();
 			this.ResizeSceleton();
 
@@ -224,6 +226,11 @@
 			if (this.config.normalBodyWidth)
 				this.NORMAL_WIDTH = parseInt(this.config.normalBodyWidth);
 			this.normalWidth = this.NORMAL_WIDTH;
+
+			if (!this.config.height)
+				this.config.height = this.MIN_HEIGHT;
+			if (!this.config.width)
+				this.config.width = this.MIN_WIDTH;
 
 			if (this.config.smiles)
 			{
@@ -494,6 +501,11 @@
 				this.taskbarManager.Resize(taskbarWidth, areaH);
 			}
 			this.toolbar.AdaptControls(width);
+
+			this.On('OnEditorResizedAfter', [{
+				width: width,
+				height: height
+			}]);
 		},
 
 		CheckBodyHeight: function()
@@ -614,6 +626,8 @@
 
 		SmoothResizeSceleton: function(height)
 		{
+			this.On('AutoResizeStarted');
+
 			var
 				_this = this,
 				size = this.GetSceletonSize(),
@@ -634,6 +648,7 @@
 			this.smoothResizeInt = setInterval(function()
 				{
 					curHeight += Math.round(dy * count);
+					var finished = curHeight >= height;
 					if (curHeight > height)
 					{
 						clearInterval(_this.smoothResizeInt);
@@ -644,6 +659,10 @@
 					}
 					_this.config.height = curHeight;
 					_this.ResizeSceleton();
+					if (finished)
+					{
+						_this.On('AutoResizeFinished');
+					}
 					count++;
 				},
 				timeInt
@@ -1597,17 +1616,24 @@
 				};
 			}
 
-
 			this.util.GetTextContentEx = function(node)
 			{
 				var
 					i,
 					clone = node.cloneNode(true),
-					scripts = clone.getElementsByTagName('SCRIPT');
+					scripts = clone.getElementsByTagName('SCRIPT'),
+					links = clone.getElementsByTagName('A');
 
 				for (i = scripts.length - 1; i >= 0 ; i--)
 				{
 					BX.remove(scripts[i]);
+				}
+
+				// mantis:64329
+				for (i = links.length - 1; i >= 0 ; i--)
+				{
+					if (links[i].href)
+						_this.util.ReplaceNode(links[i],  links[i].ownerDocument.createTextNode(links[i].href));
 				}
 
 				return _this.util.GetTextContent(clone);
@@ -2499,8 +2525,20 @@
 			if (!this.synchro.IsFocusedOnTextarea())
 			{
 				this.Focus();
+
+				if (this.selection.lastCheckedRange && this.selection.lastCheckedRange.range && !range)
+				{
+					try
+					{
+						this.selection.SetSelection(this.selection.lastCheckedRange.range);
+					}
+					catch(e){}
+				}
+
 				if (!range)
+				{
 					range = this.selection.GetRange();
+				}
 
 				if (!range.collapsed && range.startContainer == range.endContainer && range.startContainer.nodeName !== 'BODY')
 				{
@@ -2512,6 +2550,7 @@
 				}
 
 				this.selection.InsertHTML(html, range);
+				this.selection.ScrollIntoView();
 			}
 		},
 
@@ -2852,7 +2891,7 @@
 				return this.lastRange;
 		},
 
-		// Save current selection
+		// Restore selection
 		RestoreBookmark: function()
 		{
 			if (this.lastRange)
@@ -3202,42 +3241,16 @@
 			}
 		},
 
-		/**
-		 * Scroll the current caret position into the view
-		 * TODO: Dirty hack ...might be a smarter way of doing this
-		 */
-//		ScrollIntoView: function()
-//		{
-//			var doc           = this.doc,
-//				hasScrollBars = doc.documentElement.scrollHeight > doc.documentElement.offsetHeight,
-//				tempElement   = doc._wysihtml5ScrollIntoViewElement = doc._wysihtml5ScrollIntoViewElement || (function() {
-//					var element = doc.createElement("span");
-//					// The element needs content in order to be able to calculate it's position properly
-//					element.innerHTML = wysihtml5.INVISIBLE_SPACE;
-//					return element;
-//				})(),
-//				offsetTop;
-//
-//			if (hasScrollBars) {
-//				this.insertNode(tempElement);
-//				offsetTop = _getCumulativeOffsetTop(tempElement);
-//				tempElement.parentNode.removeChild(tempElement);
-//				if (offsetTop > doc.body.scrollTop) {
-//					doc.body.scrollTop = offsetTop;
-//				}
-//			}
-//		},
-//
-
 		ScrollIntoView: function()
 		{
 			var
 				node,
 				_this = this,
 				doc = this.document,
+				win = this.editor.sandbox.GetWindow(),
 				bScrollBars = doc.documentElement.scrollHeight > doc.documentElement.offsetHeight;
 
-			if (bScrollBars)
+			if (bScrollBars && win)
 			{
 				var
 					tempNode = doc.__scrollIntoViewElement = doc.__scrollIntoViewElement || (function()
@@ -3259,10 +3272,13 @@
 				}
 				tempNode.parentNode.removeChild(tempNode);
 
-				// doc.documentElement.scrollTop or doc.body.scrollTop ?
-				if (top > doc.documentElement.scrollTop)
+				var
+					scrollPos = BX.GetWindowScrollPos(doc),
+					innerSize = BX.GetWindowInnerSize(doc);
+
+				if (top > scrollPos.scrollTop + innerSize.innerHeight - 40)
 				{
-					doc.documentElement.scrollTop = top;
+					win.scrollTo(scrollPos.scrollLeft, top);
 				}
 			}
 		},
@@ -3537,7 +3553,15 @@
 		SaveRange: function(bSetFocus)
 		{
 			var range = this.GetRange(false, bSetFocus);
-			this.lastCheckedRange = {endOffset: range.endOffset, endContainer: range.endContainer, range: range};
+			if (range)
+			{
+				this.lastCheckedRange = {endOffset: range.endOffset, endContainer: range.endContainer, range: range};
+			}
+			else
+			{
+				// Mantis: #66025
+				setTimeout(BX.proxy(this.SaveRange, this), 0);
+			}
 		},
 
 		CheckLastRange: function(range)

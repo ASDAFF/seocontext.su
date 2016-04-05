@@ -94,7 +94,22 @@
 								res = author + res;
 							}
 						}
-						this.handler.oEditor.action.actions.quote.setExternalSelection(res);
+
+						if (this.handler.oEditor.action.actions.quote.setExternalSelectionFromRange)
+						{
+							// Here we take selected text via editor tools
+							// we don't use "res"
+							this.handler.oEditor.action.actions.quote.setExternalSelectionFromRange();
+							if (author !== '')
+							{
+								this.handler.oEditor.action.actions.quote.setExternalSelection(author + this.handler.oEditor.action.actions.quote.getExternalSelection());
+							}
+						}
+						else
+						{
+							// For compatibility with old fileman (< 16.0.1)
+							this.handler.oEditor.action.actions.quote.setExternalSelection(res);
+						}
 						this.handler.oEditor.action.Exec('quote');
 					}
 				}
@@ -347,6 +362,9 @@
 			post_data['MODE'] = "RECORD";
 			post_data['AJAX_POST'] = "Y";
 			post_data['id'] = this.id;
+			post_data['SITE_ID'] = BX.message("SITE_ID");
+			post_data['LANGUAGE_ID'] = BX.message("LANGUAGE_ID");
+
 			if (this.editing === true)
 			{
 				post_data['REVIEW_ACTION'] = "EDIT";

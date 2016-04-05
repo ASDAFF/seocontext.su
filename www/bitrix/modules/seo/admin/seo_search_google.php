@@ -88,15 +88,6 @@ while($arSite = $dbSites->fetch(Converter::getHtmlConverter()))
 
 	$row->AddViewField("BINDED", '<span data-role="site-binded" data-domain="'.$siteDomainEnc.'" data-dir="'.$siteDirEnc.'">'.($bNeedAuth ? Loc::getMessage('SEO_NEED_AUTH') : Loc::getMessage('SEO_LOADING')).'</span>');
 	$row->AddViewField("VERIFIED", '<span data-role="site-verified" data-domain="'.$siteDomainEnc.'" data-dir="'.$siteDirEnc.'">'.($bNeedAuth ? Loc::getMessage('SEO_NEED_AUTH') : Loc::getMessage('SEO_LOADING')).'</span>');
-
-	if(!$bNeedAuth)
-	{
-		$arActions = Array();
-
-		$arActions[] = array("ICON"=>"edit", "TEXT"=>Loc::getMessage('SEO_DETAIL'), "ACTION" => "getSiteInfo('".urlencode($arSite['DOMAIN'])."')", "DEFAULT"=>true);
-
-		$row->AddActions($arActions);
-	}
 }
 
 $lAdmin->CheckListMode();
@@ -111,23 +102,6 @@ if($strError != '')
 <div id="ajax_status"></div>
 <script type="text/javascript">
 window.lastSeoResult = null;
-function getSiteInfo(domain)
-{
-	if(window.lastSeoResult)
-	{
-		if(!window.lastSeoResult[domain])
-		{
-			alert('<?=CUtil::JSEscape(Loc::getMessage('SEO_ERROR_NO_BIND'))?>')
-		}
-		else
-		{
-			var wnd = new BX.CAdminDialog({
-				content_url: "/bitrix/admin/seo_search_google_detail.php?lang="+BX.message('LANGUAGE_ID')+"&domain="+BX.util.urlencode(domain)+"&bxpublic=Y"
-			});
-			wnd.Show();
-		}
-	}
-}
 
 function updateCallback(res)
 {
@@ -164,10 +138,10 @@ function updateCallback(res)
 				switch(role)
 				{
 					case 'site-binded':
-						nodes[i].innerHTML = '<?=CUtil::JSEscape(Loc::getMessage('MAIN_YES'))?>';
+						nodes[i].innerHTML = res[domain]['binded'] == true ? '<?=CUtil::JSEscape(Loc::getMessage('MAIN_YES'))?>' : '<?=CUtil::JSEscape(Loc::getMessage('MAIN_NO'))?>';
 					break;
 					case 'site-verified':
-						if(res[domain].verified == 'true')
+						if(res[domain].verified == true)
 						{
 							nodes[i].innerHTML = '<?=CUtil::JSEscape(Loc::getMessage('MAIN_YES'))?>';
 						}

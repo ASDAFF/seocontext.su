@@ -24,4 +24,6 @@ $MESS["MPF_SELECT_ATTACHMENTS"] = "Загрузить файл или карти
 $MESS["MPF_DROP_ATTACHMENTS"] = "Перетащить с помощью Drag'n'drop";
 $MESS["MPF_DRAG_ATTACHMENTS"] = "Перетащите файлы";
 $MESS["MPF_DRAG_ATTACHMENTS2"] = "Загрузить файлы?";
+$MESS["MPF_PIN_EDITOR_PANNEL"] = "Закрепить панель с кнопками";
+$MESS["MPF_PIN_EDITOR_PANNEL_OFF"] = "Открепить панель с кнопками";
 ?>

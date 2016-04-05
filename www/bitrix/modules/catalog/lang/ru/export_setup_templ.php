@@ -133,4 +133,5 @@ $MESS["CAT_ADM_MISC_EXP_TAB2_TITLE"] = "Результат экспорта";
 $MESS["CAT_ADM_CSV_EXP_CML2_LINK_IS_XML"] = "Выгружать в свойство привязки торговых предложений к товарам внешний код товара (XML_ID)";
 $MESS["CAT_YANDEX_XML_CURRENCY"] = "Валюта, в которую конвертировать цены товаров:";
 $MESS["CAT_YANDEX_USE_HTTPS"] = "Использовать в выгрузке протокол https:";
+$MESS["CAT_YANDEX_FILTER_AVAILABLE"] = "Выгружать только доступные к покупке товары:";
 ?>

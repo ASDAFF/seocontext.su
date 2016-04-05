@@ -125,49 +125,49 @@ class ListsSelectElementComponent extends CBitrixComponent
 			$gridOptions->getNavParams(),
 			$selectFields
 		);
-		$documentState = true;
+		$documentStates = true;
 		$path = rtrim(SITE_DIR, '/');
 		while($element = $elementObject->fetch())
 		{
-			$documentState = CBPDocument::GetDocumentStates(
+			$documentStates = CBPDocument::GetDocumentStates(
 				BizprocDocument::generateDocumentComplexType($iblockTypeId, $element['IBLOCK_ID']),
 				BizprocDocument::getDocumentComplexId($iblockTypeId, $element['ID'])
 			);
 
-			$this->arResult['DATA'][$element['ID']]['ID'] = $element['ID'];
-			$this->arResult['DATA'][$element['ID']]['DOCUMENT_NAME'] = $element['NAME'];
-			$this->arResult['DATA'][$element['ID']]['DOCUMENT_URL'] = $path.COption::GetOptionString('lists', 'livefeed_url').'?livefeed=y&list_id='.$element["IBLOCK_ID"].'&element_id='.$element['ID'];
-			if(!empty($documentState))
+			if(!empty($documentStates))
 			{
-				$this->arResult['DATA'][$element['ID']]['DOCUMENT_STATE'] = true;
-				$documentState = current($documentState);
-				$this->arResult['DATA'][$element['ID']]['WORKFLOW_ID'] = $documentState['ID'];
-				$this->arResult['DATA'][$element['ID']]["WORKFLOW_NAME"] = $documentState["TEMPLATE_NAME"];
-				$this->arResult['DATA'][$element['ID']]["WORKFLOW_STATE"] = $documentState["STATE_TITLE"];
-				$this->arResult['DATA'][$element['ID']]["WORKFLOW_STARTED"] = FormatDateFromDB($documentState["STARTED_FORMATTED"]);
-				$this->arResult['DATA'][$element['ID']]["WORKFLOW_STARTED_BY"] = "";
-				if (intval($documentState["STARTED_BY"]) > 0)
+				foreach($documentStates as $documentState)
 				{
-					$dbUserTmp = CUser::getByID($documentState["STARTED_BY"]);
-					$arUserTmp = $dbUserTmp->fetch();
-					$this->arResult['DATA'][$element['ID']]["WORKFLOW_STARTED_BY"] = CUser::FormatName($this->arParams["NAME_TEMPLATE"], $arUserTmp, true);
-					$this->arResult['DATA'][$element['ID']]["WORKFLOW_STARTED_BY"] .= " [".$documentState["STARTED_BY"]."]";
-				}
+					if(empty($documentState['ID']))
+						continue;
 
-				$this->arResult['DATA'][$element['ID']]['MODULE_ID'] = $documentState["DOCUMENT_ID"][0];
-				$this->arResult['DATA'][$element['ID']]['ENTITY'] = $documentState["DOCUMENT_ID"][1];
-				$this->arResult['DATA'][$element['ID']]['DOCUMENT_ID'] = $documentState["DOCUMENT_ID"][2];
-			}
-			else
-			{
-				$documentState = false;
-				$this->arResult['DATA'][$element['ID']]['DOCUMENT_STATE'] = false;
+					$this->arResult['DATA'][$documentState['ID']]['ID'] = $element['ID'];
+					$this->arResult['DATA'][$documentState['ID']]['DOCUMENT_NAME'] = $element['NAME'];
+					$this->arResult['DATA'][$documentState['ID']]['DOCUMENT_URL'] = $path.COption::GetOptionString('lists', 'livefeed_url').'?livefeed=y&list_id='.$element["IBLOCK_ID"].'&element_id='.$element['ID'];
+					$this->arResult['DATA'][$documentState['ID']]['DOCUMENT_STATE'] = true;
+					$this->arResult['DATA'][$documentState['ID']]['WORKFLOW_ID'] = $documentState['ID'];
+					$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_NAME"] = $documentState["TEMPLATE_NAME"];
+					$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_STATE"] = $documentState["STATE_TITLE"];
+					$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_STARTED"] = FormatDateFromDB($documentState["STARTED_FORMATTED"]);
+					$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_STARTED_BY"] = "";
+					if (intval($documentState["STARTED_BY"]) > 0)
+					{
+						$dbUserTmp = CUser::getByID($documentState["STARTED_BY"]);
+						$arUserTmp = $dbUserTmp->fetch();
+						$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_STARTED_BY"] = CUser::FormatName($this->arParams["NAME_TEMPLATE"], $arUserTmp, true);
+						$this->arResult['DATA'][$documentState['ID']]["WORKFLOW_STARTED_BY"] .= " [".$documentState["STARTED_BY"]."]";
+					}
+
+					$this->arResult['DATA'][$documentState['ID']]['MODULE_ID'] = $documentState["DOCUMENT_ID"][0];
+					$this->arResult['DATA'][$documentState['ID']]['ENTITY'] = $documentState["DOCUMENT_ID"][1];
+					$this->arResult['DATA'][$documentState['ID']]['DOCUMENT_ID'] = $documentState["DOCUMENT_ID"][2];
+				}
 			}
 		}
 
 		foreach ($this->arResult['DATA'] as $data)
 		{
-			if($documentState)
+			if($documentStates)
 			{
 				if ($useComments)
 					$workflows[] = 'WF_'.$data['WORKFLOW_ID'];
@@ -179,7 +179,7 @@ class ListsSelectElementComponent extends CBitrixComponent
 			$this->arResult['RECORDS'][] = array('data' => $data, 'actions' => $actions);
 		}
 
-		if ($useComments && $documentState)
+		if ($useComments && $documentStates)
 		{
 			$workflows = array_unique($workflows);
 			if ($workflows)

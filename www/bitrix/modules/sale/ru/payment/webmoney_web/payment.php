@@ -1,6 +1,28 @@
-<?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?>
+<?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
+	die();
+
+$entityId = CSalePaySystemAction::GetParamValue("PAYMENT_ID");
+list($orderId, $paymentId) = \Bitrix\Sale\PaySystem\Manager::getIdsByPayment($entityId);
+
+/** @var \Bitrix\Sale\Order $order */
+$order = \Bitrix\Sale\Order::load($orderId);
+
+/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+$paymentCollection = $order->getPaymentCollection();
+
+/** @var \Bitrix\Sale\Payment $payment */
+$payment = $paymentCollection->getItemById($paymentId);
+
+$data = \Bitrix\Sale\PaySystem\Manager::getById($payment->getPaymentSystemId());
+
+$service = new \Bitrix\Sale\PaySystem\Service($data);
+$service->initiatePay($payment);
+
+return;
+?>
+
 <form id="pay" name="pay" method="POST" action="https://merchant.webmoney.ru/lmi/payment.asp">
-	<input type="hidden" name="LMI_PAYMENT_AMOUNT" value="<?=$payment['SUM'];?>">
+	<input type="hidden" name="LMI_PAYMENT_AMOUNT" value="<?=CSalePaySystemAction::GetParamValue("SHOULD_PAY")?>">
 	<input type="hidden" name="LMI_PAYMENT_DESC" value="Заказ <?= CSalePaySystemAction::GetParamValue("ORDER_ID") ?> от <?= htmlspecialcharsbx(CSalePaySystemAction::GetParamValue("DATE_INSERT")) ?>">
 	<input type="hidden" name="LMI_PAYMENT_NO" value="<?= CSalePaySystemAction::GetParamValue("ORDER_ID") ?>">
 	<input type="hidden" name="LMI_PAYEE_PURSE" value="<?= htmlspecialcharsbx(CSalePaySystemAction::GetParamValue("SHOP_ACCT")) ?>">

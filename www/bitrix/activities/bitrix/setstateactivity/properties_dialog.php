@@ -17,7 +17,16 @@
 			}
 			?>
 		</select><br />
-		<input type="text" id="id_target_state_name" name="target_state_name" value="<?= !$fl ? htmlspecialcharsbx($arCurrentValues["target_state_name"]) : "" ?>">
-		<input type="button" value="..." onclick="BPAShowSelector('id_target_state_name', 'string');">
+		<?=CBPDocument::ShowParameterField('string', 'target_state_name', !$fl ? $arCurrentValues["target_state_name"] : "", array('size' => 30))?>
+	</td>
+</tr>
+<tr>
+	<td align="right" width="40%"></td>
+	<td width="60%">
+		<label>
+			<input type="checkbox" value="Y" name="cancel_current_state" <?
+				if (isset($arCurrentValues["cancel_current_state"]) && $arCurrentValues["cancel_current_state"] == 'Y') echo 'checked'?>/>
+			<?= GetMessage("BPSSA_CANCEL_CURRENT_STATE") ?>
+		</label>
 	</td>
 </tr>

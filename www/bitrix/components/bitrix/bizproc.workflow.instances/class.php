@@ -15,8 +15,8 @@ Loc::loadMessages(__FILE__);
 class BizprocWorkflowInstances extends \CBitrixComponent
 {
 	const GRID_ID = 'bizproc_instances';
-	const DEFAULT_PAGE_SIZE = 50;
 
+	protected $lockedTime;
 	protected $isAdmin;
 	protected $gridOptions;
 	protected static $fields = array(
@@ -34,7 +34,8 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 		'WS_STARTED_USER_LAST_NAME' => 'STATE.STARTED_USER.LAST_NAME',
 		'WS_STARTED_USER_LOGIN' => 'STATE.STARTED_USER.LOGIN',
 	);
-	
+	protected static $moduleNames = array();
+
 	protected function isAdmin()
 	{
 		global $USER;
@@ -50,6 +51,9 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 		if (empty($params['NAME_TEMPLATE']))
 			$params['NAME_TEMPLATE'] = COption::GetOptionString("bizproc", "name_template", CSite::GetNameFormat(false), SITE_ID);
 
+		if (!empty($_REQUEST['WS_STARTED_BY']) && !empty($_REQUEST['clear_filter']))
+			unset($_REQUEST['WS_STARTED_BY']);
+
 		return $params;
 	}
 
@@ -61,46 +65,43 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 	protected function getGridHeaders()
 	{
 		return array(
-			array('id' => 'ID', 'name' => 'ID', 'default' => true, 'sort' => 'ID'),
+			array('id' => 'ID', 'name' => 'ID', 'default' => false, 'sort' => 'ID'),
+			array('id' => 'WS_MODULE_ID', 'name' => Loc::getMessage('BPWI_WS_MODULE_ID'), 'default' => true, 'sort' => 'WS_MODULE_ID'),
+			array('id' => 'WS_DOCUMENT_NAME', 'name' => Loc::getMessage('BPWI_DOCUMENT_NAME'), 'default' => true, 'sort' => ''),
 			array('id' => 'MODIFIED', 'name' => Loc::getMessage('BPWI_MODIFIED'), 'default' => true, 'sort' => 'MODIFIED'),
-			array('id' => 'OWNER_ID', 'name' => Loc::getMessage('BPWI_IS_LOCKED'), 'default' => true, 'sort' => 'OWNER_ID'),
-			array('id' => 'OWNED_UNTIL', 'name' => Loc::getMessage('BPWI_OWNED_UNTIL'), 'default' => true, 'sort' => 'OWNED_UNTIL'),
-			array('id' => 'WS_STARTED', 'name' => Loc::getMessage('BPWI_WS_STARTED'), 'default' => false, 'sort' => 'WS_STARTED'),
-			array('id' => 'WS_STARTED_BY', 'name' => Loc::getMessage('BPWI_WS_STARTED_BY'), 'default' => false, 'sort' => 'WS_STARTED_BY'),
-			array('id' => 'WS_WORKFLOW_TEMPLATE_ID', 'name' => Loc::getMessage('BPWI_WS_WORKFLOW_TEMPLATE_ID'), 'default' => false, 'sort' => 'WS_WORKFLOW_TEMPLATE_ID', 'ormField' => 'STATE.WORKFLOW_TEMPLATE_ID'),
+			array('id' => 'IS_LOCKED', 'name' => Loc::getMessage('BPWI_IS_LOCKED'), 'default' => true, 'sort' => ''),
+			array('id' => 'OWNED_UNTIL', 'name' => Loc::getMessage('BPWI_OWNED_UNTIL'), 'default' => false, 'sort' => 'OWNED_UNTIL'),
+			array('id' => 'WS_STARTED', 'name' => Loc::getMessage('BPWI_WS_STARTED'), 'default' => true, 'sort' => 'WS_STARTED'),
+			array('id' => 'WS_STARTED_BY', 'name' => Loc::getMessage('BPWI_WS_STARTED_BY'), 'default' => true, 'sort' => 'WS_STARTED_BY'),
+			array('id' => 'WS_WORKFLOW_TEMPLATE_ID', 'name' => Loc::getMessage('BPWI_WS_WORKFLOW_TEMPLATE_ID'), 'default' => true, 'sort' => 'WS_WORKFLOW_TEMPLATE_ID', 'ormField' => 'STATE.WORKFLOW_TEMPLATE_ID'),
 		);
 	}
 	
 	protected function getFilter()
 	{
-		return array(
-			array('id' => 'MODIFIED', 'name' => Loc::getMessage('BPWI_MODIFIED'), 'type' => 'date', 'default' => false),
-			array('id' => 'OWNER_ID',  'name' => Loc::getMessage('BPWI_IS_LOCKED'), 'type' => 'list',
-				'items' => array(
-					0 => Loc::getMessage('BPWI_NO_MATTER'),
-					1 => Loc::getMessage('BPWI_YES'),
-					2 => Loc::getMessage('BPWI_NO'),
-				), 'default' => true),
-			array('id' => 'WS_STARTED', 'name' => Loc::getMessage('BPWI_WS_STARTED'), 'type' => 'date', 'default' => true),
-			array('id' => 'WS_STARTED_BY', 'name' => Loc::getMessage('BPWI_WS_STARTED_BY'), 'type' => 'user', 'default' => true),
+		$result = array(
+			array('id' => 'MODIFIED', 'name' => Loc::getMessage('BPWI_MODIFIED'), 'type' => 'date', 'default' => true),
+			array('id' => 'WS_STARTED', 'name' => Loc::getMessage('BPWI_WS_STARTED'), 'type' => 'date', 'default' => false),
 		);
+		if ($this->isAdmin() && Loader::includeModule('intranet'))
+			$result[] = array('id' => 'WS_STARTED_BY', 'name' => Loc::getMessage('BPWI_WS_STARTED_BY'), 'type' => 'user', 'default' => true);
+		return $result;
 	}
 	
 	protected function getFilterPresets()
 	{
-		return array(
-			'filter_locked' => array('name' => Loc::getMessage('BPWI_FILTER_PRESET_LOCKED'), 'fields' => array('OWNER_ID' => 1)),
-		);
+		return array();
 	}
 	
 	protected function getDocumentTypes()
 	{
 		return array(
 			'*' => array('NAME' => Loc::getMessage('BPWI_FILTER_DOCTYPE_ALL')),
-			'processes' => array('NAME' => Loc::getMessage('BPWI_FILTER_DOCTYPE_CLAIMS'), 'MODULE_ID' => 'lists'),
+			'is_locked' => array('NAME' => Loc::getMessage('BPWI_FILTER_PRESET_LOCKED'), 'CNT' => $this->getLockedCount()),
+			'processes' => array('NAME' => Loc::getMessage('BPWI_MODULE_LISTS'), 'MODULE_ID' => 'lists', 'ENTITY' => 'BizprocDocument'),
 			'crm' => array('NAME' => Loc::getMessage('BPWI_FILTER_DOCTYPE_CRM'), 'MODULE_ID' => 'crm'),
-			'disk' => array('NAME' => Loc::getMessage('BPWI_FILTER_DOCTYPE_DISK'), 'MODULE_ID' => 'disk'),
-			'lists' => array('NAME' => Loc::getMessage('BPWI_FILTER_DOCTYPE_LISTS'), 'MODULE_ID' => 'iblock')
+			'disk' => array('NAME' => Loc::getMessage('BPWI_MODULE_DISK'), 'MODULE_ID' => 'disk'),
+			'lists' => array('NAME' => Loc::getMessage('BPWI_MODULE_IBLOCK'), 'MODULE_ID' => 'lists', 'ENTITY' => 'Bitrix\Lists\BizprocDocumentLists')
 		);
 	}
 
@@ -123,6 +124,9 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 	{
 		foreach ($gridFilter as $key => $value)
 		{
+			if ($value === '' || $value === null)
+				continue;
+
 			if (substr($key, -5) == '_from')
 			{
 				$op = '>=';
@@ -149,19 +153,8 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 			if (!$fieldKey)
 				continue;
 
-			if ($fieldKey == 'OWNER_ID')
-			{
-				if (!$value)
-					continue;
-				if ($value == 2)
-					$value = null;
-				else
-				{
-					$op = '!';
-					$value = null;
-				}
-			}
-
+			if ($fieldKey == 'WS_STARTED_BY' && !$this->isAdmin())
+				continue;
 
 			$filter[$op.$fieldKey] = $value;
 		}
@@ -169,25 +162,61 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 		return $filter;
 	}
 
-	protected function getSorting()
+	protected function getSorting($useAliases = false)
 	{
 		$gridSort = $this->getGridOptions()->getSorting(array('sort' => array('MODIFIED' => 'desc')));
 		$orderRule = $gridSort['sort'];
 		$orderKeys  = array_keys($orderRule);
-		if ($this->getFieldName($orderKeys[0]) === null)
-		{
-			$orderRule = array('MODIFIED' => 'desc');
-		}
-		return $orderRule;
+		$fieldName = $this->getFieldName($orderKeys[0]);
+		if ($fieldName === null)
+			$fieldName = 'MODIFIED';
+		elseif ($useAliases)
+			$fieldName = $orderKeys[0];
+
+		$direction = strtoupper($orderRule[$orderKeys[0]]);
+		if ($direction !== 'DESC')
+			$direction = 'ASC';
+
+		return array($fieldName => $direction);
 	}
 
 	protected function getPaginationInfo()
 	{
-		$pageSize = $this->getGridOptions()->getNavParams(array('nPageSize' => static::DEFAULT_PAGE_SIZE));
+		$pageSize = $this->getGridOptions()->getNavParams();
 		$pageSize = $pageSize['nPageSize'];
 		$currentPage = isset($_REQUEST['pageNumber'])? max(1, (int)$_REQUEST['pageNumber']) : 1;
 		$offset = ($currentPage - 1)*$pageSize;
 		return array($currentPage, $pageSize, $offset);
+	}
+
+	protected function getLockedTime()
+	{
+		if ($this->lockedTime === null)
+			$this->lockedTime = time() - WorkflowInstanceTable::LOCKED_TIME_INTERVAL;
+		return $this->lockedTime;
+	}
+
+	protected function getLockedCount()
+	{
+		global $DB;
+
+		$filter = array(
+			'<OWNED_UNTIL' => date($DB->DateFormatToPHP(FORMAT_DATETIME), $this->getLockedTime())
+		);
+		if (!$this->isAdmin())
+		{
+			global $USER;
+			$filter['='.$this->getFieldName('WS_STARTED_BY')] = $USER->getId();
+		}
+
+		$iterator = WorkflowInstanceTable::getList(
+			array(
+				'select' => array(new \Bitrix\Main\Entity\ExpressionField('CNT', 'COUNT(\'x\')')),
+				'filter' => $filter,
+			)
+		);
+		$row = $iterator->fetch();
+		return $row['CNT'];
 	}
 
 	public function executeComponent()
@@ -197,14 +226,7 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 			$this->setPageTitle(Loc::getMessage('BPWI_PAGE_TITLE'));
 		}
 
-		if (!$this->isAdmin())
-		{
-			$this->arResult['FatalErrorMessage'] = Loc::getMessage('BPWI_NO_ACCESS');
-			$this->includeComponentTemplate();
-			return;
-		}
-
-		if (!empty($_POST['ID']) && check_bitrix_sessid())
+		if (!empty($_POST['ID']) && check_bitrix_sessid() && $this->isAdmin())
 		{
 			foreach((array)$_POST['ID'] as $id)
 			{
@@ -221,10 +243,18 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 
 		$this->arResult['HEADERS'] = $this->getGridHeaders();
 
+		$showDocumentName = false;
 		foreach ($this->arResult['HEADERS'] as $h)
 		{
 			if ((count($gridColumns) <= 0 || in_array($h['id'], $gridColumns)) && !in_array($h['id'], $selectFields))
-				$selectFields[$h['id']] = $this->getFieldName($h['id']);
+			{
+				if ($this->getFieldName($h['id']))
+					$selectFields[$h['id']] = $this->getFieldName($h['id']);
+				elseif ($h['id'] == 'IS_LOCKED' && !in_array('OWNED_UNTIL', $selectFields))
+					$selectFields['OWNED_UNTIL'] = $this->getFieldName('OWNED_UNTIL');
+				elseif ($h['id'] == 'WS_DOCUMENT_NAME')
+					$showDocumentName = true;
+			}
 		}
 
 		if (isset($selectFields['WS_STARTED_BY']))
@@ -243,8 +273,18 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 			$this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['ACTIVE'] = true;
 			if (!empty($this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['MODULE_ID']))
 			{
-				$filter = array('STATE.MODULE_ID' => $this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['MODULE_ID']);
-				$templatesFilter = array('MODULE_ID' => $filter['STATE.MODULE_ID']);
+				$filter = array('='.$this->getFieldName('WS_MODULE_ID') => $this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['MODULE_ID']);
+				$templatesFilter = array('MODULE_ID' => $this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['MODULE_ID']);
+				if (!empty($this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['ENTITY']))
+				{
+					$filter['='.$this->getFieldName('WS_ENTITY')] = $this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['ENTITY'];
+					$templatesFilter['ENTITY'] = $this->arResult['DOCUMENT_TYPES'][$_REQUEST['type']]['ENTITY'];
+				}
+			}
+			elseif ($_REQUEST['type'] == 'is_locked')
+			{
+				global $DB;
+				$filter['<OWNED_UNTIL'] = date($DB->DateFormatToPHP(FORMAT_DATETIME), $this->getLockedTime());
 			}
 		}
 		else
@@ -266,16 +306,21 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 
 		$gridFilter = $this->getGridOptions()->getFilter($this->arResult['FILTER']);
 		$filter = $this->mergeFilters($filter, $gridFilter);
+		if (!$this->isAdmin())
+		{
+			global $USER;
+			$filter['='.$this->getFieldName('WS_STARTED_BY')] = $USER->getId();
+		}
 
 		list ($currentPage, $pageSize, $offset) = $this->getPaginationInfo();
 
-		$this->arResult['SORT'] = $this->getSorting();
+		$this->arResult['SORT'] = $this->getSorting(true);
 		$this->arResult['CURRENT_PAGE'] = $currentPage;
 		$this->arResult['SHOW_NEXT_PAGE'] = false;
 		$this->arResult['RECORDS'] = array();
 
 		$iterator = WorkflowInstanceTable::getList(array(
-			'order' => $this->arResult['SORT'],
+			'order' => $this->getSorting(),
 			'select' => $selectFields,
 			'filter' => $filter,
 			'limit' => $pageSize + 1,
@@ -292,8 +337,8 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 				break;
 			}
 
-			$row['OWNER_ID'] = $row['OWNER_ID']? Loc::getMessage('BPWI_YES') : Loc::getMessage('BPWI_NO');
-			$row['WS_WORKFLOW_TEMPLATE_ID'] = $templatesList[$row['WS_WORKFLOW_TEMPLATE_ID']];
+			$row['WS_WORKFLOW_TEMPLATE_ID'] = $row['WS_WORKFLOW_TEMPLATE_ID'] ? $templatesList[$row['WS_WORKFLOW_TEMPLATE_ID']] : null;
+			$row['IS_LOCKED'] = $row['OWNED_UNTIL'] && $row['OWNED_UNTIL']->getTimestamp() < $this->getLockedTime();
 
 			if (!empty($row['WS_STARTED_BY']))
 			{
@@ -306,35 +351,68 @@ class BizprocWorkflowInstances extends \CBitrixComponent
 						),
 						true)." [".$row['WS_STARTED_BY']."]";
 			}
-			$row['DOCUMENT_URL'] = '';
+			$row['DOCUMENT_URL'] = $row['WS_DOCUMENT_NAME'] = '';
 			if (!empty($row['WS_MODULE_ID']))
+			{
 				$row['DOCUMENT_URL'] = CBPDocument::GetDocumentAdminPage(array(
 					$row['WS_MODULE_ID'],
 					$row['WS_ENTITY'],
 					$row['WS_DOCUMENT_ID']
 				));
+				if ($showDocumentName)
+				{
+					$row['WS_DOCUMENT_NAME'] = CBPDocument::getDocumentName(array(
+						$row['WS_MODULE_ID'],
+						$row['WS_ENTITY'],
+						$row['WS_DOCUMENT_ID']
+					));
 
-			$rowActions = array(
-				array(
-					"ICONCLASS"=>"edit",
+					if (!$row['WS_DOCUMENT_NAME'])
+						$row['WS_DOCUMENT_NAME'] = Loc::getMessage('BPWI_DOCUMENT_NAME');
+
+				}
+			}
+
+			$rowActions = array();
+			if ($row['DOCUMENT_URL'])
+			{
+				$rowActions[] = array(
+					"ICONCLASS" => "edit",
 					"DEFAULT" => true,
-					"TEXT"=>Loc::getMessage("BPWI_OPEN_DOCUMENT"),
-					"ONCLICK"=> $row['DOCUMENT_URL']? "window.open('".$row["DOCUMENT_URL"]."');" : 'alert(\''.Loc::getMessage('BPWI_NO_DOCUMENT').'\')'
-				),
-				array(
+					"TEXT" => Loc::getMessage("BPWI_OPEN_DOCUMENT"),
+					"ONCLICK" => "window.open('".$row["DOCUMENT_URL"]."');"
+				);
+			}
+
+			if ($this->isAdmin())
+				$rowActions[] = array(
 					"ICONCLASS"=>"delete",
 					"TEXT"=>Loc::getMessage("BPWI_DELETE_LABEL"),
 					"ONCLICK" => "bxGrid_".static::GRID_ID.".DeleteItem('".$row['ID']."', '".Loc::getMessage("BPWI_DELETE_CONFIRM")."')"
-				),
-			);
+				);
 
-			$this->arResult['RECORDS'][] = array('data' => $row, 'editable' => true, 'actions' => $rowActions);
+			$this->arResult['RECORDS'][] = array('data' => $row, 'editable' => $this->isAdmin(), 'actions' => $rowActions);
 		}
 
 		$this->arResult['ROWS_COUNT'] = sizeof($this->arResult['RECORDS']);
 		$this->arResult['GRID_ID'] = static::GRID_ID;
 		$this->arResult['FILTER_PRESETS'] = $this->getFilterPresets();
+		$this->arResult['EDITABLE'] = $this->isAdmin();
 		$this->includeComponentTemplate();
+	}
 
+	public static function getModuleName($moduleId, $entity = null)
+	{
+		if ($moduleId == 'lists' && $entity == 'Bitrix\Lists\BizprocDocumentLists')
+		{
+			$moduleId = 'iblock';
+		}
+
+		if (!isset(static::$moduleNames[$moduleId]))
+		{
+			$message = Loc::getMessage('BPWI_MODULE_'.strtoupper($moduleId));
+			static::$moduleNames[$moduleId] = $message? $message : $moduleId;
+		}
+		return static::$moduleNames[$moduleId];
 	}
 }

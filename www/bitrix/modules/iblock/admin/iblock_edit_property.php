@@ -1632,7 +1632,7 @@ else
 			}
 			else
 			{
-				?><input type="text"  size="50" maxlength="2000" name="PROPERTY_DEFAULT_VALUE" value="<? is_string($arProperty['DEFAULT_VALUE']) ? htmlspecialcharsbx($arProperty['DEFAULT_VALUE']) : ''?>"><?
+				?><input type="text"  size="50" maxlength="2000" name="PROPERTY_DEFAULT_VALUE" value="<?echo is_string($arProperty['DEFAULT_VALUE']) ? htmlspecialcharsbx($arProperty['DEFAULT_VALUE']) : ''?>"><?
 			}
 		?></td>
 	</tr><?

@@ -44,7 +44,7 @@ class BaseContext
 		}
 
 		if (! $type = $types[$name])
-			throw new SystemException('Undefined counter type!');
+			throw new SystemException("Undefined counter '$name' type!");
 
 		if (! $type['ACTIVE'])
 			return;
@@ -93,14 +93,14 @@ class BaseContext
 		if ($this->id !== null)
 			throw new SystemException('Cannot set attribute for existent context!');
 
-		// TODO uncomment after seo 15.5.2 released
-//		static $types;
-//		if (! $types)
-//		{
-//			$types = AttributeManager::getTypes();
-//		}
-//		if (! $type = $types[$name])
-//			throw new SystemException('Undefined attribute: "'.$name.'"!');
+		static $types;
+		if (! $types)
+		{
+			$types = AttributeManager::getTypes();
+		}
+
+		if (! $type = $types[$name])
+			throw new SystemException("Undefined attribute '$name' type!");
 
 		// set attribute
 

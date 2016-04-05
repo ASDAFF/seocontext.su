@@ -2,7 +2,7 @@
 if (ini_get('short_open_tag') == 0 && strtoupper(ini_get('short_open_tag')) != 'ON')
 	die("Error: short_open_tag parameter must be turned on in php.ini\n");
 ?><?
-error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT);
+error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED);
 define('START_TIME', microtime(1));
 define('CLI', php_sapi_name() == 'cli');
 @define('LANGUAGE_ID', 'en');
@@ -73,7 +73,7 @@ if (!CLI) // hit from bitrixcloud service
 {
 	if ((!$backup_secret_key =  CPasswordStorage::Get('backup_secret_key')) || $backup_secret_key != $_REQUEST['secret_key'])
 	{
-#	echo $backup_secret_key."\n"; # debug
+#	echo $backup_secret_key."\n"; COption::SetOptionInt('main', 'dump_auto_enable'.'_auto', 2); # debug
 		RaiseErrorAndDie('Secret key is incorrect', 10);
 	}
 	elseif ($_REQUEST['check_auth'])
@@ -81,7 +81,6 @@ if (!CLI) // hit from bitrixcloud service
 		echo 'SUCCESS';
 		exit(0);
 	}
-#	COption::SetOptionInt('main', 'dump_auto_enable'.'_auto', 2); # debug
 	if (IntOption('dump_auto_enable') != 2)
 		RaiseErrorAndDie('Backup is disabled', 4);
 
@@ -690,7 +689,10 @@ function haveTime()
 
 function RaiseErrorAndDie($strError, $errCode = 0, $ITEM_ID = '')
 {
-	global $DB;
+	global $DB, $NS;
+	$NS = array(); 
+	session_write_close();
+
 	if (CLI)
 		echo 'Error ['.$errCode.']: '.str_replace('<br>',"\n",$strError)."\n";
 	else

@@ -74,3 +74,4 @@ $arTemplateParameters["BS_HIDE_FOR_PHONES"] = array(
 	"DEFAULT" => "N"
 );
 $arTemplateParameters["CACHE_TIME"] = Array("DEFAULT"=>"0");
+$arTemplateParameters["NEED_TEMPLATE"] = "Y";

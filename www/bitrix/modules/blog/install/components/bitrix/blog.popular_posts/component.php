@@ -222,7 +222,7 @@ else
 			}
 			else
 			{
-				$arTmp["TITLE"] = TruncateText($arTmp["TITLE"], $arParams["MESSAGE_LENGTH"]);
+				$arTmp["TITLE"] = TruncateText($arPost["TITLE"], $arParams["MESSAGE_LENGTH"]);
 			}
 
 			if($arParams["USE_SOCNET"] == "Y")

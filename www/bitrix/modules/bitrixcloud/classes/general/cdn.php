@@ -257,8 +257,8 @@ class CBitrixCloudCDN
 			$extension_regex = "(?i:".implode("|", $arExtensions).")";
 			$regex = "/
 				((?i:
-					href=
-					|src=
+					(?<!;)href=
+					|(?<!;)src=
 					|BX\\.loadCSS\\(
 					|BX\\.loadScript\\(
 					|BX\\.getCDNPath\\(

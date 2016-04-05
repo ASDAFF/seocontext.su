@@ -1,6 +1,8 @@
 <?
+$MESS["FM_ML"] = "Media Library";
 $MESS["FM_ML_UPL_LOACATE"] = "Select Collection";
 $MESS["FM_ML_UPL_NOTICE"] = "You can bind new files to collections after upload is complete.";
+$MESS["FM_ML_UPL_NOTICE_CYR"] = "The file name can include Latim letters, numbers, hyphens, dots and underscores. Other characters will be stripped out.";
 $MESS["FM_ML_UPL_TITLE1"] = "Upload multiple files to Media Library";
 $MESS["FM_ML_UPL_TITLE2"] = "New Elements Parameters";
 $MESS["FM_ML_UPL_NO_NAME_WARN"] = "The item name is not specified.";
@@ -16,16 +18,13 @@ $MESS["MEDIALIB_UPLOADER_UPLOAD"] = "Upload";
 $MESS["MEDIALIB_UPLOADER_UPLOAD_FROM"] = "of";
 $MESS["MEDIALIB_UPLOADER_ADD"] = "Add more";
 $MESS["MEDIALIB_UPLOADER_DND"] = "Drag images here";
-$MESS["MEDIALIB_UPLOADER_COUNT"] = "Photos selected";
+$MESS["MEDIALIB_UPLOADER_COUNT2"] = "Files selected";
 $MESS["MEDIALIB_UPLOADER_SIMPLIFIED"] = "Simplified view";
 $MESS["MEDIALIB_UPLOADER_NORMAL"] = "Normal view";
 $MESS["MEDIALIB_UPLOADER_EDIT"] = "Edit";
 $MESS["MEDIALIB_UPLOADER_TURN"] = "Rotate clockwise";
 $MESS["MEDIALIB_UPLOADER_DEL"] = "Delete";
-$MESS["FM_ML"] = "Media Library";
 $MESS["MEDIALIB_UPLOADER_TITLE1"] = "HTML5 uploader";
 $MESS["MEDIALIB_UPLOADER_TITLE2"] = "Java uploader";
 $MESS["MEDIALIB_UPLOADER_INTO"] = "Upload to collection";
-$MESS["FM_ML_UPL_NOTICE_CYR"] = "The file name can include Latim letters, numbers, hyphens, dots and underscores. Other characters will be stripped out.";
-$MESS["MEDIALIB_UPLOADER_COUNT2"] = "Files selected";
 ?>

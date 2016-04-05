@@ -351,7 +351,7 @@ while($dbrs = $rsIBlocks->NavNext(true, "f_"))
 		$arActions[] = array(
 			"ICON"=>"",
 			"TEXT"=>GetMessage("IBLOCK_ADM_MENU_BIZPROC"),
-			"ACTION"=>"window.location='/bitrix/admin/iblock_bizproc_workflow_admin.php?document_type=iblock_".$f_ID."&lang=".LANGUAGE_ID."';"
+			"ACTION"=>"window.location='/bitrix/admin/iblock_bizproc_workflow_admin.php?document_type=iblock_".$f_ID."&lang=".LANGUAGE_ID.'&back_url_list='.urlencode($APPLICATION->GetCurPageParam("", array()))."';"
 		);
 	}
 

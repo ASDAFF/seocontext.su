@@ -4,7 +4,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/catalog/general/price.ph
 
 class CPrice extends CAllPrice
 {
-	function Add($arFields, $boolRecalc = false)
+	public static function Add($arFields, $boolRecalc = false)
 	{
 		global $DB;
 
@@ -54,11 +54,11 @@ class CPrice extends CAllPrice
 		return $ID;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB, $USER;
-		$ID = intval($ID);
-		if (0 >= $ID)
+		$ID = (int)$ID;
+		if ($ID <= 0)
 			return false;
 		$strUserGroups = (CCatalog::IsUserExists() ? $USER->GetGroups() : '2');
 		$strSql =
@@ -88,7 +88,7 @@ class CPrice extends CAllPrice
 	 * @param array $arSelectFields
 	 * @return bool|CDBResult
 	 */
-	function GetList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
+	public static function GetList($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB, $USER;
 
@@ -118,7 +118,8 @@ class CPrice extends CAllPrice
 			"QUANTITY_FROM" => array("FIELD" => "P.QUANTITY_FROM", "TYPE" => "int"),
 			"QUANTITY_TO" => array("FIELD" => "P.QUANTITY_TO", "TYPE" => "int"),
 			"TMP_ID" => array("FIELD" => "P.TMP_ID", "TYPE" => "string"),
-			"PRICE_BASE_RATE" => array("FIELD" => "P.PRICE*CC.CURRENT_BASE_RATE", "TYPE" => "double", "FROM" => "LEFT JOIN b_catalog_currency CC ON (P.CURRENCY = CC.CURRENCY)"),
+			"PRICE_BASE_RATE" => array("FIELD" => "P.PRICE_SCALE", "TYPE" => "double"),
+			"PRICE_SCALE" => array("FIELD" => "P.PRICE_SCALE", "TYPE" => "double"),
 			"BASE" => array("FIELD" => "CG.BASE", "TYPE" => "char", "FROM" => "INNER JOIN b_catalog_group CG ON (P.CATALOG_GROUP_ID = CG.ID)"),
 			"SORT" => array("FIELD" => "CG.SORT", "TYPE" => "int", "FROM" => "INNER JOIN b_catalog_group CG ON (P.CATALOG_GROUP_ID = CG.ID)"),
 			"PRODUCT_QUANTITY" => array("FIELD" => "CP.QUANTITY", "TYPE" => "int", "FROM" => "INNER JOIN b_catalog_product CP ON (P.PRODUCT_ID = CP.ID)"),
@@ -133,12 +134,12 @@ class CPrice extends CAllPrice
 		$arFields["CAN_ACCESS"] = array(
 			"FIELD" => "IF(CGG.ID IS NULL, 'N', 'Y')",
 			"TYPE" => "char",
-			"FROM" => "LEFT JOIN b_catalog_group2group CGG ON (CG.ID = CGG.CATALOG_GROUP_ID AND CGG.GROUP_ID IN (".$strUserGroups.") AND CGG.BUY <> 'Y')"
+			"FROM" => "LEFT JOIN b_catalog_group2group CGG ON (P.CATALOG_GROUP_ID = CGG.CATALOG_GROUP_ID AND CGG.GROUP_ID IN (".$strUserGroups.") AND CGG.BUY <> 'Y')"
 		);
 		$arFields["CAN_BUY"] = array(
 			"FIELD" => "IF(CGG1.ID IS NULL, 'N', 'Y')",
 			"TYPE" => "char",
-			"FROM" => "LEFT JOIN b_catalog_group2group CGG1 ON (CG.ID = CGG1.CATALOG_GROUP_ID AND CGG1.GROUP_ID IN (".$strUserGroups.") AND CGG1.BUY = 'Y')"
+			"FROM" => "LEFT JOIN b_catalog_group2group CGG1 ON (P.CATALOG_GROUP_ID = CGG1.CATALOG_GROUP_ID AND CGG1.GROUP_ID IN (".$strUserGroups.") AND CGG1.BUY = 'Y')"
 		);
 
 		$arSqls = CCatalog::PrepareSql($arFields, $arOrder, $arFilter, $arGroupBy, $arSelectFields);
@@ -220,7 +221,7 @@ class CPrice extends CAllPrice
 	 * @param array $arSelectFields
 	 * @return bool|CDBResult
 	 */
-	function GetListEx($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
+	public static function GetListEx($arOrder = array(), $arFilter = array(), $arGroupBy = false, $arNavStartParams = false, $arSelectFields = array())
 	{
 		global $DB;
 
@@ -238,7 +239,8 @@ class CPrice extends CAllPrice
 			"QUANTITY_FROM" => array("FIELD" => "P.QUANTITY_FROM", "TYPE" => "int"),
 			"QUANTITY_TO" => array("FIELD" => "P.QUANTITY_TO", "TYPE" => "int"),
 			"TMP_ID" => array("FIELD" => "P.TMP_ID", "TYPE" => "string"),
-			"PRICE_BASE_RATE" => array("FIELD" => "P.PRICE*CC.CURRENT_BASE_RATE", "TYPE" => "double", "FROM" => "LEFT JOIN b_catalog_currency CC ON (P.CURRENCY = CC.CURRENCY)"),
+			"PRICE_BASE_RATE" => array("FIELD" => "P.PRICE_SCALE", "TYPE" => "double"),
+			"PRICE_SCALE" => array("FIELD" => "P.PRICE_SCALE", "TYPE" => "double"),
 			"PRODUCT_QUANTITY" => array("FIELD" => "CP.QUANTITY", "TYPE" => "int", "FROM" => "INNER JOIN b_catalog_product CP ON (P.PRODUCT_ID = CP.ID)"),
 			"PRODUCT_QUANTITY_TRACE" => array("FIELD" => "IF (CP.QUANTITY_TRACE = 'D', '".$DB->ForSql((string)Option::get('catalog','default_quantity_trace','N'))."', CP.QUANTITY_TRACE)", "TYPE" => "char", "FROM" => "INNER JOIN b_catalog_product CP ON (P.PRODUCT_ID = CP.ID)"),
 			"PRODUCT_CAN_BUY_ZERO" => array("FIELD" => "IF (CP.CAN_BUY_ZERO = 'D', '".$DB->ForSql((string)Option::get('catalog','default_can_buy_zero','N'))."', CP.CAN_BUY_ZERO)", "TYPE" => "char", "FROM" => "INNER JOIN b_catalog_product CP ON (P.PRODUCT_ID = CP.ID)"),
@@ -322,4 +324,3 @@ class CPrice extends CAllPrice
 		return $dbRes;
 	}
 }
-?>

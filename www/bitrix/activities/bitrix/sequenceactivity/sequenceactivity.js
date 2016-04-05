@@ -39,9 +39,13 @@ SequenceActivity = function()
 			var oSubMenu = [];
 			for(var act_i in arAllActivities)
 			{
-				if(!arAllActivities[act_i]["CATEGORY"] || arAllActivities[act_i]["CATEGORY"]["ID"]!=groupId)
+				if (arAllActivities[act_i]["EXCLUDED"] || !arAllActivities[act_i]["CATEGORY"])
 					continue;
-				if(arAllActivities[act_i]["EXCLUDED"])
+
+				var activityGroupId = arAllActivities[act_i]["CATEGORY"]["ID"];
+				if (arAllActivities[act_i]["CATEGORY"]["OWN_ID"])
+					activityGroupId = arAllActivities[act_i]["CATEGORY"]["OWN_ID"];
+				if (activityGroupId !=groupId)
 					continue;
 
 				if(act_i == 'setstateactivity' && rootActivity.Type == ob.Type)
@@ -97,7 +101,7 @@ SequenceActivity = function()
 
 	ob.h1id = DragNDrop.AddHandler('ondragging', ob.ondragging);
 
-	ob.ondrop = function (e, X, Y)
+	ob.ondrop = function (X, Y, e)
 	{
 		if(!ob.childsContainer)
 		 	return false;
@@ -105,7 +109,7 @@ SequenceActivity = function()
 		if(ob.lastDrop)
 		{
 			var oActivity;
-			if(DragNDrop.obj.parentActivity)
+			if(DragNDrop.obj.parentActivity && e.ctrlKey == false)
 			{
 
 				var i, pos = -1, pa = DragNDrop.obj.parentActivity;
@@ -237,6 +241,7 @@ SequenceActivity = function()
 		for(i = 0; i <= ob.childActivities.length; i++)
 			ob.childsContainer.rows[i*2 + ob.iHead].cells[0].childNodes[0].ind = i;
 
+		BPTemplateIsModified = true;
 		//alert(document.styleSheets[0].rules[0]);
 		//setTimeout(ob.DDD2, 110);
 	}

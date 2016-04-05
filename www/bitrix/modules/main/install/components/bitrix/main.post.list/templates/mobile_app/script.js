@@ -4,6 +4,8 @@
 
 	var BX = window["BX"],
 		repo = {
+			entityId : 0,
+			text : "",
 			form : {},
 			list : {},
 			comments : {}
@@ -12,8 +14,43 @@
 		{
 			return ENTITY_XMIL_ID + '-' + (ID > 0 ? ID : '0');
 		};
-
-	var inner = {
+	var setText = function(text) {
+		repo.text = (BX.type.isNotEmptyString(text) ? text : "");
+		if (BX["localStorage"] && repo.entityId)
+		{
+			var res = BX.localStorage.get("main.post.list/text");
+			res = (res || {});
+			if (BX.type.isNotEmptyString(repo.text))
+			{
+				res[repo.entityId] = repo.text;
+			}
+			else
+			{
+				delete res[repo.entityId];
+			}
+			BX.localStorage.set("main.post.list/text", res);
+		}
+	},
+		getText = function(entityId) {
+			var text = "";
+			if (BX["localStorage"] && entityId)
+			{
+				var res = BX.localStorage.get("main.post.list/text");
+				if (res)
+				{
+					text = (res[entityId] || "");
+					//delete res[entityId];
+					//BX.localStorage.set("main.post.list/text", res);
+				}
+			}
+			return text;
+	};
+	BX.addCustomEvent("main.post.form/text", function(text){
+		text = BX.type.isArray(text) ? text[0] : text;
+		setText(text);
+	});
+	var
+		inner = {
 		keyBoardIsShown : false,
 		mention : {}
 	},
@@ -187,19 +224,33 @@
 			{
 				if (this["_linkEntity"])
 					BX.removeCustomEvent(this, 'OnUCFormInit', this["_linkEntity"]);
-
 				this.entitiesId[id] = data;
-				this.comment = this.reinitComment({id : [id, 0]});
-				this.handler.init(this.comment);
+				repo.entityId = id;
+
+				var f = BX.proxy(function(str){
+					this.comment = this.reinitComment({id : [id, 0], text : str});
+					this.comment.text = str;
+					this.handler.init(this.comment);
+				}, this);
+
+				if (false && window["platform"] == "ios")
+				{
+					window.BXMobileApp.UI.Page.TextPanel.getText(f);
+				}
+				else
+				{
+					f(getText(id));
+				}
 			}
 		},
 		writing : function(comment) {
 			BX.onCustomEvent(window, 'OnUCUserIsWriting', [comment["id"][0], comment["id"][1]]);
 		},
 		reinitComment : function(comment) {
-			var id = [comment["id"][0], 0];
+			var id = [comment["id"][0], 0],
+				text = (comment["text"] || "");
 			commentObj.removeInstance(comment);
-			return this.initComment(id, "", []);
+			return this.initComment(id, text, []);
 		},
 		initComment : function(id, text, data) {
 			var comment = commentObj.getInstance(id, text, data);
@@ -219,6 +270,7 @@
 		show : function(id, text, data) {
 			this.comment = this.initComment(id, text, data);
 			BX.onCustomEvent(this.handler, 'OnUCFormBeforeShow', [this, text, data]);
+			repo.entityId = id[0];
 			this.handler.show(this.comment, (!!data));
 			BX.onCustomEvent(this.handler, 'OnUCFormAfterShow', [this, text, data]);
 			return true;
@@ -229,6 +281,7 @@
 			{
 
 				this.comment = this.initComment([comment.id[0], 0], "", []);
+				repo.entityId = comment.id[0];
 				this.handler.init(this.comment);
 			}
 		},
@@ -246,7 +299,9 @@
 					MODE : "RECORD",
 					AJAX_POST : "Y",
 					id : comment.id,
-					sessid : BX.bitrix_sessid()
+					sessid : BX.bitrix_sessid(),
+					SITE_ID : BX.message("SITE_ID"),
+					LANGUAGE_ID : BX.message("LANGUAGE_ID")
 				}),
 				post = new window.MobileAjaxWrapper(),
 				fd = new window.FormData(),
@@ -307,7 +362,7 @@
 				}, this),
 				callback_failure: BX.delegate(function(data) {
 					BX.onCustomEvent(window, 'OnUCFormResponse', [comment.id[0], comment.id[1], this, data, comment]);
-					this.showError(comment, "Uncorrect server responce.");
+					this.showError(comment, BX.message('INCORRECT_SERVER_RESPONSE'));
 				}, this)
 			});
 			post.xhr.send(fd);
@@ -317,15 +372,29 @@
 		showError : function(comment, text) {
 			if (BX.type.isArray(comment))
 				comment = this.initComment(comment, "", []);
-			var node;
+
 			text = '<div class="feed-add-info-text"><span class="feed-add-info-icon"></span>' +
 					'<b>' + BX.message('FC_ERROR') + '</b><br />' + text + '</div>';
 			if (comment && comment.node)
 			{
 				BX.addClass(comment.node, "feed-com-block-cover-undelivered");
+				if (
+					typeof comment.attachments == 'undefined'
+					|| comment.attachments.length <= 0
+				)
+				{
+					BX.bind(comment.node, 'click', BX.proxy(function(e) {
+						BX.unbindAll(comment.node);
+						BX.removeClass(comment.node, "feed-com-block-cover-undelivered");
+						this.handler.comment = comment;
+						this.handler.simpleForm.handleAppData(comment.text, true);
+					}, this));
+				}
+/*
 				node = BX.findChild(comment.node, {'tagName' : "DIV", 'className' : "post-comment-text"}, true);
 				if (node)
 					node.innerHTML += text;
+*/
 			}
 			else if (text)
 			{
@@ -370,10 +439,12 @@
 	window.mobileShowActions = function(ENTITY_XML_ID, ID, e) {
 		e = e || window.event;
 
-		if (
-			!window.app.enableInVersion(10)
-//			|| inner.keyBoardIsShown === true
-		)
+		var isKeyboardShown = (window.app.enableInVersion(14) && window.platform == "ios")
+								? window.BXMobileAppContext.isKeyboardShown()
+								: inner.keyBoardIsShown;
+
+
+		if(isKeyboardShown)
 		{
 			return true;
 		}
@@ -543,7 +614,7 @@
 					size = BX.GetWindowInnerSize();
 
 				(new BX["easing"]({
-					duration : 1000,
+					duration : 500,
 					start : { opacity : 0, height : 0},
 					finish : { opacity: 100, height : node.scrollHeight},
 					transition : BX.easing.makeEaseOut(BX.easing.transitions.quart),
@@ -558,7 +629,8 @@
 					},
 
 					complete : function(){
-						node.style.cssText = '';
+						if (node.style.display !== 'none')
+							node.style.cssText = '';
 					}
 				})).animate();
 

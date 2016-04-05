@@ -59,4 +59,5 @@ $MESS["BPCGWTL_INVALID3N"] = "The field value is incorrect.";
 $MESS["BPCGWTL_INVALID4N"] = "The field value does not resolve to \"true\" or \"false\".";
 $MESS["BPCGWTL_INVALID9N"] = "Unable to load the file.";
 $MESS["BPVDX_FIELD_USERNAME_PROPERTY"] = " (name)";
+$MESS["BPVDX_ENTITY_NAME"] = "Workflows";
 ?>

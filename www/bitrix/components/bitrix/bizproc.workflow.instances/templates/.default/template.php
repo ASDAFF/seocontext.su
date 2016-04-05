@@ -30,6 +30,9 @@ else
 									<td>
 										<a href="<?=$APPLICATION->GetCurPage().($uid!='*'?'?type='.$uid:'')?>" hidefocus="true" class="bp-context-button <?=!empty($dt['ACTIVE'])?'active':''?>">
 											<span class="bp-context-button-text"><?=htmlspecialcharsbx($dt['NAME'])?></span>
+											<?if (!empty($dt['CNT'])):?>
+											<span class="bp-context-button-notice"><?=$dt['CNT']?></span>
+											<?endif?>
 										</a>
 									</td>
 								<?endforeach;?>
@@ -77,6 +80,23 @@ else
 		$navString = GetMessage('BPWIT_PAGES') . ": {$prevNavString} {$innerNavString} <span>{$arResult['CURRENT_PAGE']}</span> {$nextNavString}";
 	}
 
+	foreach ($arResult["RECORDS"] as &$record)
+	{
+		if ($record['data']['IS_LOCKED'])
+			$record['rowClass'] = 'bp-row-warning';
+
+		$record['data']['IS_LOCKED'] = $record['data']['IS_LOCKED'] ? '<span class="bp-warning">'.getMessage('BPWI_YES').'</span>' : getMessage('BPWI_NO');
+
+		if (!empty($record['data']['WS_MODULE_ID']))
+			$record['data']['WS_MODULE_ID'] = BizprocWorkflowInstances::getModuleName($record['data']['WS_MODULE_ID'], $record['data']['WS_ENTITY']);
+
+		foreach (array('WS_MODULE_ID','WS_DOCUMENT_NAME', 'WS_STARTED', 'WS_STARTED_BY', 'WS_WORKFLOW_TEMPLATE_ID') as $field)
+		{
+			if (empty($record['data'][$field]))
+				$record['data'][$field] = '<span class="bp-warning">'.getMessage('BPWIT_UNKNOWN').'</span>';
+		}
+	}
+
 	$gridParams = array(
 		"GRID_ID"=>$arResult["GRID_ID"],
 		"HEADERS"=>$arResult["HEADERS"],
@@ -93,10 +113,13 @@ else
 		'ERROR_MESSAGES' => $arResult['ERRORS']
 	);
 
-	$gridParams['EDITABLE'] = true;
-	$gridParams['ACTIONS'] = array(
-		'delete' => true,
-	);
+	if ($arResult['EDITABLE'])
+	{
+		$gridParams['EDITABLE'] = true;
+		$gridParams['ACTIONS'] = array(
+			'delete' => true,
+		);
+	}
 
 	$APPLICATION->IncludeComponent(
 		'bitrix:bizproc.interface.grid',

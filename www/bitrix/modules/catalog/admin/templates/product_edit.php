@@ -1,7 +1,7 @@
 <?
 /** @global CUser $USER */
-use Bitrix\Main;
-use Bitrix\Currency;
+use Bitrix\Main,
+	Bitrix\Currency;
 
 if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_price') || $USER->CanDoOperation('catalog_view'))
 {
@@ -31,10 +31,9 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 			'QUANTITY' => '',
 			'QUANTITY_RESERVED' => '',
 			'VAT_ID' => 0,
-			'VAT_INCLUDED' => 'N',
+			'VAT_INCLUDED' => ((string)Main\Config\Option::get('catalog', 'default_product_vat_included') == 'Y' ? 'Y' : 'N'),
 			'QUANTITY_TRACE_ORIG' => 'D',
 			'CAN_BUY_ZERO_ORIG' => 'D',
-			'NEGATIVE_AMOUNT_TRACE_ORIG' => 'D',
 			'PRICE_TYPE' => '',
 			'RECUR_SCHEME_TYPE' => '',
 			'RECUR_SCHEME_LENGTH' => '',
@@ -58,10 +57,9 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 			'HEIGHT' => '',
 			'MEASURE' => '',
 			'VAT_ID' => 0,
-			'VAT_INCLUDED' => 'N',
+			'VAT_INCLUDED' => ((string)Main\Config\Option::get('catalog', 'default_product_vat_included') == 'Y' ? 'Y' : 'N'),
 			'QUANTITY_TRACE_ORIG' => 'D',
 			'CAN_BUY_ZERO_ORIG' => 'D',
-			'NEGATIVE_AMOUNT_TRACE_ORIG' => 'D',
 			'PURCHASING_PRICE' => '',
 			'PURCHASING_CURRENCY' => '',
 			'BARCODE_MULTI' => '',
@@ -75,7 +73,7 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 		{
 			$arProductSelect = array(
 				'ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE_ORIG',
-				'VAT_ID', 'VAT_INCLUDED', 'CAN_BUY_ZERO_ORIG', 'NEGATIVE_AMOUNT_TRACE_ORIG',
+				'VAT_ID', 'VAT_INCLUDED', 'CAN_BUY_ZERO_ORIG',
 				'PRICE_TYPE', 'RECUR_SCHEME_TYPE', 'RECUR_SCHEME_LENGTH', 'TRIAL_PRICE_ID', 'WITHOUT_ORDER',
 				'PURCHASING_PRICE', 'PURCHASING_CURRENCY', 'BARCODE_MULTI', 'SUBSCRIBE_ORIG', 'TYPE'
 			);
@@ -84,7 +82,7 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 		{
 			$arProductSelect = array(
 				'ID', 'QUANTITY', 'QUANTITY_RESERVED', 'QUANTITY_TRACE_ORIG', 'WEIGHT', 'WIDTH', 'LENGTH', 'HEIGHT', 'MEASURE',
-				'VAT_ID', 'VAT_INCLUDED', 'CAN_BUY_ZERO_ORIG', 'NEGATIVE_AMOUNT_TRACE_ORIG',
+				'VAT_ID', 'VAT_INCLUDED', 'CAN_BUY_ZERO_ORIG',
 				'PURCHASING_PRICE', 'PURCHASING_CURRENCY', 'BARCODE_MULTI', 'SUBSCRIBE_ORIG', 'TYPE'
 			);
 		}
@@ -142,40 +140,6 @@ if ($USER->CanDoOperation('catalog_read') || $USER->CanDoOperation('catalog_pric
 	?>
 <script type="text/javascript">
 var bReadOnly = <? echo ($bReadOnly ? 'true' : 'false'); ?>;
-
-function onChangeCanBuyZero(el)
-{
-	var prefix = '',
-		defaultValue = '<? echo $availCanBuyZero; ?>',
-		obNegativeAmount,
-		oldValue = 0,
-		i = 0;
-
-	obNegativeAmount = BX(prefix+'NEGATIVE_AMOUNT');
-	if (!!obNegativeAmount)
-	{
-		if (-1 < el.selectedIndex)
-		{
-			if (
-				'Y' === el.options[el.selectedIndex].value ||
-					('D' === el.options[el.selectedIndex].value && 'Y' === defaultValue)
-				)
-			{
-				obNegativeAmount.selectedIndex = ('Y' === el.options[el.selectedIndex].value ? 1 : 0);
-				obNegativeAmount.disabled = true;
-			}
-			else
-			{
-				obNegativeAmount.disabled = false;
-				if (obNegativeAmount.hasAttribute('data-oldvalue'))
-				{
-					oldValue = parseInt(obNegativeAmount.getAttribute('data-oldvalue'), 10);
-				}
-				obNegativeAmount.selectedIndex = oldValue;
-			}
-		}
-	}
-}
 
 function getElementForm()
 {
@@ -1867,43 +1831,15 @@ function CloneBarcodeField()
 			</td>
 		</tr>
 		<tr>
-			<td width="40%"><?echo GetMessage("C2IT_CAN_BUY_NULL")?>:</td>
+			<td width="40%"><?echo GetMessage("C2IT_CAN_BUY_NULL_EXT")?>:</td>
 			<td width="60%"><?
 				$str_CAT_BASE_CAN_BUY_ZERO = $arBaseProduct["CAN_BUY_ZERO_ORIG"];
 				if ($bVarsFromForm) $str_CAT_BASE_CAN_BUY_ZERO = $USE_STORE;
 				?>
-				<select id="USE_STORE" name="USE_STORE" <? echo ($bReadOnly || $productIsSet ? "disabled readonly" : 'onchange="onChangeCanBuyZero(this)"'); ?>>
+				<select id="USE_STORE" name="USE_STORE" <? echo ($bReadOnly || $productIsSet ? "disabled readonly" : ''); ?>>
 					<option value="D" <?if ("D"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_DEFAULT_NEGATIVE")." ("?><?echo $availCanBuyZero=='Y' ? GetMessage("C2IT_YES_NEGATIVE") : GetMessage("C2IT_NO_NEGATIVE")?>) </option>
 					<option value="Y" <?if ("Y"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_YES_NEGATIVE")?></option>
 					<option value="N" <?if ("N"==$str_CAT_BASE_CAN_BUY_ZERO) echo " selected"?>><?=GetMessage("C2IT_NO_NEGATIVE")?></option>
-				</select>
-			</td>
-		</tr>
-		<tr>
-			<td width="40%"><?echo GetMessage("C2IT_CAN_NEGATIVE_AMOUMT")?>:</td>
-			<td width="60%"><?
-				$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $arBaseProduct["NEGATIVE_AMOUNT_TRACE_ORIG"];
-				if ($bVarsFromForm) $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $NEGATIVE_AMOUNT;
-				$oldIndex = 0;
-				if ('N' == $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE)
-				{
-					$oldIndex = 2;
-				}
-				elseif ('Y' == $str_CAT_BASE_NEGATIVE_AMOUNT_TRACE)
-				{
-					$oldIndex = 1;
-				}
-				$disableNegative = false;
-				if ('Y' == $str_CAT_BASE_CAN_BUY_ZERO || ('D' == $str_CAT_BASE_CAN_BUY_ZERO && 'Y' == $availCanBuyZero))
-				{
-					$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE = $str_CAT_BASE_CAN_BUY_ZERO;
-					$disableNegative = true;
-				}
-				?>
-				<select id="NEGATIVE_AMOUNT" name="NEGATIVE_AMOUNT" <?if ($bReadOnly || $productIsSet) echo "disabled readonly"; ?><? if ($disableNegative) echo " disabled"; ?> data-oldvalue="<? echo $oldIndex; ?>">
-					<option value="D" <?if ("D"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_DEFAULT_NEGATIVE")." ("?><?echo $availNegativeAmountGlobal=='Y' ? GetMessage("C2IT_YES_NEGATIVE") : GetMessage("C2IT_NO_NEGATIVE")?>) </option>
-					<option value="Y" <?if ("Y"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_YES_NEGATIVE")?></option>
-					<option value="N" <?if ("N"==$str_CAT_BASE_NEGATIVE_AMOUNT_TRACE) echo " selected"?>><?=GetMessage("C2IT_NO_NEGATIVE")?></option>
 				</select>
 			</td>
 		</tr>

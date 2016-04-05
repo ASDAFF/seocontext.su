@@ -248,7 +248,7 @@
 }
 .bizproc-item-buttons
 {
-	margin-top: 10px;
+	margin-top: 15px;
 	text-align: left;
 }
 .bizproc-task-table
@@ -258,7 +258,6 @@
 }
 .bizproc-task-table td:first-child
 {
-	width: 30%;
 	padding: 0;
 	padding-right: 5px;
 	font-weight: bold;

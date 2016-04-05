@@ -35,6 +35,8 @@ $userOption = CUserOptions::GetOption("main.post.form", "postEdit");
 if(isset($userOption["showBBCode"]) && $userOption["showBBCode"] == "Y")
 	$arParams["TEXT"]["SHOW"] = "Y";
 
+$arParams["PIN_EDITOR_PANEL"] = (isset($userOption["pinEditorPanel"]) && $userOption["pinEditorPanel"] == "Y") ? "Y" : "N";
+
 $arParams["ADDITIONAL"] = (is_array($arParams["~ADDITIONAL"]) ? $arParams["~ADDITIONAL"] : array());
 $addSpan = true;
 if (!empty($arParams["ADDITIONAL"]))
@@ -75,6 +77,11 @@ $arParams["UPLOADS_HTML"] = "";
 $arParams["DESTINATION"] = (is_array($arParams["DESTINATION"]) && IsModuleInstalled("socialnetwork") ? $arParams["DESTINATION"] : array());
 $arParams["DESTINATION_SHOW"] = (array_key_exists("SHOW", $arParams["DESTINATION"]) ? $arParams["DESTINATION"]["SHOW"] : $arParams["DESTINATION_SHOW"]);
 $arParams["DESTINATION_SHOW"] = ($arParams["DESTINATION_SHOW"] == "Y" ? "Y" : "N");
+$arParams["DESTINATION_USE_CLIENT_DATABASE"] = (
+	array_key_exists("USE_CLIENT_DATABASE", $arParams["DESTINATION"])
+		? $arParams["DESTINATION"]["USE_CLIENT_DATABASE"]
+		: 'Y'
+);
 $arParams["DESTINATION"] = (array_key_exists("VALUE", $arParams["DESTINATION"]) ? $arParams["DESTINATION"]["VALUE"] : $arParams["DESTINATION"]);
 
 if (!empty($arParams["DEST_SORT"]))

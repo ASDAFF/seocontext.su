@@ -505,6 +505,10 @@ class CAllBlogPost
 				);
 				//CSearch::DeleteIndex("blog", false, "COMMENT", $arPost["BLOG_ID"]."|".$ID);
 			}
+			if(defined("BX_COMP_MANAGED_CACHE"))
+			{
+				$GLOBALS["CACHE_MANAGER"]->ClearByTag("blog_post_".$ID);
+			}
 			
 			return $result;
 		}
@@ -767,14 +771,37 @@ class CAllBlogPost
 					"CODE" => \Bitrix\Main\FinderDestTable::convertRights($socnetPerms, array("U".$arPost["AUTHOR_ID"]))
 				));
 
+				$bForAll = (in_array("AU", $socnetPerms) || in_array("G2", $socnetPerms));
+				if (!$bForAll)
+				{
+					$arUsrId = array();
+					foreach($socnetPerms as $code)
+					{
+
+						if (preg_match('/^U(\d+)$/', $code, $matches))
+						{
+							$arUsrId[] = $matches[1];
+						}
+						elseif (!in_array($code, array("SA")))
+						{
+							$arUsrId = array();
+							break;
+						}
+					}
+				}
+
 				CSocNetLog::CounterIncrement(
 					$logID, 
 					$arSoFields["EVENT_ID"], 
 					false, 
-					"L", 
+					"L",
+					$bForAll,
 					(
-						in_array("AU", $socnetPerms) 
-						|| in_array("G2", $socnetPerms)
+						$bForAll
+						|| empty($arUsrId)
+						|| count($arUsrId) > 20
+							? array()
+							: $arUsrId
 					)
 				);
 
@@ -1174,13 +1201,17 @@ class CAllBlogPost
 
 		$arResult = Array();
 		$strSql = "SELECT SR.ENTITY_TYPE, SR.ENTITY_ID, SR.ENTITY,
-						U.NAME as U_NAME, U.LAST_NAME as U_LAST_NAME, U.SECOND_NAME as U_SECOND_NAME, U.LOGIN as U_LOGIN, U.PERSONAL_PHOTO as U_PERSONAL_PHOTO,
+						U.NAME as U_NAME, U.LAST_NAME as U_LAST_NAME, U.SECOND_NAME as U_SECOND_NAME, U.LOGIN as U_LOGIN, U.PERSONAL_PHOTO as U_PERSONAL_PHOTO, U.EXTERNAL_AUTH_ID as U_EXTERNAL_AUTH_ID,
 						EL.NAME as EL_NAME
 					FROM b_blog_socnet_rights SR
-					INNER JOIN b_blog_post P ON (P.ID = SR.POST_ID)
-					LEFT JOIN b_user U ON (U.ID = SR.ENTITY_ID AND SR.ENTITY_TYPE = 'U')
-					LEFT JOIN b_iblock_section EL ON (EL.ID = SR.ENTITY_ID AND SR.ENTITY_TYPE = 'DR' AND EL.ACTIVE = 'Y')
-					WHERE SR.POST_ID=".$ID;
+					INNER JOIN b_blog_post P
+						ON (P.ID = SR.POST_ID)
+					LEFT JOIN b_user U
+						ON (U.ID = SR.ENTITY_ID AND SR.ENTITY_TYPE = 'U')
+					LEFT JOIN b_iblock_section EL
+						ON (EL.ID = SR.ENTITY_ID AND SR.ENTITY_TYPE = 'DR' AND EL.ACTIVE = 'Y')
+					WHERE
+						SR.POST_ID = ".$ID;
 		$dbRes = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 		while($arRes = $dbRes->GetNext())
 		{
@@ -1264,6 +1295,20 @@ class CAllBlogPost
 
 	public static function GetSocNetPostPerms($postId = 0, $bNeedFull = false, $userId = false, $postAuthor = 0)
 	{
+		if (
+			is_array($postId)
+			&& isset($postId["POST_ID"])
+		)
+		{
+			$arParams = $postId;
+			$postId = intval($arParams["POST_ID"]);
+			$bNeedFull = (isset($arParams["NEED_FULL"]) ? $arParams["NEED_FULL"] : false);
+			$userId = (isset($arParams["USER_ID"]) ? $arParams["USER_ID"] : false);
+			$postAuthor = (isset($arParams["POST_AUTHOR_ID"]) ? $arParams["POST_AUTHOR_ID"] : 0);
+			$bPublic = (isset($arParams["PUBLIC"]) ? $arParams["PUBLIC"] : false);
+			$logId = (isset($arParams["LOG_ID"]) ? intval($arParams["PUBLIC"]) : false);
+		}
+
 		if(!$userId)
 		{
 			$userId = IntVal($GLOBALS["USER"]->GetID());
@@ -1318,11 +1363,79 @@ class CAllBlogPost
 		}
 
 		if($arPost["AUTHOR_ID"] == $userId)
+		{
 			$perms = BLOG_PERMS_FULL;
+		}
 
 		if($perms <= BLOG_PERMS_DENY)
 		{
 			$arPerms = CBlogPost::GetSocNetPerms($postId);
+
+			if (intval($userId) > 0)
+			{
+				if (IsModuleInstalled('mail')) // check for email authorization users
+				{
+					$rsUsers = CUser::GetList(
+						($by="ID"),
+						($order="asc"),
+						array(
+							"ID" => $userId
+						),
+						array(
+							"FIELDS" => array("ID", "EXTERNAL_AUTH_ID"),
+							"SELECT" => array("UF_DEPARTMENT")
+						)
+					);
+
+					if($arUser = $rsUsers->Fetch())
+					{
+						if ($arUser["EXTERNAL_AUTH_ID"] == 'email')
+						{
+							return (
+								isset($arPerms["U"])
+								&& isset($arPerms["U"][$userId])
+									? BLOG_PERMS_READ
+									: BLOG_PERMS_DENY
+							);
+						}
+						elseif (
+							$bPublic
+							&& (
+								!is_array($arUser["UF_DEPARTMENT"])
+								|| empty($arUser["UF_DEPARTMENT"])
+								|| intval($arUser["UF_DEPARTMENT"][0]) <= 0
+							)
+							&& CModule::IncludeModule('extranet')
+							&& ($extranet_site_id = CExtranet::GetExtranetSiteID()) // for extranet users in public section
+						)
+						{
+							if ($logId)
+							{
+								$arPostSite = array();
+								$rsLogSite = CSocNetLog::GetSite($logId);
+								while ($arLogSite = $rsLogSite->Fetch())
+								{
+									$arPostSite[] = $arLogSite["LID"];
+								}
+
+								if (!in_array($extranet_site_id, $arPostSite))
+								{
+									return BLOG_PERMS_DENY;
+								}
+							}
+							else
+							{
+								return BLOG_PERMS_DENY;
+							}
+						}
+					}
+					else
+					{
+						return BLOG_PERMS_DENY;
+					}
+				}
+			}
+
 			$arEntities = Array();
 			if (!empty(static::$arUACCache[$userId]))
 			{
@@ -1500,6 +1613,27 @@ class CAllBlogPost
 						$arUsers[] = $u;
 					}
 				}
+			}
+		}
+
+		if (!empty($arUsers))
+		{
+
+			$rsUser = \Bitrix\Main\UserTable::getList(array(
+				'order' => array(),
+				'filter' => array(
+					"ID" => $arUsers,
+					"ACTIVE" => "Y",
+					"!=EXTERNAL_AUTH_ID" => 'email'
+				),
+				'select' => array("ID")
+			));
+
+			$arUsers = array();
+
+			while ($arUser = $rsUser->fetch())
+			{
+				$arUsers[] = $arUser["ID"];
 			}
 		}
 
@@ -2141,6 +2275,213 @@ class CAllBlogPost
 				);
 
 				CSocNetSubscription::NotifyGroup($arNotifyParams);
+			}
+		}
+	}
+
+	function NotifyMail($arFields)
+	{
+		if (!CModule::IncludeModule('mail'))
+		{
+			return false;
+		}
+
+		if (
+			!isset($arFields["postId"])
+			|| intval($arFields["postId"]) <= 0
+			|| !isset($arFields["userId"])
+			|| !isset($arFields["postUrl"])
+			|| strlen($arFields["postUrl"]) <= 0
+		)
+		{
+			return false;
+		}
+
+
+		if (!is_array($arFields["userId"]))
+		{
+			$arFields["userId"] = array($arFields["userId"]);
+		}
+
+		if (!isset($arFields["siteId"]))
+		{
+			$arFields["siteId"] = SITE_ID;
+		}
+
+		$nameTemplate = CSite::GetNameFormat("", $arFields["siteId"]);
+
+		if (!empty($arFields["authorId"]))
+		{
+			$rsAuthor = CUser::GetById($arFields["authorId"]);
+			$arAuthor = $rsAuthor->Fetch();
+			$authorName = CUser::FormatName(
+				$nameTemplate,
+				$arAuthor,
+				true
+			);
+
+			if (check_email($authorName))
+			{
+				$authorName = '"'.$authorName.'"';
+			}
+
+			foreach($arFields["userId"] as $key => $val)
+			{
+				if (intval($val) == intval($arFields["authorId"]))
+				{
+					unset($arFields["userId"][$key]);
+				}
+			}
+		}
+
+		if (empty($arFields["userId"]))
+		{
+			return false;
+		}
+
+		if (
+			!isset($arFields["type"])
+			|| !in_array(strtoupper($arFields["type"]), array("POST", "POST_SHARE", "COMMENT"))
+		)
+		{
+			$arFields["type"] = "COMMENT";
+		}
+
+		$arFilter = array(
+			"ID" => $arFields["userId"],
+			"ACTIVE" => "Y",
+			"=EXTERNAL_AUTH_ID" => 'email'
+		);
+
+		if (
+			IsModuleInstalled('intranet')
+			|| COption::GetOptionString("main", "new_user_registration_email_confirmation", "N") == "Y"
+		)
+		{
+			$arFilter["CONFIRM_CODE"] = false;
+		}
+
+		$rsUser = \Bitrix\Main\UserTable::getList(array(
+			'order' => array(),
+			'filter' => $arFilter ,
+			'select' => array("ID", "EMAIL", "NAME", "LAST_NAME", "SECOND_NAME", "LOGIN")
+		));
+
+		$arEmail = array();
+		while ($arUser = $rsUser->fetch())
+		{
+			$arEmail[$arUser["ID"]] = array(
+				"NAME_FORMATTED" => (
+					!empty($arUser["NAME"])
+					|| !empty($arUser["LAST_NAME"])
+						? CUser::FormatName($nameTemplate, $arUser)
+						: ''
+				),
+				"EMAIL" => $arUser["EMAIL"]
+			);
+		}
+
+		if (empty($arEmail))
+		{
+			return false;
+		}
+
+		$arBlogPost = CBlogPost::GetByID(intval($arFields["postId"]));
+		if (!$arBlogPost)
+		{
+			return false;
+		}
+
+		$postTitle = str_replace(Array("\r\n", "\n"), " ", $arBlogPost["TITLE"]);
+		$postTitle = TruncateText($postTitle, 100);
+
+		switch (strtoupper($arFields["type"]))
+		{
+			case "COMMENT":
+				$mailMessageId = "<BLOG_COMMENT_".$arFields["commentId"]."@".$GLOBALS["SERVER_NAME"].">";
+				$mailTemplateType = "BLOG_SONET_NEW_COMMENT";
+				break;
+			case "POST_SHARE":
+				$mailMessageId = "<BLOG_POST_".$arFields["postId"]."@".$GLOBALS["SERVER_NAME"].">";
+				$mailTemplateType = "BLOG_SONET_POST_SHARE";
+				break;
+			default:
+				$mailMessageId = "<BLOG_POST_".$arFields["postId"]."@".$GLOBALS["SERVER_NAME"].">";
+				$mailTemplateType = "BLOG_SONET_NEW_POST";
+		}
+
+		$mailMessageInReplyTo = "<BLOG_POST_".$arFields["postId"]."@".$GLOBALS["SERVER_NAME"].">";
+
+		if (defined("BX24_HOST_NAME"))
+		{
+			if(preg_match("/\\.bitrix24\\.([a-z]+|com\\.br)$/i", BX24_HOST_NAME))
+			{
+				$domain = BX24_HOST_NAME;
+			}
+			else
+			{
+				$domain = str_replace(".", "-", BX24_HOST_NAME).".bitrix24.com";
+			}
+		}
+		else
+		{
+			$domain = COption::getOptionString('main', 'server_name', $GLOBALS["SERVER_NAME"]);
+
+			$dbSite = CSite::GetByID($arFields["siteId"]);
+			if($arSite = $dbSite->Fetch())
+			{
+				$domain = ($arSite['SERVER_NAME'] ?: $domain);
+			}
+		}
+
+		$defaultEmailFrom = "no-reply@".$domain;
+
+		foreach ($arEmail as $userId => $arUser)
+		{
+			$email = $arUser["EMAIL"];
+			$nameFormatted = $arUser["NAME_FORMATTED"];
+
+			if (
+				intval($userId) <= 0
+				&& strlen($email) <= 0
+			)
+			{
+				continue;
+			}
+
+			$res = \Bitrix\Mail\User::getReplyTo(
+				$arFields["siteId"],
+				$userId,
+				'BLOG_POST',
+				$arFields["postId"],
+				$arFields["postUrl"]
+			);
+			if (is_array($res))
+			{
+				list($replyTo, $backUrl) = $res;
+
+				if (
+					$replyTo
+					&& $backUrl
+				)
+				{
+					CEvent::Send(
+						$mailTemplateType,
+						$arFields["siteId"],
+						array(
+							"=Reply-To" => $authorName.' <'.$replyTo.'>',
+							"=Message-Id" => $mailMessageId,
+							"=In-Reply-To" => $mailMessageInReplyTo,
+							"EMAIL_FROM" => $authorName.' <'.$defaultEmailFrom.'>',
+							"EMAIL_TO" => (!empty($nameFormatted) ? ''.$nameFormatted.' <'.$email.'>' : $email),
+							"RECIPIENT_ID" => $userId,
+							"COMMENT_ID" => (isset($arFields["commentId"]) ? intval($arFields["commentId"]) : false),
+							"POST_ID" => intval($arFields["postId"]),
+							"POST_TITLE" => $postTitle,
+							"URL" => $arFields["postUrl"]
+						)
+					);
+				}
 			}
 		}
 	}

@@ -1,4 +1,6 @@
 <?
+// delete from updates
+
 CModule::AddAutoloadClasses(
 	"mobileapp",
 	array(
@@ -23,6 +25,11 @@ CJSCore::RegisterExt('mdesigner', array(
 		'js'   => '/bitrix/js/mobileapp/designer.js',
 		'css'  => '/bitrix/js/mobileapp/app_designer.css',
 		'lang' => '/bitrix/modules/mobileapp/lang/'.LANGUAGE_ID.'/mobile_designer.php',
+		'rel' => array('ajax','popup','qrcode')
+	));
+
+CJSCore::RegisterExt('mobile_fastclick', array(
+		'js'   => '/bitrix/js/mobileapp/fastclick.js',
 	));
 
 ?>

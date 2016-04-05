@@ -37,7 +37,12 @@ else
 					if (response.ERROR_MESSAGE)
 						alert(response.ERROR_MESSAGE);
 					else
-						BX.PopupWindowManager.getCurrentPopup().close();
+					{
+						if(!!form.modalWindow)
+							form.modalWindow.close();
+						else
+							BX.PopupWindowManager.getCurrentPopup().close();
+					}
 				});
 				return false;
 			}(this, event);"<?endif

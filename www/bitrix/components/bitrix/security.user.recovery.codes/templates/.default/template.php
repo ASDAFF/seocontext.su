@@ -54,7 +54,7 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 		BX.ready(function createOtp()
 		{
 			var recoveryCodes = new BX.Security.UserRecoveryCodes();
-			recoveryCodes.drawRecoveryCodes(<?=CSecurityJsonHelper::encode($jsCodes)?>);
+			recoveryCodes.drawRecoveryCodes(<?=\Bitrix\Main\Web\Json::encode($jsCodes)?>);
 		});
 	</script>
 <?endif?>

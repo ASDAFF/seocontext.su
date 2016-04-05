@@ -324,6 +324,10 @@ class CAllIBlockProperty
 			}
 		}
 
+		global $BX_IBLOCK_PROP_CACHE;
+		if(array_key_exists("IBLOCK_ID", $arFields))
+			unset($BX_IBLOCK_PROP_CACHE[$arFields["IBLOCK_ID"]]);
+
 		$arFields["RESULT"] = &$Result;
 
 		foreach (GetModuleEvents("iblock", "OnAfterIBlockPropertyAdd", true) as $arEvent)
@@ -522,10 +526,8 @@ class CAllIBlockProperty
 			}
 
 			global $BX_IBLOCK_PROP_CACHE;
-			if(is_set($arFields, "IBLOCK_ID"))
-				UnSet($BX_IBLOCK_PROP_CACHE[$arFields["IBLOCK_ID"]]);
-			else
-				$BX_IBLOCK_PROP_CACHE = Array();
+			if(array_key_exists("IBLOCK_ID", $arFields))
+				unset($BX_IBLOCK_PROP_CACHE[$arFields["IBLOCK_ID"]]);
 
 			$Result = true;
 		}

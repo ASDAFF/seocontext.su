@@ -370,8 +370,8 @@
 		this.vars = {
 			"filesCountForUpload" : 0
 		};
-		params["phpMaxFileUploads"] = 10
-		if (!!params["copies"])
+		params["phpMaxFileUploads"] = 10;
+		if (params["copies"])
 		{
 			var i = 1;
 			for (var ii in params["copies"])
@@ -385,6 +385,7 @@
 		}
 
 		this.params = params;
+		params.allowUploadExt = "jpg,jpeg,png,gif";
 		this.uploader = BX.Uploader.getInstance(params);
 		this.init();
 		return this;
@@ -458,12 +459,25 @@
 				BX.adjust(BX('bxu' + id + 'ProgressBar'), {style : { width : item.__progressBarWidth + '%'}});
 			}
 		},
-		onUploadDone : function(item, file, queue)
+		onUploadDone : function(item)
 		{
-			BX.defer_proxy(item.deleteFile, item)();
+			var pointer = this.uploader.getItem(item.id), node;
+
+			if (pointer && (node = pointer.node) && node)
+				BX.hide(node);
+
+			item.file = null;
+			delete item.file;
+
+			BX.remove(item.canvas);
+			item.canvas = null;
+			delete item.canvas;
+
 			this.vars["uploadedFilesCount"]++;
 			BX('bxuUploaded' + this.id).innerHTML = this.vars["uploadedFilesCount"];
 			BX('bxuUploadBar' + this.id).style.width = Math.ceil(this.vars["uploadedFilesCount"] / this.vars["filesCountForUpload"] * 100) + '%';
+
+			this.onChange(this.uploader.queue);
 		},
 		onUploadError : function(item, file, queue)
 		{
@@ -509,8 +523,8 @@
 		{
 			if (!!BX('bxuImagesCount' + this.id))
 			{
-				this.vars["filesCount"] = queue.items.length;
-				BX('bxuImagesCount' + this.id).innerHTML = queue.items.length;
+				this.vars["filesCount"] = queue.items.length - (this.vars["uploadedFilesCount"] > 0 ? this.vars["uploadedFilesCount"] : 0);
+				BX('bxuImagesCount' + this.id).innerHTML = this.vars["filesCount"];
 			}
 		},
 		onItemIsAdded : function(f, uploader)

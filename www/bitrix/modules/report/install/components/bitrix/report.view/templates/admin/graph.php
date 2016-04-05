@@ -5,7 +5,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/img.php");
 
 if (!check_bitrix_sessid()) exit;
 
-__IncludeLang(dirname(__FILE__).'/lang/'.LANGUAGE_ID.'/'.basename(__FILE__));
+Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 
 function checkPostChartData(&$postData, $chartXValueTypes, $chartTypes)
 {

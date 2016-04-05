@@ -116,7 +116,18 @@ body{
 .sitelist.one{top: 253px;}
 .sitelist.two{top: 170px;}
 .sitelist.three{top: 253px;}
-
+@media (max-height: 480px)
+{
+	.status.bad
+	{
+		position: relative;
+		margin-top: 0px;
+	}
+	.sitelist.one {top: 80px;}
+	.sitelist.two {top: 100px;}
+	.sitelist.three {top: 140px;}
+	.security_section h1 {display: none;}
+}
 .sitelist ul .sitestatus.bad,
 .sitelist ul .sitestatus.bad a{
 	font-size: 13px;
@@ -170,6 +181,10 @@ body{
 	-webkit-background-size:auto 250px;
 			background-size:auto 250px;
 	}
+@media (max-height: 480px)
+{
+	.goodicon{display: none;}
+}
 .goodicon.imgtoleft{
 			background: url(images/sprite.png) no-repeat 0 -82px;
 	-webkit-background-size: 79px auto;
@@ -188,6 +203,10 @@ body{
 	-webkit-background-size:auto 250px;
 			background-size:auto 250px;
 	}
+@media (max-height: 480px)
+{
+	.badicon{display: none;}
+}
 .badicon.imgtoleft{
 			background: url(images/sprite.png) no-repeat 0 0;
 	-webkit-background-size: 79px auto;

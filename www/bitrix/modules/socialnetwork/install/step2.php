@@ -2,7 +2,10 @@
 <?
 global $errors;
 
-if(strlen($errors)<=0):
+if(
+	!is_array($errors)
+	|| count($errors)<=0
+):
 	echo CAdminMessage::ShowNote(GetMessage("MOD_INST_OK"));
 else:
 	for($i=0; $i<count($errors); $i++)

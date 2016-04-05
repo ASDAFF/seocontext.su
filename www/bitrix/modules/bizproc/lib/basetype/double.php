@@ -64,6 +64,26 @@ class Double extends Base
 	}
 
 	/**
+	 * Return conversion map for current type.
+	 * @return array Map.
+	 */
+	public static function getConversionMap()
+	{
+		return array(
+			array(
+				FieldType::BOOL,
+				FieldType::DATE,
+				FieldType::DATETIME,
+				FieldType::DOUBLE,
+				FieldType::INT,
+				FieldType::STRING,
+				FieldType::TEXT,
+				FieldType::USER
+			)
+		);
+	}
+
+	/**
 	 * @param FieldType $fieldType
 	 * @param array $field
 	 * @param mixed $value
@@ -76,11 +96,11 @@ class Double extends Base
 		$name = static::generateControlName($field);
 		$controlId = static::generateControlId($field);
 		$renderResult = '<input type="text" size="10" id="'.htmlspecialcharsbx($controlId).'" name="'
-			.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx((string) $value).'">';
+			.htmlspecialcharsbx($name).'" value="'.htmlspecialcharsbx((string) $value).'"/>';
 
 		if ($allowSelection)
 		{
-			$renderResult .= static::renderControlSelector($field);
+			$renderResult .= static::renderControlSelector($field, null, false, '', $fieldType);
 		}
 		return $renderResult;
 	}

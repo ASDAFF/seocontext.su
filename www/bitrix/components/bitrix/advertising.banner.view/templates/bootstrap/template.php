@@ -57,7 +57,7 @@ $frame = $this->createFrame()->begin("");
 		</div>
 	<?elseif(isset($arParams['PROPS']['BACKGROUND']) && $arParams['PROPS']['BACKGROUND'] == 'stream'):?>
 		<div class="embed-responsive embed-responsive-16by9">
-			<iframe id='yt_player_<?=$rnd?>' class="embed-responsive-item" src="https://www.youtube.com/embed/<?=$id?>?enablejsapi=1&controls=0&showinfo=0&loop=1&rel=0<?=$arParams['AUTOPLAY']?>&playlist=<?=$id?>"></iframe>
+			<iframe id='yt_player_<?=$rnd?>' class="embed-responsive-item" src="https://www.youtube.com/embed/<?=$id?>?enablejsapi=1&controls=0&showinfo=0&rel=0<?=$arParams['AUTOPLAY']?>"></iframe>
 			<script>
 				if (!yt_player)
 					var yt_player = {};

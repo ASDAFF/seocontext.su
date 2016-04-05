@@ -245,12 +245,12 @@ abstract class CDatabaseMysql extends CAllDatabase
 		}
 	}
 
-	function CurrentTimeFunction()
+	public static function CurrentTimeFunction()
 	{
 		return "now()";
 	}
 
-	function CurrentDateFunction()
+	public static function CurrentDateFunction()
 	{
 		return "CURRENT_DATE";
 	}

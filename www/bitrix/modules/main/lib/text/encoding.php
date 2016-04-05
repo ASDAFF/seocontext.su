@@ -99,7 +99,7 @@ class Encoding
 
 	public static function convertEncodingArray($arData, $charsetFrom, $charsetTo, &$errorMessage = "")
 	{
-		if (!is_array($arData))
+		if (!is_array($arData) && !$arData instanceof \SplFixedArray)
 		{
 			if (is_string($arData))
 			{

@@ -225,21 +225,6 @@ $arComponentParameters = array(
 			"MULTIPLE" => "N",
 			"DEFAULT" => "/bitrix/images/blog/smile/",
 		),
-		"PATH_TO_FORUM_SMILE" => Array(
-			"PARENT" => "ADDITIONAL_SETTINGS",
-			"NAME" => GetMessage("SONET_PATH_TO_FORUM_SMILE"),
-			"TYPE" => "STRING",
-			"MULTIPLE" => "N",
-			"DEFAULT" => "/bitrix/images/forum/smile/",
-		),
-		"SONET_PATH_TO_FORUM_ICON" => Array(
-			"PARENT" => "ADDITIONAL_SETTINGS",
-			"NAME" => GetMessage("SONET_PATH_TO_FORUM_ICON"),
-			"TYPE" => "STRING",
-			"MULTIPLE" => "N",
-			"DEFAULT" => "/bitrix/images/forum/icon/",
-		),
-
 		"CACHE_TIME"  =>  Array("DEFAULT" => 3600),
 		"SET_TITLE" => Array(),
 		"CACHE_TIME_LONG" => array(
@@ -1234,8 +1219,7 @@ if (CModule::IncludeModule("forum"))
 			$rVoteChannels = CAllVoteChannel::GetList($by, $order, array('ACTIVE' => 'Y'), $is_filtered);
 			if ($rVoteChannels)
 			{
-
-				__IncludeLang($_SERVER["DOCUMENT_ROOT"].BX_PERSONAL_ROOT."/components/bitrix/voting.current/lang/".LANGUAGE_ID."/.parameters.php");
+				\Bitrix\Main\Localization\Loc::loadLanguageFile($_SERVER["DOCUMENT_ROOT"].BX_PERSONAL_ROOT."/components/bitrix/voting.current/.parameters.php");
 
 				$defaultVoteChannel = -1;
 				while ($arVoteChannel = $rVoteChannels->Fetch())

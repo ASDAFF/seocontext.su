@@ -5,7 +5,7 @@ IncludeModuleLangFile(__FILE__);
 /**********************************************************************/
 class CAllForumUser
 {
-	public function IsAdmin($userId = false, $arGroups = false)
+	public static function IsAdmin($userId = false, $arGroups = false)
 	{
 		global $USER;
 		if (is_array($userId) && !empty($userId) && $arGroups === false)
@@ -36,7 +36,7 @@ class CAllForumUser
 		return $result;
 	}
 
-	function GetUserTopicVisits($forumID, $arTopic, $userID=null)
+	public static function GetUserTopicVisits($forumID, $arTopic, $userID=null)
 	{
 		global $DB;
 
@@ -77,7 +77,7 @@ class CAllForumUser
 	}
 
 	//---------------> User insert, update, delete
-	function IsLocked($USER_ID)
+	public static function IsLocked($USER_ID)
 	{
 		global $DB, $CACHE_MANAGER;
 		$USER_ID = intVal($USER_ID);
@@ -112,12 +112,12 @@ class CAllForumUser
 		return array_key_exists($USER_ID, $GLOBALS["FORUM_CACHE"]["LOCKED_USERS"]);
 	}
 
-	function CanUserAddUser($arUserGroups)
+	public static function CanUserAddUser($arUserGroups)
 	{
 		return True;
 	}
 
-	function CanUserUpdateUser($ID, $arUserGroups, $CurrentUserID = 0)
+	public static function CanUserUpdateUser($ID, $arUserGroups, $CurrentUserID = 0)
 	{
 		$ID = intVal($ID);
 		$CurrentUserID = intVal($CurrentUserID);
@@ -127,14 +127,14 @@ class CAllForumUser
 		return False;
 	}
 
-	function CanUserDeleteUser($ID, $arUserGroups)
+	public static function CanUserDeleteUser($ID, $arUserGroups)
 	{
 		$ID = intVal($ID);
 		if (in_array(1, $arUserGroups)) return True;
 		return False;
 	}
 
-	function CheckFields($ACTION, &$arFields, $ID=false)
+	public static function CheckFields($ACTION, &$arFields, $ID=false)
 	{
 		if (is_set($arFields, "AVATAR") && strlen($arFields["AVATAR"]["name"]) <= 0 && strlen($arFields["AVATAR"]["del"]) <= 0)
 		{
@@ -262,7 +262,7 @@ class CAllForumUser
 		return True;
 	}
 
-	function Add($arFields, $strUploadDir = false)
+	public static function Add($arFields, $strUploadDir = false)
 	{
 		global $DB;
 		$arBinds = Array();
@@ -311,7 +311,7 @@ class CAllForumUser
 		return $ID;
 	}
 
-	function Update($ID, $arFields, $strUploadDir = false, $UpdateByUserId = false)
+	public static function Update($ID, $arFields, $strUploadDir = false, $UpdateByUserId = false)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -411,7 +411,7 @@ class CAllForumUser
 		return $ID;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -438,7 +438,7 @@ class CAllForumUser
 		return $res;
 	}
 
-	function CountUsers($bActive = False, $arFilter = array())
+	public static function CountUsers($bActive = False, $arFilter = array())
 	{
 		global $DB;
 		$arFilter = (is_array($arFilter) ? $arFilter : array());
@@ -475,7 +475,7 @@ class CAllForumUser
 		return 0;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -505,7 +505,7 @@ class CAllForumUser
 		return False;
 	}
 
-	function GetByLogin($Name)
+	public static function GetByLogin($Name)
 	{
 		global $DB;
 		$Name = $DB->ForSql(trim($Name));
@@ -549,7 +549,7 @@ class CAllForumUser
 		return False;
 	}
 
-	function GetByIDEx($ID, $arAddParams = array())
+	public static function GetByIDEx($ID, $arAddParams = array())
 	{
 		global $DB;
 		$arAddParams = (is_array($arAddParams) ? $arAddParams : array($arAddParams));
@@ -588,7 +588,7 @@ class CAllForumUser
 		return False;
 	}
 
-	function GetByUSER_ID($USER_ID)
+	public static function GetByUSER_ID($USER_ID)
 	{
 		global $DB;
 
@@ -619,7 +619,7 @@ class CAllForumUser
 		return False;
 	}
 
-	function GetByUSER_IDEx($USER_ID, $arAddParams = array())
+	public static function GetByUSER_IDEx($USER_ID, $arAddParams = array())
 	{
 		global $DB;
 		$arAddParams = (is_array($arAddParams) ? $arAddParams : array($arAddParams));
@@ -666,7 +666,7 @@ class CAllForumUser
 	}
 
 
-	function GetUserRank($USER_ID, $strLang = false)
+	public static function GetUserRank($USER_ID, $strLang = false)
 	{
 		$USER_ID = intval($USER_ID);
 		$arUser = false;
@@ -694,7 +694,7 @@ class CAllForumUser
 		return false;
 	}
 	//---------------> User visited
-	function SetUserForumLastVisit($USER_ID, $FORUM_ID = 0, $LAST_VISIT = false)
+	public static function SetUserForumLastVisit($USER_ID, $FORUM_ID = 0, $LAST_VISIT = false)
 	{
 		global $DB;
 		$USER_ID = intVal($USER_ID);
@@ -742,7 +742,7 @@ class CAllForumUser
 		return true;
 	}
 
-	function GetListUserForumLastVisit($arOrder = Array("LAST_VISIT"=>"DESC"), $arFilter = Array())
+	public static function GetListUserForumLastVisit($arOrder = Array("LAST_VISIT"=>"DESC"), $arFilter = Array())
 	{
 		global $DB;
 		$arSqlSearch = Array();
@@ -810,7 +810,7 @@ class CAllForumUser
 	 * @param array $arUser - array with user data
 	 * @return string
 	 */
-	function GetFormattedNameByUserID($userID, $template = "", $arUser = array())
+	public static function GetFormattedNameByUserID($userID, $template = "", $arUser = array())
 	{
 		if (empty($userID))
 			return false;
@@ -839,7 +839,7 @@ class CAllForumUser
 		return $arUsers[$userID]["FORMATTED_NAME"];
 	}
 
-	function GetUserPoints($USER_ID, $arAddParams = array())
+	public static function GetUserPoints($USER_ID, $arAddParams = array())
 	{
 		global $DB;
 		$USER_ID = intVal($USER_ID);
@@ -879,7 +879,7 @@ class CAllForumUser
 		return false;
 	}
 
-	function CountUserPoints($USER_ID = 0, $iCnt = false)
+	public static function CountUserPoints($USER_ID = 0, $iCnt = false)
 	{
 		$USER_ID = intVal($USER_ID);
 		$iNumUserPosts = intVal($iCnt);
@@ -903,7 +903,7 @@ class CAllForumUser
 		return $iNumUserPoints;
 	}
 
-	function SetStat($USER_ID = 0, $arParams = array())
+	public static function SetStat($USER_ID = 0, $arParams = array())
 	{
 		$USER_ID = intVal($USER_ID);
 		if ($USER_ID <= 0)
@@ -989,7 +989,7 @@ class CAllForumUser
 		return $USER_ID;
 	}
 	//---------------> User actions
-	function OnUserDelete($user_id)
+	public static function OnUserDelete($user_id)
 	{
 		global $DB;
 		$user_id = intVal($user_id);
@@ -1031,7 +1031,7 @@ class CAllForumUser
 		return true;
 	}
 	// >-- Using for private message
-	function SearchUser($template)
+	public static function SearchUser($template)
 	{
 		global $DB;
 		$template = $DB->ForSql(str_replace("*", "%", $template));
@@ -1044,7 +1044,7 @@ class CAllForumUser
 		return $dbRes;
 	}
 
-	function UserAddInfo($arOrder = array(), $arFilter = Array(), $mode = false, $iNum = 0, $check_permission = true, $arNavigation = array())
+	public static function UserAddInfo($arOrder = array(), $arFilter = Array(), $mode = false, $iNum = 0, $check_permission = true, $arNavigation = array())
 	{
 		global $DB, $USER;
 
@@ -1235,7 +1235,7 @@ class CAllForumUser
 	}
 	// <-- Using for private message
 
-	function OnSocNetGroupDelete($group_id)
+	public static function OnSocNetGroupDelete($group_id)
 	{
 		global $DB;
 		$group_id = intVal($group_id);
@@ -1272,13 +1272,13 @@ class CAllForumUser
 class CAllForumSubscribe
 {
 	//---------------> User insert, update, delete
-	function CanUserAddSubscribe($FID, $arUserGroups)
+	public static function CanUserAddSubscribe($FID, $arUserGroups)
 	{
 		if (CForumNew::GetUserPermission($FID, $arUserGroups)>="E") return True;
 		return False;
 	}
 
-	function CanUserUpdateSubscribe($ID, $arUserGroups, $CurrentUserID = 0)
+	public static function CanUserUpdateSubscribe($ID, $arUserGroups, $CurrentUserID = 0)
 	{
 		$ID = intVal($ID);
 		$CurrentUserID = intVal($CurrentUserID);
@@ -1289,7 +1289,7 @@ class CAllForumSubscribe
 		return False;
 	}
 
-	function CanUserDeleteSubscribe($ID, $arUserGroups, $CurrentUserID = 0)
+	public static function CanUserDeleteSubscribe($ID, $arUserGroups, $CurrentUserID = 0)
 	{
 		$ID = intVal($ID);
 		$CurrentUserID = intVal($CurrentUserID);
@@ -1300,7 +1300,7 @@ class CAllForumSubscribe
 		return False;
 	}
 
-	function CheckFields($ACTION, &$arFields)
+	public static function CheckFields($ACTION, &$arFields)
 	{
 		if ((is_set($arFields, "USER_ID") || $ACTION=="ADD") && intVal($arFields["USER_ID"])<=0) return false;
 		if ((is_set($arFields, "FORUM_ID") || $ACTION=="ADD") && intVal($arFields["FORUM_ID"])<=0) return false;
@@ -1325,7 +1325,7 @@ class CAllForumSubscribe
 		return True;
 	}
 
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -1349,7 +1349,7 @@ class CAllForumSubscribe
 		return $DB->Insert("b_forum_subscribe", $Fields, "File: ".__FILE__."<br>Line: ".__LINE__);
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -1364,21 +1364,21 @@ class CAllForumSubscribe
 		return $ID;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$ID = intVal($ID);
 		return $DB->Query("DELETE FROM b_forum_subscribe WHERE ID = ".$ID, True);
 	}
 
-	function DeleteUSERSubscribe($USER_ID)
+	public static function DeleteUSERSubscribe($USER_ID)
 	{
 		global $DB;
 		$USER_ID = intVal($USER_ID);
 		return $DB->Query("DELETE FROM b_forum_subscribe WHERE USER_ID = ".$USER_ID, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 	}
 
-	function UpdateLastSend($MID, $sIDs)
+	public static function UpdateLastSend($MID, $sIDs)
 	{
 		global $DB;
 		$MID = intVal($MID);
@@ -1398,7 +1398,7 @@ class CAllForumSubscribe
 		$DB->Query("UPDATE b_forum_subscribe SET LAST_SEND = ".$MID." WHERE ID IN (".implode(',', $arUpdateIDs).")");
 	}
 
-	function GetList($arOrder = array("ID"=>"ASC"), $arFilter = array(), $arAddParams = array())
+	public static function GetList($arOrder = array("ID"=>"ASC"), $arFilter = array(), $arAddParams = array())
 	{
 		global $DB;
 		$arSqlSearch = Array();
@@ -1502,7 +1502,7 @@ class CAllForumSubscribe
 		return $db_res;
 	}
 
-	function GetListEx($arOrder = array("ID"=>"ASC"), $arFilter = array())
+	public static function GetListEx($arOrder = array("ID"=>"ASC"), $arFilter = array())
 	{
 		global $DB;
 		$arSqlSearch = array();
@@ -1676,7 +1676,7 @@ class CAllForumSubscribe
 		return $db_res;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -1702,25 +1702,25 @@ class CAllForumSubscribe
 class CAllForumRank
 {
 	//---------------> User insert, update, delete
-	function CanUserAddRank($arUserGroups)
+	public static function CanUserAddRank($arUserGroups)
 	{
 		if (in_array(1, $arUserGroups)) return True;
 		return False;
 	}
 
-	function CanUserUpdateRank($ID, $arUserGroups)
+	public static function CanUserUpdateRank($ID, $arUserGroups)
 	{
 		if (in_array(1, $arUserGroups)) return True;
 		return False;
 	}
 
-	function CanUserDeleteRank($ID, $arUserGroups)
+	public static function CanUserDeleteRank($ID, $arUserGroups)
 	{
 		if (in_array(1, $arUserGroups)) return True;
 		return False;
 	}
 
-	function CheckFields($ACTION, &$arFields)
+	public static function CheckFields($ACTION, &$arFields)
 	{
 		if (is_set($arFields, "LANG") || $ACTION=="ADD")
 		{
@@ -1746,7 +1746,7 @@ class CAllForumRank
 	}
 
 	// Tekuwie statusy posetitelej srazu ne pereschityvayutsya. Tol'ko postepenno v processe raboty.
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -1774,7 +1774,7 @@ class CAllForumRank
 		return $ID;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -1795,7 +1795,7 @@ class CAllForumRank
 		return true;
 	}
 
-	function GetList($arOrder = array("MIN_NUM_POSTS"=>"ASC"), $arFilter = array())
+	public static function GetList($arOrder = array("MIN_NUM_POSTS"=>"ASC"), $arFilter = array())
 	{
 		global $DB;
 		$arSqlSearch = array();
@@ -1853,7 +1853,7 @@ class CAllForumRank
 		return $db_res;
 	}
 
-	function GetListEx($arOrder = array("MIN_NUM_POSTS"=>"ASC"), $arFilter = array())
+	public static function GetListEx($arOrder = array("MIN_NUM_POSTS"=>"ASC"), $arFilter = array())
 	{
 		global $DB;
 		$arSqlSearch = array();
@@ -1919,7 +1919,7 @@ class CAllForumRank
 		return $db_res;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -1937,7 +1937,7 @@ class CAllForumRank
 		return False;
 	}
 
-	function GetByIDEx($ID, $strLang)
+	public static function GetByIDEx($ID, $strLang)
 	{
 		global $DB;
 
@@ -1956,7 +1956,7 @@ class CAllForumRank
 		return False;
 	}
 
-	function GetLangByID($RANK_ID, $strLang)
+	public static function GetLangByID($RANK_ID, $strLang)
 	{
 		global $DB;
 
@@ -1974,8 +1974,6 @@ class CAllForumRank
 		}
 		return False;
 	}
-
-
 }
 
 class CALLForumStat
@@ -1987,7 +1985,7 @@ class CALLForumStat
 	 * @deprecated
 	 * @see CALLForumStat::RegisterUSER()
 	 */
-	function RegisterUSER_OLD($arFields = array())
+	public static function RegisterUSER_OLD($arFields = array())
 	{
 		global $DB, $USER;
 		$tmp = "";
@@ -2085,7 +2083,7 @@ class CALLForumStat
 		return true;
 	}
 
-	function RegisterUSER($arFields = array())
+	public static function RegisterUSER($arFields = array())
 	{
 		global $DB, $USER;
 		$tmp = ($_SESSION["FORUM"]["SHOW_NAME"] == "Y" && strLen(trim($USER->GetFullName())) > 0 ?
@@ -2117,7 +2115,7 @@ class CALLForumStat
 		return true;
 	}
 
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB, $USER;
 		$Fields = array(
@@ -2131,7 +2129,7 @@ class CALLForumStat
 		return $DB->Insert("b_forum_stat", $Fields, "File: ".__FILE__."<br>Line: ".__LINE__);
 	}
 
-	function GetListEx($arOrder = Array("ID"=>"ASC"), $arFilter = Array())
+	public static function GetListEx($arOrder = Array("ID"=>"ASC"), $arFilter = Array())
 	{
 		global $DB;
 		$arSqlSearch = array();
@@ -2234,7 +2232,7 @@ class CALLForumStat
 		return $db_res;
 	}
 
-	function CleanUp($period = 48) // time in hours
+	public static function CleanUp($period = 48) // time in hours
 	{
 		global $DB;
 		$period = intVal($period)*3600;
@@ -2246,5 +2244,3 @@ class CALLForumStat
 		return "CForumStat::CleanUp();";
 	}
 }
-
-?>

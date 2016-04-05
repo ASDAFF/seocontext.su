@@ -4,8 +4,7 @@
 namespace Bitrix\Sale;
 
 
-use Bitrix\Main\Type\Date;
-use Bitrix\Main\Type\DateTime;
+use Bitrix\Main;
 use Bitrix\Sale\Internals\Entity;
 
 class OrderHistory
@@ -17,9 +16,13 @@ class OrderHistory
 
 	const SALE_ORDER_HISTORY_RECORD_TYPE_ACTION = 'ACTION';
 	const SALE_ORDER_HISTORY_RECORD_TYPE_FIELD = 'FIELD';
+	const SALE_ORDER_HISTORY_RECORD_TYPE_DEBUG = 'DEBUG';
 
 	const FIELD_TYPE_NAME = 'NAME';
 	const FIELD_TYPE_TYPE = 'TYPE';
+
+	const SALE_ORDER_HISTORY_LOG_LEVEL_0 = 0;
+	const SALE_ORDER_HISTORY_LOG_LEVEL_1 = 1;
 
 	protected function __construct()
 	{
@@ -40,6 +43,28 @@ class OrderHistory
 	{
 		if ($field == "ID")
 			return;
+
+		if ($value !== null && static::isDate($value))
+		{
+			$value = $value->toString();
+		}
+
+		if ($oldValue !== null && static::isDate($oldValue))
+		{
+			$oldValue = $oldValue->toString();
+		}
+
+		if (!empty($fields))
+		{
+			foreach($fields as $fieldName => $fieldValue)
+			{
+				if (static::isDate($fieldValue))
+				{
+					$fields[$fieldName] = $fieldValue->toString();
+				}
+			}
+		}
+
 		static::$pool[$entityName][$orderId][$id][$field][] = array(
 			'RECORD_TYPE' => static::SALE_ORDER_HISTORY_RECORD_TYPE_FIELD,
 			'ENTITY_NAME' => $entityName,
@@ -117,7 +142,8 @@ class OrderHistory
 			{
 				foreach ($dataList as $key => $data)
 				{
-					if ($data['RECORD_TYPE'] == static::SALE_ORDER_HISTORY_RECORD_TYPE_ACTION)
+					if ($data['RECORD_TYPE'] == static::SALE_ORDER_HISTORY_RECORD_TYPE_ACTION
+						|| $data['RECORD_TYPE'] == static::SALE_ORDER_HISTORY_RECORD_TYPE_DEBUG)
 					{
 						static::addRecord($entityName, $orderId, $data['TYPE'], $data['ID'], $data['ENTITY'], $data['DATA']);
 						unset(static::$pool[$entityName][$orderId][$data['ID']][$data['TYPE']][$key]);
@@ -253,7 +279,7 @@ class OrderHistory
 	 */
 	private static function isDate($value)
 	{
-		return ($value instanceof DateTime) || ($value instanceof Date);
+		return ($value instanceof Main\Type\DateTime) || ($value instanceof Main\Type\Date);
 	}
 
 	/**
@@ -262,13 +288,83 @@ class OrderHistory
 	 */
 	private static function convertDateField($value)
 	{
-		if (($value instanceof DateTime)
-			|| ($value instanceof Date))
+		if (($value instanceof Main\Type\DateTime)
+			|| ($value instanceof Main\Type\Date))
 		{
 			return $value->toString();
 		}
 
 		return $value;
+	}
+
+	/**
+	 * @param $id
+	 *
+	 * @return bool|\CDBResult
+	 */
+	public static function deleteByOrderId($id)
+	{
+		if (intval($id) <= 0)
+			return false;
+
+		return \CSaleOrderChange::deleteByOrderId($id);
+	}
+
+	/**
+	 * @param $entityName
+	 * @param $orderId
+	 * @param $type
+	 * @param null $id
+	 * @param null $entity
+	 * @param array $fields
+	 * @param null $level
+	 */
+	public static function addLog($entityName, $orderId, $type, $id = null, $entity = null, array $fields = array(), $level = null)
+	{
+		if ($level === null)
+		{
+			$level = static::SALE_ORDER_HISTORY_LOG_LEVEL_0;
+		}
+
+		if (!static::checkLogLevel($level))
+			return;
+
+		if (!empty($fields))
+		{
+			foreach($fields as $fieldName => $fieldValue)
+			{
+				if (static::isDate($fieldValue))
+				{
+					$fields[$fieldName] = $fieldValue->toString();
+				}
+			}
+		}
+
+		static::$pool[$entityName][$orderId][$id][$type][] = array(
+			'RECORD_TYPE' => static::SALE_ORDER_HISTORY_RECORD_TYPE_DEBUG,
+			'ENTITY_NAME' => $entityName,
+			'ENTITY' => $entity,
+			'ID' => $id,
+			'TYPE' => $type,
+			'DATA' => $fields,
+			'LEVEL' => $level
+		);
+	}
+
+	/**
+	 * @param $level
+	 *
+	 * @return bool
+	 * @throws Main\ArgumentNullException
+	 */
+	public static function checkLogLevel($level)
+	{
+		$orderHistoryLogLevel = Main\Config\Option::get('sale', 'order_history_log_level', static::SALE_ORDER_HISTORY_LOG_LEVEL_0);
+
+		if ($level > $orderHistoryLogLevel)
+			return false;
+
+		return true;
 	}
 
 }

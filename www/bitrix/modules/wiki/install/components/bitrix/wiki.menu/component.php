@@ -98,7 +98,7 @@ if (!CWikiUtils::IsWriteable())
 if(CWikiUtils::isCategoryVirtual($arParams["ELEMENT_NAME"]))
 	return;
 
-//$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+$arParams['ELEMENT_NAME'] = CWikiUtils::htmlspecialcharsback($arParams['ELEMENT_NAME']);
 $arFilter = array(
 	'IBLOCK_ID' => $arParams['IBLOCK_ID'],
 	'CHECK_PERMISSIONS' => 'N',

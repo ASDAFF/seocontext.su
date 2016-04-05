@@ -3,7 +3,7 @@ IncludeModuleLangFile(__FILE__);
 
 class CClock
 {
-	function Init(&$arParams)
+	public static function Init(&$arParams)
 	{
 		if (!isset($arParams['inputId']))
 			$arParams['inputId'] = 'bxclock_'.rand();
@@ -18,7 +18,7 @@ class CClock
 			$arParams['view'] = 'input';
 	}
 
-	function Show($arParams)
+	public static function Show($arParams)
 	{
 		global $APPLICATION;
 

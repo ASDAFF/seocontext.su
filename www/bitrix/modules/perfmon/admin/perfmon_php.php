@@ -84,8 +84,8 @@ $arKnownAccels = array(
 	'zendopcache' => '<a href="http://pecl.php.net/package/ZendOpcache">ZendOpcache</a>',
 );
 
-$accel = CPerfomanceMeasure::GetAccelerator();
-if (!is_object($accel))
+$allAccelerators = CPerfomanceMeasure::GetAllAccelerators();
+if (!$allAccelerators)
 {
 	$data["tuning"]["ITEMS"][] = array(
 		"PARAMETER" => GetMessage("PERFMON_PHP_PRECOMPILER"),
@@ -96,9 +96,28 @@ if (!is_object($accel))
 }
 else
 {
-	$arRecommendations = $accel->GetRecommendations();
-	foreach ($arRecommendations as $i => $ar)
-		$data["tuning"]["ITEMS"][] = $ar;
+	$workingAccel = null;
+	foreach ($allAccelerators as $accel)
+	{
+		if ($accel->IsWorking())
+		{
+			$workingAccel = $accel;
+			$arRecommendations = $accel->GetRecommendations();
+			foreach ($arRecommendations as $i => $ar)
+				$data["tuning"]["ITEMS"][] = $ar;
+			break;
+		}
+	}
+	
+	if ($workingAccel === null)
+	{
+		foreach ($allAccelerators as $accel)
+		{
+			$arRecommendations = $accel->GetRecommendations();
+			foreach ($arRecommendations as $i => $ar)
+				$data["tuning"]["ITEMS"][] = $ar;
+		}
+	}
 }
 
 $sTableID = "tbl_perfmon_panel";

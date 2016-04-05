@@ -1,5 +1,6 @@
 <?if(!Defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 
+$converter = CBXPunycode::GetConverter();
 $arData = array();
 
 if($arResult["DOMAIN"] == "")
@@ -20,7 +21,7 @@ if($arResult["DOMAIN"] == "")
 			"HTML_DATA" =>
 				'<ul>'.
 					'<li id="li_id_'.$domainName.'">'.
-						'<a href="javascript:void(0);">'.$domainName.'</a>'.
+						'<a href="javascript:void(0);">'.htmlspecialcharsEx($converter->Decode($domainName)).'</a>'.
 					'</li>'.
 				'</ul>'.
 				'<script type="text/javascript">'.
@@ -47,8 +48,6 @@ if($arResult["DOMAIN"] == "")
 }
 else
 {
-	$converter = CBXPunycode::GetConverter();
-
 	$arData[] = array(
 		"TYPE" => "BLOCK",
 		"TITLE" => htmlspecialcharsbx($converter->Decode($arResult["DOMAIN"])),
@@ -124,4 +123,3 @@ $APPLICATION->IncludeComponent(
 		});
 	<?endif;?>
 </script>
-

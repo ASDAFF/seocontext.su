@@ -116,6 +116,17 @@ class Uri
 	}
 
 	/**
+	 * Sets the host
+	 * @param string $host Host name.
+	 * @return $this
+	 */
+	public function setHost($host)
+	{
+		$this->host = $host;
+		return $this;
+	}
+
+	/**
 	 * Returns the password.
 	 * @return string
 	 */

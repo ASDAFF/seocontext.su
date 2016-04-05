@@ -4,7 +4,7 @@ class CIBlock extends CAllIBlock
 	///////////////////////////////////////////////////////////////////
 	// List of blocks
 	///////////////////////////////////////////////////////////////////
-	function GetList($arOrder=Array("SORT"=>"ASC"), $arFilter=Array(), $bIncCnt = false)
+	public static function GetList($arOrder=Array("SORT"=>"ASC"), $arFilter=Array(), $bIncCnt = false)
 	{
 		global $DB, $USER;
 

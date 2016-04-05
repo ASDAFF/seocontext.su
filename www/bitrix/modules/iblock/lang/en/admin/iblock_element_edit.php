@@ -99,4 +99,5 @@ $MESS["IBLOCK_UPPER_LEVEL"] = "Upper level";
 $MESS["IBLOCK_FIELD_STATUS"] = "Status";
 $MESS["IBEL_E_MAIN_IBLOCK_SECTION_ID"] = "Main section";
 $MESS["IBLOCK_EL_EDIT_IN_PANEL"] = "Control Panel";
+$MESS["IBLOCK_LINKED_ELEMENT_TITLE"] = "Open Control Panel";
 ?>

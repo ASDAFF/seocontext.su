@@ -354,6 +354,7 @@ else
 	$couponIterator->NavStart();
 }
 
+CTimeZone::Disable();
 $adminList->NavText($couponIterator->GetNavPrint(Loc::getMessage('BT_SALE_DISCOUNT_COUPON_LIST_MESS_NAV')));
 while ($coupon = $couponIterator->Fetch())
 {
@@ -378,6 +379,15 @@ while ($coupon = $couponIterator->Fetch())
 		if ($coupon['USER_ID'] > 0)
 			$userIDs[$coupon['USER_ID']] = true;
 	}
+	if ($selectFieldsMap['ACTIVE_FROM'])
+		$coupon['ACTIVE_FROM'] = ($coupon['ACTIVE_FROM'] instanceof Main\Type\DateTime ? $coupon['ACTIVE_FROM']->toString() : '');
+	if ($selectFieldsMap['ACTIVE_TO'])
+		$coupon['ACTIVE_TO'] = ($coupon['ACTIVE_TO'] instanceof Main\Type\DateTime ? $coupon['ACTIVE_TO']->toString() : '');
+	if ($selectFieldsMap['DATE_CREATE'])
+		$coupon['DATE_CREATE'] = ($coupon['DATE_CREATE'] instanceof Main\Type\DateTime ? $coupon['DATE_CREATE']->toString() : '');
+	if ($selectFieldsMap['TIMESTAMP_X'])
+		$coupon['TIMESTAMP_X'] = ($coupon['TIMESTAMP_X'] instanceof Main\Type\DateTime ? $coupon['TIMESTAMP_X']->toString() : '');
+
 	$urlEdit = 'sale_discount_coupon_edit.php?ID='.$coupon['ID'].'&lang='.LANGUAGE_ID.GetFilterParams('filter_');
 
 	$rowList[$coupon['ID']] = $row = &$adminList->AddRow(
@@ -473,6 +483,7 @@ while ($coupon = $couponIterator->Fetch())
 if (isset($row))
 	unset($row);
 unset($discountEditUrl);
+CTimeZone::Enable();
 
 if ($selectFieldsMap['CREATED_BY'] || $selectFieldsMap['MODIFIED_BY'] || $selectFieldsMap['USER_ID'])
 {

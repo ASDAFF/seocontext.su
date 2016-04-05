@@ -1,4 +1,5 @@
 <?
+$PERM["upload"]["6"]="T_8";
 $PERM["uslugi"]["5"]="W";
 $PERM["portfolio"]["5"]="W";
 $PERM["o-kompanii"]["5"]="W";

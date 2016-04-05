@@ -18,7 +18,7 @@ BX.ImMobile = function(params)
 	this.mobileActionCache = false;
 	this.mobileActionRun = false;
 
-	this.revision = 3; // mobile api revision - check include.php
+	this.revision = 5; // mobile api revision - check include.php
 	this.errorMessage = '';
 	this.bitrixNetwork = params.bitrixNetwork || false;
 	this.bitrixNetwork2 = params.bitrixNetwork2 || false;
@@ -36,6 +36,7 @@ BX.ImMobile = function(params)
 	this.lastRecordId = 0;
 	this.userId = params.userId;
 	this.userEmail = params.userEmail || '';
+	this.userGender = params.userGender || 'M';
 	this.path = params.path || {};
 	this.language = params.language || 'en';
 	this.init = typeof(params.init) != 'undefined'? params.init: true;
@@ -47,8 +48,13 @@ BX.ImMobile = function(params)
 	this.sendAjaxTry = 0;
 	this.pathToRoot = BX.message('MobileSiteDir') ? BX.message('MobileSiteDir') : '/';
 	this.pathToAjax = this.pathToRoot+'mobile/ajax.php?mobile_action=im&';
+	this.pathToCallAjax = this.pathToAjax+'call&';
 	this.pathToFileAjax = this.pathToAjax+'upload&';
 	this.pathToBlankImage = '/bitrix/js/im/images/blank.gif';
+	this.pathToCrmDeal = this.pathToRoot+"mobile/crm/deal/view.php?deal_id=#ID#";
+	this.pathToCrmLead = this.pathToRoot+"mobile/crm/lead/view.php?lead_id=#ID#";
+	this.pathToCrmCompany = this.pathToRoot+"mobile/crm/company/view.php?company_id=#ID#";
+	this.pathToCrmContact = this.pathToRoot+"mobile/crm/contact/view.php?contact_id=#ID#";
 
 	this.notifyCount = params.notifyCount || 0;
 	this.messageCount = params.messageCount || 0;
@@ -57,6 +63,7 @@ BX.ImMobile = function(params)
 	this.settings = params.settings || {};
 	this.settingsNotifyBlocked = params.settingsNotifyBlocked || {};
 
+	this.saveSettingsTimeout = [];
 	this.timeoutUpdateCounters = null;
 	this.timeoutUpdateStateLight = null;
 
@@ -98,6 +105,7 @@ BX.ImMobile = function(params)
 	this.notify.disk = this.disk;
 
 	this.messenger = new BX.ImMessengerMobile(this, {
+		'openChatEnable': params.openChatEnable || true,
 		'updateStateInterval': params.updateStateInterval,
 		'notifyClass': this.notify,
 		'diskClass': this.disk,
@@ -109,6 +117,8 @@ BX.ImMobile = function(params)
 		'woGroups': params.woGroups || {},
 		'woUserInGroup': params.woUserInGroup || {},
 		'currentTab' : params.currentTab || 0,
+		'generalChatId' : params.generalChatId || 0,
+		'canSendMessageGeneralChat' : params.canSendMessageGeneralChat || false,
 		'chat' : params.chat || {},
 		'userInChat' : params.userInChat || {},
 		'userChat' : params.userChat || {},
@@ -125,7 +135,20 @@ BX.ImMobile = function(params)
 	this.notify.messenger = this.messenger;
 	this.disk.messenger = this.messenger;
 
-	this.webrtc = params.webrtc || {}
+	this.webrtc = new BX.ImWebRTCMobile(this, {
+		'callMethod': params.mobileCallMethod? params.mobileCallMethod: 'device',
+		'desktopClass': this.desktop,
+		'phoneEnabled': params.webrtc && params.webrtc.phoneEnabled || false,
+		'mobileSupport': params.webrtc && params.webrtc.mobileSupport || false,
+		'phoneSipAvailable': params.webrtc && params.webrtc.phoneSipAvailable || 0,
+		'phoneDeviceActive': params.webrtc && params.webrtc.phoneDeviceActive || 'N',
+		'phoneDeviceCall': params.webrtc && params.webrtc.phoneDeviceCall || 'Y',
+		'phoneCrm': params.phoneCrm && params.phoneCrm || {},
+		'turnServer': params.webrtc && params.webrtc.turnServer || '',
+		'turnServerFirefox': params.webrtc && params.webrtc.turnServerFirefox || '',
+		'turnServerLogin': params.webrtc && params.webrtc.turnServerLogin || '',
+		'turnServerPassword': params.webrtc && params.webrtc.turnServerPassword || ''
+	});
 	this.messenger.webrtc = this.webrtc;
 
 	if (this.init)
@@ -156,7 +179,189 @@ BX.ImMobile = function(params)
 			}
 		}
 	},this));
+
+
 }
+
+
+BX.ImMobile.prototype.saveSettings = function(settings)
+{
+	var timeoutKey = '';
+	for (var config in settings)
+	{
+		this.settings[config] = settings[config];
+		timeoutKey = timeoutKey+config;
+	}
+	BX.localStorage.set('ims', JSON.stringify(this.settings), 5);
+
+	if (this.saveSettingsTimeout[timeoutKey])
+		clearTimeout(this.saveSettingsTimeout[timeoutKey]);
+
+	this.saveSettingsTimeout[timeoutKey] = setTimeout(BX.delegate(function(){
+		BX.ajax({
+			url: this.pathToAjax+'?SETTINGS_SAVE&V='+this.revision,
+			method: 'POST',
+			dataType: 'json',
+			timeout: 30,
+			data: {'IM_SETTING_SAVE' : 'Y', 'IM_AJAX_CALL' : 'Y', SETTINGS: JSON.stringify(settings), 'sessid': BX.bitrix_sessid()}
+		});
+		delete this.saveSettingsTimeout[timeoutKey];
+	}, this), 700);
+};
+
+BX.ImMobile.prototype.setLocalConfig = function()
+{
+}
+
+BX.ImMobile.prototype.getLocalConfig = function()
+{
+}
+
+BX.ImMobile.prototype.playSound = function(sound)
+{
+	var whiteList = {'ringtone': BX.MobileCallUI.form.sound.INCOMING, 'start': BX.MobileCallUI.form.sound.START_CALL};
+
+	whiteList[BX.MobileCallUI.form.sound.START_CALL] = BX.MobileCallUI.form.sound.START_CALL;
+	whiteList[BX.MobileCallUI.form.sound.INCOMING] = BX.MobileCallUI.form.sound.INCOMING;
+
+	if (!whiteList[sound])
+		return false;
+
+	BX.MobileCallUI.form.playSound(whiteList[sound])
+};
+
+BX.ImMobile.prototype.stopSound = function()
+{
+	BX.MobileCallUI.form.stopSound();
+};
+
+BX.ImMobile.prototype.repeatSound = function(sound, time)
+{
+	this.playSound(sound);
+};
+
+BX.ImMobile.prototype.stopRepeatSound = function(sound, send)
+{
+	BX.MobileCallUI.form.stopSound();
+};
+
+
+
+BX.ImMobile.prototype.phoneTo = function(number, params)
+{
+	params = params? params: {};
+	if (typeof(params) != 'object')
+	{
+		try { params = JSON.parse(params); } catch(e) { params = {} }
+	}
+
+	if (!this.webrtc.phoneEnabled)
+	{
+		params.callMethod = 'device';
+	}
+
+	if (this.mobileAction != 'RECENT')
+	{
+		BX.MobileTools.phoneTo(number, params);
+		return true;
+	}
+
+	if (!params.callMethod)
+	{
+		params.callMethod = this.webrtc.callMethod;
+	}
+
+	if (params.callMethod != 'device' && this.webrtc.mobileSupport)
+	{
+		if (params.callMethod == 'telephony')
+		{
+			this.webrtc.phoneCall(number, params);
+		}
+		else
+		{
+			var sheetButtons = [];
+
+			sheetButtons.push({
+				title: BX.message("IM_PHONE_CALL_VOICE_TO").replace('#PHONE#', number),
+				callback: BX.delegate(function () { params.callMethod = 'telephony'; this.phoneTo(number, params); }, this)
+			});
+			sheetButtons.push({
+				title: BX.message("IM_CALL_BY_B24"),
+				callback: BX.delegate(function () { params.callMethod = 'telephony'; this.phoneTo(number, params); }, this)
+			});
+			sheetButtons.push({
+				title: BX.message("IM_CALL_BY_MOBILE"),
+				callback: BX.delegate(function () { params.callMethod = 'device'; this.phoneTo(number, params); }, this)
+			});
+
+			(new BXMobileApp.UI.ActionSheet({buttons: sheetButtons}, "im-phone-menu")).show();
+		}
+	}
+	else
+	{
+		document.location.href = "tel:" + number;
+	}
+}
+
+BX.ImMobile.prototype.openConfirm = function(params, buttons)
+{
+	var confirm = {};
+	if (typeof(params) != "object")
+	{
+		confirm = {
+			title: '',
+			text: params,
+			params: {},
+			buttons: [],
+			actions: []
+		}
+	}
+	else
+	{
+		confirm.title = params.title || '';
+		confirm.text = params.message || '';
+		confirm.params = params.params || {};
+		confirm.buttons = [];
+		confirm.actions = [];
+	}
+
+	if (typeof(buttons) == "undefined" || typeof(buttons) == "object" && buttons.length <= 0)
+	{
+		confirm.buttons = [BX.message('IM_MENU_CANCEL')];
+		confirm.actions = [function(){}];
+	}
+	else
+	{
+		confirm.buttons = [];
+		confirm.actions = [];
+		for (var i = 0; i < buttons.length; i++)
+		{
+			confirm.buttons[i] = buttons[i].text;
+
+			if (typeof(buttons[i].callback) == 'function')
+			{
+				confirm.actions[i+1] = buttons[i].callback;
+			}
+			else
+			{
+				confirm.actions[i+1] = function(){}
+			}
+		}
+	}
+
+	app.confirm({
+		title : confirm.title,
+		text : confirm.text,
+		buttons : confirm.buttons,
+		callback : function (btnNum)
+		{
+			if (typeof(confirm.actions[btnNum]) == 'function')
+			{
+				confirm.actions[btnNum](confirm.params);
+			}
+		}
+	});
+};
 
 BX.ImMobile.prototype.openRecentList = function()
 {
@@ -171,7 +376,7 @@ BX.ImMobile.prototype.mobileActionPrepare = function(params)
 {
 	if (this.mobileAction == 'RECENT')
 	{
-		this.messenger.drawRecentList();
+
 	}
 	else if (this.mobileAction == 'INIT')
 	{
@@ -192,7 +397,11 @@ BX.ImMobile.prototype.mobileActionFromCache = function()
 
 	BX.addClass(document.body, 'im-page-from-cache');
 
-	if (this.mobileAction == 'DIALOG')
+	if (this.mobileAction == 'RECENT')
+	{
+		this.messenger.drawRecentList();
+	}
+	else if (this.mobileAction == 'DIALOG')
 	{
 		this.messenger.currentTab = 0;
 		this.messenger.openChatFlag = false;
@@ -218,6 +427,34 @@ BX.ImMobile.prototype.mobileActionReady = function()
 
 	if (this.mobileAction == 'RECENT')
 	{
+		this.recentPageAction();
+
+		if (!window.imRecentFastClick)
+		{
+			window.imRecentFastClick = true;
+			BitrixMobile.fastClick.bindDelegate(this.messenger.popupContactListElementsWrap, {className: 'bx-messenger-cl-item'}, BX.delegate(BX.MessengerCommon.contactListClickItem, BX.MessengerCommon));
+			BitrixMobile.fastClick.bindDelegate(this.messenger.popupContactListElementsWrap, {className: 'bx-messenger-cl-group-title'}, BX.delegate(BX.MessengerCommon.contactListToggleGroup, BX.MessengerCommon));
+
+			BitrixMobile.fastClick.bindDelegate(this.messenger.popupContactListElementsWrap, {className: 'bx-messenger-chatlist-more-wrap'}, BX.delegate(function(e){
+				console.log('in!');
+				if (BX.hasClass(BX.proxy_context.parentNode, 'bx-messenger-chatlist-show-all'))
+				{
+					this.messenger.contactListShowed[BX.proxy_context.firstChild.getAttribute('data-id')] = false;
+					BX.proxy_context.firstChild.innerHTML = BX.proxy_context.firstChild.getAttribute('data-text');
+					BX.removeClass(BX.proxy_context.parentNode, 'bx-messenger-chatlist-show-all');
+
+					var pos = BX.pos(BX.proxy_context);
+					document.body.scrollTop = pos.top-100;
+				}
+				else
+				{
+					this.messenger.contactListShowed[BX.proxy_context.firstChild.getAttribute('data-id')] = true;
+					BX.proxy_context.firstChild.innerHTML = BX.message('IM_CL_HIDE');
+					BX.addClass(BX.proxy_context.parentNode, 'bx-messenger-chatlist-show-all');
+				}
+			}, this));
+		}
+
 		BX.addCustomEvent("onImDialogOpen", BX.delegate(function (params)
 		{
 			this.messenger.openMessenger(params.id, false, false);
@@ -244,9 +481,19 @@ BX.ImMobile.prototype.mobileActionReady = function()
 	}
 	else if (this.mobileAction == 'DIALOG')
 	{
-		BX.addCustomEvent("onOpenPageAfter", BX.delegate(function(){
+		BX.addCustomEvent("UIApplicationDidBecomeActiveNotification", BX.delegate(function (params){
+			if (BX.MessengerCommon.isMobile() && typeof BXMobileAppContext == "object" && BXMobileAppContext.isBackground())
+				return false;
+
 			BX.MessengerCommon.readMessage(this.messenger.currentTab);
-			this.messenger.dialogStatusRedraw();
+		}, this));
+
+		BX.addCustomEvent("onOpenPageAfter", BX.delegate(function(){
+			if (BX.MessengerCommon.isMobile() && typeof BXMobileAppContext == "object" && BXMobileAppContext.isBackground())
+				return false;
+
+			BX.MessengerCommon.readMessage(this.messenger.currentTab);
+			this.messenger.dialogStatusRedrawDelay();
 			app.onCustomEvent('onImDialogOpen', {id: this.messenger.currentTab});
 		}, this));
 
@@ -270,7 +517,7 @@ BX.ImMobile.prototype.mobileActionReady = function()
 			}, this),
 			smileButton: {},
 			placeholder: BX.message('IM_M_TEXTAREA'),
-            mentionDataSource: {outsection:false, url:this.pathToRoot+"mobile/index.php?mobile_action=get_user_list&use_name_format=Y"},
+			mentionDataSource: {outsection:false, url:this.pathToRoot+"mobile/index.php?mobile_action=get_user_list&use_name_format=Y"},
 			button_name: BX.message('IM_M_MESSAGE_SEND'),
 			plusAction: !this.disk.enable? "": BX.delegate(function()
 			{
@@ -284,6 +531,7 @@ BX.ImMobile.prototype.mobileActionReady = function()
 			}, this)
 		});
 		BXMobileApp.UI.Page.TextPanel.show();
+		this.messenger.textPanelShowed = true;
 
 		app.enableCaptureKeyboard(true);
 
@@ -331,10 +579,67 @@ BX.ImMobile.prototype.mobileActionReady = function()
 		{
 			BX.localStorage.set('impmh', true, 1);
 			var userId = BX.proxy_context.parentNode.parentNode.getAttribute('data-senderId');
+
+			if (this.messenger.currentTab.substr(0,4) == 'chat')
+			{
+				var chatId = this.messenger.currentTab.substr(4);
+				if (!BX.MessengerCommon.userInChat(chatId))
+				{
+					return false;
+				}
+				if (this.messenger.generalChatId == chatId && !this.messenger.canSendMessageGeneralChat)
+				{
+					return false;
+				}
+			}
+
 			this.messenger.messageReply(userId);
-	
+
 			return BX.PreventDefault(e);
 		}, this));
+
+		BX.bindDelegate(this.messenger.popupMessengerBodyWrap, 'click', {className: 'bx-messenger-ajax'}, BX.delegate(function(e) {
+			BX.localStorage.set('impmh', true, 1);
+			if (BX.proxy_context.getAttribute('data-entity') == 'user')
+			{
+				 app.loadPageBlank({
+					 url: this.path.profileTemplate.replace('#user_id#', BX.proxy_context.getAttribute('data-userId')),
+					 bx24ModernStyle: true
+				 });
+			}
+			else if (BX.proxy_context.getAttribute('data-entity') == 'chat')
+			{
+				BXMobileApp.PageManager.loadPageUnique({
+					'url' : this.pathToRoot + 'mobile/im/chat.php?chat_id='+BX.proxy_context.getAttribute('data-chatId')+'&actions=Y',
+					'bx24ModernStyle' : true,
+					'data': {dialogId: this.currentTab}
+				});
+			}
+			else if (BX.proxy_context.getAttribute('data-entity') == 'phoneCallHistory')
+			{
+				app.alert({'text': BX.message('IM_FILE_LISTEN_NA')});
+			}
+			return BX.PreventDefault(e);
+		}, this));
+
+		BX.adjust(BX('im-dialog-invite'), {children: [
+			BX.create("div", { props : { className : "bx-messenger-textarea-open-invite" }, children : [
+				BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-text-box" }, children: [
+					BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-text-box-element" }, children: [
+						this.popupMessengerTextareaOpenText = BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-text" }, html: BX.message('IM_O_INVITE_TEXT')})
+					]})
+				]}),
+				this.popupMessengerTextareaOpenJoin = BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-join bx-notifier-item-button bx-notifier-item-button-confirm bx-notifier-item-button-accept" }, html: BX.message('IM_O_INVITE_JOIN')})
+			]}),
+			BX.create("div", { props : { className : "bx-messenger-textarea-general-invite" }, children : [
+				BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-text-box" }, children: [
+					BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-text-box-element" }, children: [
+						this.popupMessengerTextareaGeneralText = BX.create("div", { props : { id: 'im-dialog-invite-text', className : "bx-messenger-textarea-open-invite-text" }})
+					]})
+				]}),
+				this.popupMessengerTextareaGeneralJoin = BX.create("div", { props : { className : "bx-messenger-textarea-open-invite-join bx-notifier-item-button bx-notifier-item-button-confirm bx-notifier-item-button-accept" }, html: BX.message('IM_G_JOIN_'+this.userGender)})
+			]})
+		]});
 
 		BX.adjust(BX('im-dialog-form'), {children: [this.messenger.popupMessengerFileForm = BX.create('form', { attrs : { action : this.pathToFileAjax}, props : { className : "bx-messenger-textarea-file-form" }, children: [
 			BX.create('input', { attrs : { type : 'hidden', name: 'IM_FILE_UPLOAD', value: 'Y'}}),
@@ -348,12 +653,37 @@ BX.ImMobile.prototype.mobileActionReady = function()
 
 		this.disk.chatDialogInit();
 
+		BX.bind(this.popupMessengerTextareaGeneralJoin, 'click', BX.delegate(function() {
+			this.settings.generalNotify = false;
+
+			this.saveSettings({'generalNotify': this.settings.generalNotify});
+			this.messenger.dialogStatusRedrawDelay();
+
+			setTimeout(BX.delegate(function(){
+				this.messenger.autoScroll();
+			}, this),300);
+
+			return true;
+		}, this));
+
+		BX.bind(this.popupMessengerTextareaOpenJoin, 'click', BX.delegate(function() {
+			if (this.messenger.currentTab.substr(0, 4) != 'chat')
+				return false;
+
+			var chatId = this.messenger.currentTab.substr(4);
+			BX.MessengerCommon.joinToChat(chatId);
+
+			return true;
+		}, this));
+
+		/*
 		BX.bindDelegate(this.messenger.popupMessengerBodyWrap, 'click', {className: 'bx-messenger-content-item-like'}, BX.delegate(function(e) {
+			BX.localStorage.set('impmh', true, 1);
 			var messageId = BX.proxy_context.parentNode.parentNode.parentNode.parentNode.getAttribute('data-blockmessageid');
 			BX.MessengerCommon.messageLike(messageId);
-			BX.localStorage.set('impmh', true, 1);
 			return BX.PreventDefault(e);
 		}, this));
+		*/
 
 		BX.bindDelegate(this.messenger.popupMessengerBodyWrap, 'click', {tagName: 'a'}, BX.delegate(function(e) {
 			BX.localStorage.set('impmh', true, 1);
@@ -374,31 +704,21 @@ BX.ImMobile.prototype.mobileActionReady = function()
 	}
 }
 
-BX.ImMobile.prototype.initPageAction = function (params)
+BX.ImMobile.prototype.recentPageAction = function (params)
 {
+	BX.addCustomEvent("onPhoneTo", BX.delegate(function (data){
+		this.phoneTo(data.number, data.params);
+	}, this));
+
 	BX.addCustomEvent("UIApplicationDidBecomeActiveNotification", BX.delegate(function (params){
 		setTimeout(BX.delegate(this.updateStateLight, this), 1000);
 	}, this));
 
-	BX.addCustomEvent("onImError", BX.delegate(function (params){
-		if (params.error == 'AUTHORIZE_ERROR')
-		{
-			app.BasicAuth({success: BX.delegate(function ()
-			{
-				setTimeout(BX.delegate(this.updateStateLight, this), 1000);
-			}, this)});
-		}
-		else if (params.error == 'RECENT_RELOAD')
-		{
-			app.BasicAuth({success: BX.delegate(function ()
-			{
-				setTimeout(BX.delegate(this.updateStateLight, this), 1000);
-			}, this)});
-		}
-	}, this));
-
-	BX.addCustomEvent("onPullEvent-im", BX.delegate(function (command, params)
+	BX.addCustomEvent("onPull-im", BX.delegate(function (data)
 	{
+		params = data.params;
+		command = data.command;
+
 		if (command == 'readMessage')
 		{
 			this.messageCountArray[params.userId] = 0;
@@ -488,6 +808,28 @@ BX.ImMobile.prototype.initPageAction = function (params)
 		this.notify.notifyViewedWait();
 	}, this));
 
+	this.updateStateLight();
+}
+
+BX.ImMobile.prototype.initPageAction = function (params)
+{
+	BX.addCustomEvent("onImError", BX.delegate(function (params){
+		if (params.error == 'AUTHORIZE_ERROR')
+		{
+			app.BasicAuth({success: BX.delegate(function ()
+			{
+				setTimeout(BX.delegate(this.updateStateLight, this), 1000);
+			}, this)});
+		}
+		else if (params.error == 'RECENT_RELOAD')
+		{
+			app.BasicAuth({success: BX.delegate(function ()
+			{
+				setTimeout(BX.delegate(this.updateStateLight, this), 1000);
+			}, this)});
+		}
+	}, this));
+
 	BX.addCustomEvent("onOpenPush", BX.delegate(function (push)
 	{
 		var pushParams = BXMobileApp.PushManager.prepareParams(push);
@@ -531,6 +873,11 @@ BX.ImMobile.prototype.initPageAction = function (params)
 				mwebrtc.callInvite(userId);
 			}
 		}
+		else if (pushParams.ACTION.substr(0, 8) == 'VI_CALL_')
+		{
+			console.log('set', pushParams.PARAMS);
+			BX.localStorage.set('viInvite', pushParams.PARAMS, 30);
+		}
 	}, this));
 
 	app.setPanelPages({
@@ -539,8 +886,6 @@ BX.ImMobile.prototype.initPageAction = function (params)
 		'notifications_page': this.pathToRoot + "mobile/im/notify.php",
 		'notifications_open_empty': true
 	});
-
-	this.updateStateLight();
 }
 
 BX.ImMobile.prototype.dialogPageAction = function (params)
@@ -562,9 +907,12 @@ BX.ImMobile.prototype.updateStateLight = function ()
 			dataType: 'json',
 			skipAuthCheck: true,
 			timeout: 20,
-			data: {'IM_UPDATE_STATE_LIGHT': 'Y', 'MOBILE': 'Y', 'SITE_ID': BX.message('SITE_ID'), 'NOTIFY': 'Y', 'MESSAGE': 'Y', 'IM_AJAX_CALL': 'Y', 'sessid': BX.bitrix_sessid()},
+			data: {'IM_UPDATE_STATE_LIGHT': 'Y', 'MOBILE': 'Y', 'FOCUS': (typeof BXMobileAppContext != "object" || BXMobileAppContext.isBackground())?'N':'Y', 'SITE_ID': BX.message('SITE_ID'), 'NOTIFY': 'Y', 'MESSAGE': 'Y', 'IM_AJAX_CALL': 'Y', 'sessid': BX.bitrix_sessid()},
 			onsuccess: BX.delegate(function (data)
 			{
+				if (!this.checkRevision(data.MOBILE_REVISION))
+					return false;
+
 				BX.onCustomEvent('onUpdateStateDone', [true]);
 				BXMobileApp.onCustomEvent('onUpdateStateDone', true);
 
@@ -697,7 +1045,7 @@ BX.ImMobile.prototype.updateCounter = function ()
 		for (var i in this.messageCountArray)
 			this.messageCount += parseInt(this.messageCountArray[i]);
 
-		BX.Menu.updateCounters({'im-message': this.messageCount})
+		//BX.Menu.updateCounters({'im-message': this.messageCount})
 
 		app.setBadge(parseInt(this.messageCount + this.notifyCount));
 		app.setCounters({
@@ -714,9 +1062,16 @@ BX.ImMobile.prototype.isFocus = function()
 
 BX.ImMobile.prototype.isFocusMobile = function(func)
 {
-	BXMobileApp.UI.Page.isVisible({callback: BX.delegate(function(data){
-		func(data.status == 'visible');
-	}, this)})
+	if (typeof BXMobileAppContext == "object" && BXMobileAppContext.isBackground())
+	{
+		func(false);
+	}
+	else
+	{
+		BXMobileApp.UI.Page.isVisible({callback: BX.delegate(function(data){
+			func(data.status == 'visible');
+		}, this)})
+	}
 
 	return null;
 }
@@ -732,7 +1087,7 @@ BX.ImMobile.prototype.checkRevision = function(revision)
 	if (typeof(revision) == "number" && this.revision < revision)
 	{
 		console.log('NOTICE: Window reload, because REVISION UP ('+this.revision+' -> '+revision+')');
-		BXMobileApp.UI.Page.reloadUnique()
+		location.reload();
 
 		return false;
 	}
@@ -784,10 +1139,12 @@ BX.ImMessengerMobile = function(BXIM, params)
 	this.flashMessage = params.flashMessage;
 	this.history = params.history || {};
 
+	this.openChatEnable = params.openChatEnable || true;
 	this.chat = params.chat;
 	this.userChat = params.userChat;
 	this.userInChat = params.userInChat;
 	this.userChatBlockStatus = params.userChatBlockStatus;
+	this.blockJoinChat = {};
 	this.hrphoto = params.hrphoto;
 
 	this.chatPublicWatch = 0;
@@ -828,8 +1185,11 @@ BX.ImMessengerMobile = function(BXIM, params)
 	this.contactListSearchText = '';
 	this.contactListSearchLastText = '';
 
+	this.popupChatDialogContactListElementsType = '';
 	this.popupContactListElementsWrap = null;
 	this.popupContactListSearchInput = null;
+
+	this.popupContactListElementsSize = window.screen.height;
 
 	this.popupMessengerConnectionStatusState = "online";
 	this.popupMessengerConnectionStatusStateText = "online";
@@ -839,14 +1199,19 @@ BX.ImMessengerMobile = function(BXIM, params)
 
 	this.recent = params.recent? params.recent: [];
 	this.recentListLoad = params.recent? true: false;
-	this.recentList = true;
-	this.recentListReturn = false;
+
 	this.recentListTab = null;
 	this.recentListTabCounter = null;
 	this.recentListIndex = [];
 	this.currentTab = params.currentTab;
+	this.generalChatId = params.generalChatId;
+	this.canSendMessageGeneralChat = params.canSendMessageGeneralChat;
 
+	this.chatList = false;
+	this.recentList = true;
 	this.contactList = false;
+	this.contactListShowed = {};
+
 	this.contactListTab = null;
 	this.contactListLoad = false;
 	this.redrawContactListTimeout = {};
@@ -939,11 +1304,25 @@ BX.ImMessengerMobile.prototype.newMessage = function()
 				messageText = messageText.replace(/\[USER=([0-9]{1,})\](.*?)\[\/USER\]/ig, function(whole, userId, text) {return text;});
 				messageText = messageText.replace(/\[PCH=([0-9]{1,})\](.*?)\[\/PCH\]/ig, function(whole, historyId, text) {return text;});
 
+				var avatarType = 'private';
+				var avatarImage = isChat? this.chat[recipientId.substr(4)].avatar: this.users[senderId].avatar;
+				if (isChat)
+				{
+					if (recipientId.substr(4) == this.generalChatId)
+					{
+						avatarType = 'general';
+					}
+					else
+					{
+						avatarType = this.chat[recipientId.substr(4)].type;
+					}
+				}
+
 				arNewMessageText.push({
 					'id':  isChat? recipientId: senderId,
 					'title':  isChat? this.chat[recipientId.substr(4)].name: this.users[senderId].name,
 					'text':  (isChat && senderId>0?this.users[senderId].name+': ':'')+messageText,
-					'icon':  isChat? this.chat[recipientId.substr(4)].avatar: this.users[senderId].avatar,
+					'icon':  BX.MessengerCommon.isBlankAvatar(avatarImage)? BX.MessengerCommon.getDefaultAvatar(avatarType): avatarImage,
 					'tag':  'im-messenger-'+(isChat? recipientId: senderId)
 				});
 
@@ -963,7 +1342,7 @@ BX.ImMessengerMobile.prototype.newMessage = function()
 		arNewMessageText.push({
 			'id': 'im-common',
 			'title':  BX.message('IM_NM_MESSAGE_1').replace('#COUNT#', countMessage),
-			'icon': '',
+			'icon': BX.MessengerCommon.getDefaultAvatar('notify'),
 			'text':  BX.message('IM_NM_MESSAGE_2').replace('#USERS#', BX.util.htmlspecialcharsback(names.substr(2))).replace(/<\/?[^>]+>/gi, ''),
 			'tag': 'im-messenger'
 		})
@@ -1020,11 +1399,11 @@ BX.ImMessengerMobile.prototype.drawRecentList = function()
 		'callback': function(){
 			app.BasicAuth({
 				success: function() {
-					BX.onCustomEvent('onImError', [{error: 'RECENT_RELOAD'}]);
-					BXMobileApp.onCustomEvent('onImError', {error: 'RECENT_RELOAD'});
-					BX.frameCache.update();
+					//BX.onCustomEvent('onImError', [{error: 'RECENT_RELOAD'}]);
+					//BXMobileApp.onCustomEvent('onImError', {error: 'RECENT_RELOAD'});
+					//BX.frameCache.update();
 					app.pullDownLoadingStop();
-					//BXMobileApp.UI.Page.reload();
+					BXMobileApp.UI.Page.reload();
 				},
 				failture: function() {
 					app.pullDownLoadingStop();
@@ -1033,23 +1412,39 @@ BX.ImMessengerMobile.prototype.drawRecentList = function()
 		}
 	});
 
-	this.popupContactListSearchInput = BX('im-contact-list-search');
-	this.popupContactListSearchInput.innerHTML = '';
-	BX.addClass(this.popupContactListSearchInput, 'bx-messenger-cl-wrap');
-	BX.unbindAll(this.popupContactListSearchInput);
+	this.popupContactListWrap = BX('im-contact-list-search');
+	this.popupContactListWrap.innerHTML = '';
+	BX.addClass(this.popupContactListWrap, 'bx-messenger-cl-wrap');
+	BX.unbindAll(this.popupContactListWrap);
 
-	BX.adjust(this.popupContactListSearchInput, {children: [
-		this.popupContactListSearchWrap = BX.create("div", { props : { className : "bx-messenger-cl-search" }, children : [
+	BX.adjust(this.popupContactListWrap, {children: [
+		BX.create("div", { props : { className : "bx-messenger-cl-search"+(this.webrtc.phoneEnabled? ' bx-messenger-cl-search-with-call': '') }, children : [
+			this.webrtc.phoneEnabled? this.popupContactListSearchCall = BX.create("span", {props : { className : "bx-messenger-cl-switcher-tab-wrap bx-messenger-input-search-call" }, html: '<span class="bx-messenger-input-search-call-icon"></span>'}): null,
 			BX.create("div", { props : { className : "bx-messenger-input-wrap bx-messenger-cl-search-wrap" }, children : [
 				this.popupContactListSearchClose = BX.create("span", {props : { className : "bx-messenger-input-close" }}),
 				this.popupContactListSearchInput = BX.create("input", { attrs: {type: "text", placeholder: BX.message('IM_SEARCH_PLACEHOLDER_CP'), value: this.contactListSearchText}, props : { className : "bx-messenger-input" }})
 			]})
 		]})
 	]});
+	BX.unbindAll(this.popupContactListSearchInput);
+	BX.bind(this.popupContactListSearchInput, "focus", BX.delegate(function() {
+		if (this.contactListSearchText.length == 0 && !this.chatList)
+		{
+			BX.MessengerCommon.chatListRedraw();
+		}
+	}, this));
 	BX.bind(this.popupContactListSearchInput, "keyup", BX.delegate(function(e)
 	{
 		BX.MessengerCommon.contactListSearch(e)
 	}, this));
+
+	if (this.webrtc.phoneEnabled)
+	{
+		BX.unbindAll(this.popupContactListSearchCall);
+		BX.bind(this.popupContactListSearchCall, "click", function(){
+			BX.MobileCallUI.numpad.show();
+		});
+	}
 
 	this.popupContactListElementsWrap = BX('im-contact-list-wrap');
 	this.popupContactListElementsWrap.innerHTML = '';
@@ -1057,14 +1452,12 @@ BX.ImMessengerMobile.prototype.drawRecentList = function()
 
 	BX.addClass(this.popupContactListElementsWrap, 'bx-messenger-recent-wrap');
 
-	BitrixMobile.fastClick.bindDelegate(this.popupContactListElementsWrap, {className: 'bx-messenger-cl-item'}, BX.delegate(BX.MessengerCommon.contactListClickItem, BX.MessengerCommon));
-	BitrixMobile.fastClick.bindDelegate(this.popupContactListElementsWrap, {className: 'bx-messenger-cl-group-title'}, BX.delegate(BX.MessengerCommon.contactListToggleGroup, BX.MessengerCommon));
-
+	BX.unbindAll(this.popupContactListSearchClose);
 	BX.bind(this.popupContactListSearchClose, "click", BX.delegate(BX.MessengerCommon.contactListSearchClear, BX.MessengerCommon));
 
 	if (this.recent.length == 0)
 	{
-		BX.MessengerCommon.contactListRedraw();
+		BX.MessengerCommon.chatListRedraw();
 	}
 	else
 	{
@@ -1097,6 +1490,9 @@ BX.ImMessengerMobile.prototype.openPhotoGallery = function(currentPhoto)
 
 BX.ImMessengerMobile.prototype.dialogStatusRedraw = function(params)
 {
+	if (this.BXIM.mobileAction != 'DIALOG')
+		return false;
+
 	var paramsType = params && params.type? parseInt(params.type): 'none';
 
 	clearTimeout(this.dialogStatusRedrawTimeout);
@@ -1127,22 +1523,38 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 		{
 			var muteButtonText = this.userChatBlockStatus[chatId] && this.userChatBlockStatus[chatId][this.BXIM.userId] == 'Y'? BX.message('IM_CHAT_MUTE_ON'): BX.message('IM_CHAT_MUTE_OFF');
 
-			app.menuCreate({items:[
-				{ icon: 'glasses', name: muteButtonText, action:BX.delegate(function() {  BX.MessengerCommon.muteMessageChat(this.currentTab.toString().substr(4)); }, this)},
-				{ icon: 'user', name: BX.message('IM_M_MENU_USERS'), action:BX.delegate(function() {
-					BXMobileApp.PageManager.loadPageUnique({
-						'url' : this.BXIM.pathToRoot + 'mobile/im/chat.php?chat_id='+this.currentTab.toString().substr(4),
-						'bx24ModernStyle' : true,
-						'data': {dialogId: this.currentTab}
-					})
-				}, this)},
-				{ icon: 'add', name: BX.message('IM_M_MENU_ADD'), action:BX.delegate(function() {  this.extendChat(this.currentTab, true); }, this)},
-				{ icon: 'reload', name: BX.message('IM_M_MENU_RELOAD'), action:function() {
-					BXMobileApp.UI.Page.TopBar.title.setText('');
-					BXMobileApp.UI.Page.TopBar.title.setDetailText('');
-					BXMobileApp.UI.Page.reloadUnique()
-				}}
-			]});
+			var items = [];
+			if (BX.MessengerCommon.userInChat(chatId))
+			{
+				items.push({ icon: 'glasses', name: muteButtonText, action:BX.delegate(function() {  BX.MessengerCommon.muteMessageChat(this.currentTab); }, this)});
+			}
+			items.push({ icon: 'user', name: BX.message('IM_M_MENU_USERS'), action:BX.delegate(function() {
+				BXMobileApp.PageManager.loadPageUnique({
+					'url' : this.BXIM.pathToRoot + 'mobile/im/chat.php?chat_id='+this.currentTab.toString().substr(4),
+					'bx24ModernStyle' : true,
+					'data': {dialogId: this.currentTab}
+				})
+			}, this)});
+			if (this.generalChatId != chatId && BX.MessengerCommon.userInChat(chatId))
+			{
+				items.push({ icon: 'add', name: BX.message('IM_M_MENU_ADD'), action:BX.delegate(function() {  this.extendChat(this.currentTab, true); }, this)});
+			}
+			items.push({ icon: 'reload', name: BX.message('IM_M_MENU_RELOAD'), action:function() {
+				BXMobileApp.UI.Page.TopBar.title.setText('');
+				BXMobileApp.UI.Page.TopBar.title.setDetailText('');
+				location.reload();
+			}});
+			if (BX.MessengerCommon.userInChat(chatId))
+			{
+				items.push({ icon: 'cross', name: BX.message('IM_M_MENU_LEAVE'), action:BX.delegate(function() {
+					this.BXIM.openConfirm({title: BX.message('IM_MENU_WARN'), message: BX.message('IM_MENU_LEAVE_CONFIRM'), params: {chatId: chatId}}, [
+						{text: BX.message('IM_MENU_MESS_DEL_YES'), callback: function(params){ BX.MessengerCommon.leaveFromChat(params.chatId); }},
+						{text: BX.message('IM_MENU_CANCEL')}
+					]);
+				}, this)});
+			}
+
+			app.menuCreate({items:items});
 		}
 		else
 		{
@@ -1150,7 +1562,8 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 				{ icon: 'reload', name: BX.message('IM_M_MENU_RELOAD'), action:function() {
 					BXMobileApp.UI.Page.TopBar.title.setText('');
 					BXMobileApp.UI.Page.TopBar.title.setDetailText('');
-					BXMobileApp.UI.Page.reloadUnique()
+					//BXMobileApp.UI.Page.reloadUnique()
+					location.reload();
 				}}
 			]});
 		}
@@ -1169,7 +1582,8 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 			{ icon: 'reload', name: BX.message('IM_M_MENU_RELOAD'), action:function() {
 				BXMobileApp.UI.Page.TopBar.title.setText('');
 				BXMobileApp.UI.Page.TopBar.title.setDetailText('');
-				BXMobileApp.UI.Page.reloadUnique()
+				//BXMobileApp.UI.Page.reloadUnique()
+				location.reload();
 			}}
 		]});
 		if (this.users[userId])
@@ -1182,25 +1596,15 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 	{
 		if (this.openChatFlag && this.chat[chatId])
 		{
-			BXMobileApp.UI.Page.TopBar.title.setText(this.chat[chatId].name);
-			BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(this.chat[chatId].avatar)? "": this.chat[chatId].avatar);
-			if (this.chat[chatId].type == 'call')
-			{
-				BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_VI_CALL"));
-			}
-			else
-			{
-				if (this.userInChat[chatId])
-					BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_M_MENU_USERS")+": "+(this.userInChat[chatId].length));
-			}
+			this.redrawChatHeaderDelay();
 		}
 		else
 		{
-			BXMobileApp.UI.Page.TopBar.title.setText(this.users[userId].name);
-			BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(this.users[userId].avatar)? "": this.users[userId].avatar);
-			BXMobileApp.UI.Page.TopBar.title.setDetailText(this.users[userId].workPosition);
+			BXMobileApp.UI.Page.TopBar.title.setText(BX.util.htmlspecialcharsback(this.users[userId].name));
+			BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(this.users[userId].avatar)? BX.MessengerCommon.getDefaultAvatar('private'): this.users[userId].avatar);
+			BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.util.htmlspecialcharsback(this.users[userId].workPosition));
 		}
-		BXMobileApp.UI.Page.TopBar.title.setCallback(function ()            {
+		BXMobileApp.UI.Page.TopBar.title.setCallback(function () {
 			app.menuShow();
 		});
 		BXMobileApp.UI.Page.TopBar.title.show();
@@ -1226,6 +1630,97 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 			this.popupMessengerFileFormChatId.value = this.userChat[this.currentTab]? this.userChat[this.currentTab]: 0;
 	}
 
+	var addClass = [];
+	var removeClass = [];
+	if (this.openChatFlag)
+	{
+		if (this.generalChatId == chatId)
+		{
+			if (!this.BXIM.popupMessengerTextareaGeneralText)
+			{
+				this.BXIM.popupMessengerTextareaGeneralText = BX('im-dialog-invite-text');
+			}
+			if (!this.canSendMessageGeneralChat)
+			{
+				if (this.textPanelShowed)
+				{
+					this.textPanelShowed = false;
+					BXMobileApp.UI.Page.TextPanel.hide();
+				}
+				this.BXIM.popupMessengerTextareaGeneralText.innerHTML = BX.message('IM_G_ACCESS');
+				addClass.push('bx-messenger-chat-general-access');
+				removeClass.push('bx-messenger-chat-general-first-open');
+			}
+			else if (this.BXIM.settings.generalNotify)
+			{
+				if (this.textPanelShowed)
+				{
+					this.textPanelShowed = false;
+					BXMobileApp.UI.Page.TextPanel.hide();
+				}
+				this.BXIM.popupMessengerTextareaGeneralText.innerHTML = BX.message('IM_G_JOIN')
+					.replace('#LINK_START#', '<a href="'+BX.message('IM_G_JOIN_LINK')+'" target="_blank" style="margin-left: 10px; text-decoration: underline;">')
+					.replace('#LINK_END#', '</a>')
+					.replace('#ICON#', '<span class="bx-messenger-icon-notify-mute" onclick="BX.MessengerCommon.muteMessageChat(\'chat'+this.generalChatId+'\');"></span>')
+				;
+				removeClass.push('bx-messenger-chat-general-access');
+				addClass.push('bx-messenger-chat-general-first-open');
+			}
+			else
+			{
+				if (!this.textPanelShowed)
+				{
+					this.textPanelShowed = true;
+					BXMobileApp.UI.Page.TextPanel.show();
+				}
+				removeClass.push('bx-messenger-chat-general-first-open');
+				removeClass.push('bx-messenger-chat-general-access');
+			}
+			removeClass.push('bx-messenger-chat-guest');
+		}
+		else
+		{
+			removeClass.push('bx-messenger-chat-general-first-open');
+			removeClass.push('bx-messenger-chat-general-access');
+
+			if (this.chat[chatId].fake)
+			{
+			}
+			else if (BX.MessengerCommon.userInChat(chatId))
+			{
+				if (!this.textPanelShowed)
+				{
+					this.textPanelShowed = true;
+					BXMobileApp.UI.Page.TextPanel.show();
+				}
+				removeClass.push('bx-messenger-chat-guest');
+			}
+			else
+			{
+				if (this.textPanelShowed)
+				{
+					this.textPanelShowed = false;
+					BXMobileApp.UI.Page.TextPanel.hide();
+				}
+				addClass.push('bx-messenger-chat-guest');
+			}
+		}
+	}
+	else
+	{
+		removeClass.push('bx-messenger-chat-general-first-open');
+		removeClass.push('bx-messenger-chat-general-access');
+		removeClass.push('bx-messenger-chat-guest');
+		if (!this.textPanelShowed)
+		{
+			this.textPanelShowed = true;
+			BXMobileApp.UI.Page.TextPanel.show();
+		}
+	}
+
+	BX.addClass(BX('im-dialog-invite'), addClass.join(" "));
+	BX.removeClass(BX('im-dialog-invite'), removeClass.join(" "));
+
 	if (!params.slidingPanelRedrawDisable && (userId > 0 && !this.users[userId].fake || chatId > 0 && !this.chat[chatId].fake))
 	{
 		var showSlidingPanel = false;
@@ -1241,7 +1736,7 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 					name: BX.message("IM_PHONE_CALL"),
 					type: "call_audio",
 					callback: BX.delegate(function () {
-						document.location.href = "tel:" + this.chat[chatId].call_number;
+						this.BXIM.phoneTo(this.chat[chatId].call_number);
 					},this)
 				};
 			}
@@ -1281,21 +1776,36 @@ BX.ImMessengerMobile.prototype.dialogStatusRedrawDelay = function(params)
 				{
 					sheetButtons.push({
 						title: BX.message("IM_PHONE_MOB")+": "+this.phones[userId].PERSONAL_MOBILE,
-						callback: BX.delegate(function () {document.location.href = "tel:" + this.phones[userId].PERSONAL_MOBILE;}, this)
+						callback: BX.delegate(function () {
+							this.BXIM.phoneTo(this.phones[userId].PERSONAL_MOBILE);
+						}, this)
 					});
 				}
 				if (this.phones[userId].WORK_PHONE)
 				{
 					sheetButtons.push({
 						title: BX.message("IM_PHONE_WORK")+": "+this.phones[userId].WORK_PHONE,
-						callback: BX.delegate(function () {document.location.href = "tel:" + this.phones[userId].WORK_PHONE;}, this)
+						callback: BX.delegate(function () {
+							this.BXIM.phoneTo(this.phones[userId].WORK_PHONE);
+						}, this)
 					});
 				}
 				if (this.phones[userId].PERSONAL_PHONE)
 				{
 					sheetButtons.push({
 						title: BX.message("IM_PHONE_DEF")+": "+this.phones[userId].PERSONAL_PHONE,
-						callback: BX.delegate(function () {document.location.href = "tel:" + this.phones[userId].PERSONAL_PHONE;}, this)
+						callback: BX.delegate(function () {
+							this.BXIM.phoneTo(this.phones[userId].PERSONAL_PHONE);
+						}, this)
+					});
+				}
+				if (this.phones[userId].INNER_PHONE && this.webrtc.phoneEnabled)
+				{
+					sheetButtons.push({
+						title: BX.message("IM_PHONE_DEF")+": "+this.phones[userId].INNER_PHONE,
+						callback: BX.delegate(function () {
+							this.BXIM.phoneTo(this.phones[userId].INNER_PHONE, {callMethod: 'telephony'});
+						}, this)
 					});
 				}
 
@@ -1437,9 +1947,15 @@ BX.ImMessengerMobile.prototype.updateChatAvatar = function(chatId, chatAvatar)
 
 	if (app.enableInVersion(10))
 	{
-		BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(chatAvatar)? "": chatAvatar);
+		if (BX.MessengerCommon.isBlankAvatar(chatAvatar))
+		{
+			this.redrawChatHeaderDelay();
+		}
+		else
+		{
+			BXMobileApp.UI.Page.TopBar.title.setImage(chatAvatar);
+		}
 	}
-
 }
 
 BX.ImMessengerMobile.prototype.redrawChatHeader = function()
@@ -1466,17 +1982,30 @@ BX.ImMessengerMobile.prototype.redrawChatHeaderDelay = function()
 
 	if (app.enableInVersion(10))
 	{
-		BXMobileApp.UI.Page.TopBar.title.setText(this.chat[chatId].name);
-		BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(this.chat[chatId].avatar)? "": this.chat[chatId].avatar);
+		var avatarType = this.chat[chatId].type;
+		BXMobileApp.UI.Page.TopBar.title.setText(BX.util.htmlspecialcharsback(this.chat[chatId].name));
+
 		if (this.chat[chatId].type == 'call')
 		{
 			BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_VI_CALL"));
 		}
 		else
 		{
-			if (this.userInChat[chatId])
+			if (this.generalChatId == chatId && this.userInChat[chatId])
+			{
+				avatarType = 'general';
 				BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_M_MENU_USERS")+": "+(this.userInChat[chatId].length));
+			}
+			else if (this.chat[chatId].type == 'open')
+			{
+				BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_CL_OPEN_CHAT"));
+			}
+			else
+			{
+				BXMobileApp.UI.Page.TopBar.title.setDetailText(BX.message("IM_CL_CHAT_2"));
+			}
 		}
+		BXMobileApp.UI.Page.TopBar.title.setImage(BX.MessengerCommon.isBlankAvatar(this.chat[chatId].avatar)? BX.MessengerCommon.getDefaultAvatar(avatarType): this.chat[chatId].avatar);
 	}
 	var color = this.chat[chatId].extranet? '#e8a441': this.chat[chatId].color;
 	app.exec("setTopBarColors",{background: color, titleText:"#ffffff", titleDetailText:"#f0f0f0"});
@@ -1756,6 +2285,10 @@ BX.ImMessengerMobile.prototype.extendChat = function (dialogId, isChat)
 	});
 }
 
+BX.ImMessengerMobile.prototype.updateMessageCount = function(send)
+{
+}
+
 BX.ImMessengerMobile.prototype.messageReply = function(userId)
 {
 	if (!this.users[userId] || this.users[userId].fake)
@@ -1776,22 +2309,35 @@ BX.ImMessengerMobile.prototype.openMessageMenu = function(messageId)
 	if (!this.message[messageId] || this.BXIM.keyboardShow || BX.localStorage.get('impmh'))
 		return false;
 
-	var iLikeThis = BX.MessengerCommon.messageIsLike(messageId);
+	if (this.chat[this.message[messageId].chatId] && !BX.MessengerCommon.userInChat(this.message[messageId].chatId))
+	{
+		return false;
+	}
 
 	var sheetButtons = [];
 
-	sheetButtons.push({
-		title: BX.message(iLikeThis? "IM_MENU_MESS_DISLIKE": "IM_MENU_MESS_LIKE"),
-		callback: BX.delegate(function () { BX.MessengerCommon.messageLike(messageId); }, this)
-	});
+	if (!(this.chat[this.message[messageId].chatId] && this.chat[this.message[messageId].chatId].type == 'call'))
+	{
+		var iLikeThis = BX.MessengerCommon.messageIsLike(messageId);
+		sheetButtons.push({
+			title: BX.message(iLikeThis? "IM_MENU_MESS_DISLIKE": "IM_MENU_MESS_LIKE"),
+			callback: BX.delegate(function () { BX.MessengerCommon.messageLike(messageId); }, this)
+		});
+	}
 
 	var userId = this.message[messageId].senderId;
 	if (userId > 0)
 	{
-		sheetButtons.push({
-			title: BX.message("IM_MENU_MESS_REPLY"),
-			callback: BX.delegate(function () { this.messageReply(userId); }, this)
-		});
+		if (this.generalChatId == this.message[messageId].chatId && !this.canSendMessageGeneralChat)
+		{
+		}
+		else
+		{
+			sheetButtons.push({
+				title: BX.message("IM_MENU_MESS_REPLY"),
+				callback: BX.delegate(function () { this.messageReply(userId); }, this)
+			});
+		}
 	}
 
 	/*
@@ -1823,7 +2369,7 @@ BX.ImMessengerMobile.prototype.openMessageMenu = function(messageId)
 
 	if (BX.MessengerCommon.checkEditMessage(deleteMessageId))
 	{
-		if (app.enableInVersion(14) && window.platform != 'android')
+		if (app.enableInVersion(14))
 		{
 			sheetButtons.push({
 				title: BX.message("IM_MENU_MESS_EDIT"),
@@ -1837,8 +2383,10 @@ BX.ImMessengerMobile.prototype.openMessageMenu = function(messageId)
 		});
 	}
 
-	var callSheet = new BXMobileApp.UI.ActionSheet({buttons: sheetButtons},"im-message-menu");
-	callSheet.show();
+	if (sheetButtons.length > 0)
+	{
+		(new BXMobileApp.UI.ActionSheet({buttons: sheetButtons},"im-message-menu")).show();
+	}
 }
 
 BX.ImMessengerMobile.prototype.editMessage = function(messageId, check)
@@ -1872,7 +2420,7 @@ BX.ImMessengerMobile.prototype.editMessage = function(messageId, check)
 			}, this),
 			name : BX.message('IM_MENU_CANCEL')
 		}
-    };
+	};
 
 	app.exec('showPostForm', formSettings);
 };
@@ -1893,7 +2441,7 @@ BX.ImMessengerMobile.prototype.deleteMessage = function(messageId, check)
 
 		app.confirm({
 			title : BX.message('IM_MENU_MESS_DEL_CONFIRM'),
-			text : '"' + message + '"',
+			text : message?'"' + message + '"': '',
 			buttons : [BX.message('IM_MENU_MESS_DEL_YES'), BX.message('IM_MENU_MESS_DEL_NO')],
 			callback : function (btnNum)
 			{
@@ -2074,8 +2622,8 @@ BX.ImDiskManagerMobile.prototype.chatDialogInit = function()
 
 BX.ImDiskManagerMobile.prototype.uploadFromMobile = function(image)
 {
-	var dataBlob = BX.UploaderUtils.dataURLToBlob("data:image/png;base64,"+image);
-	dataBlob.name = 'mobile_'+BX.date.format("Ymd_His")+'.png';
+	var dataBlob = BX.UploaderUtils.dataURLToBlob("data:image/jpg;base64,"+image);
+	dataBlob.name = 'mobile_'+BX.date.format("Ymd_His")+'.jpg';
 	this.formAgents['imDialog'].onChange([dataBlob]);
 };
 
@@ -2125,6 +2673,962 @@ BX.ImDiskManagerMobile.prototype.saveToDisk = function()
 BX.ImDiskManagerMobile.prototype.delete = function()
 {
 	return true
+}
+})();
+
+(function() {
+
+if (BX.ImWebRTCMobile)
+	return;
+
+BX.ImWebRTCMobile = function(rootObject, params)
+{
+	this.BXIM = rootObject;
+
+	this.messenger = this.BXIM.messenger;
+	this.desktop = this.BXIM.desktop;
+
+	this.callMethod = params.callMethod;
+	this.phoneSDKinit = false;
+	this.phoneMicAccess = false;
+	this.phoneIncoming = false;
+	this.phoneCallId = '';
+	this.phoneCallTime = 0;
+	this.phoneCallConfig = {};
+	this.phoneCallExternal = false;
+	this.phoneCallDevice = 'WEBRTC';
+	this.phonePortalCall = false;
+	this.phoneNumber = '';
+	this.phoneNumberUser = '';
+	this.phoneParams = {};
+	this.phoneAPI = null;
+	this.phoneDisconnectAfterCallFlag = false;
+	this.phoneCurrentCall = null;
+	this.mobileSupport = params.mobileSupport;
+	this.phoneCrm = params.phoneCrm? params.phoneCrm: {};
+	this.phoneSpeakerEnable = false;
+	this.phoneMicMuted = false;
+	this.phoneHolded = false;
+	this.phoneRinging = 0;
+	this.phoneTransferEnabled = false;
+	this.phoneTransferUser = 0;
+	this.phoneConnectedInterval = null;
+	this.phoneDeviceDelayTimeout = null;
+	this.callNotify = null;
+
+	this.debug = false;
+	this.audioMuted = false;
+
+	this.initiator = false;
+	this.callUserId = 0;
+	this.callChatId = 0;
+	this.callInit = false;
+	this.callInitUserId = 0;
+	this.callActive = false;
+
+	this.turnServer = params.turnServer;
+	this.turnServerFirefox = params.turnServerFirefox;
+	this.turnServerLogin = params.turnServerLogin;
+	this.turnServerPassword = params.turnServerPassword;
+
+	this.phoneEnabled = params.phoneEnabled;
+	this.phoneSipAvailable = params.phoneSipAvailable;
+	this.phoneDeviceActive = params.phoneDeviceActive == 'Y';
+	this.phoneCallerID = '';
+	this.phoneLogin = "";
+	this.phoneServer = "";
+	this.phoneCheckBalance = false;
+	this.phoneCallHistory = {};
+
+	this.callOverlayOptions = {};
+
+	this.debug = true; // TODO change to false
+
+	if (this.phoneSupport() && this.BXIM.mobileAction == 'RECENT')
+	{
+		BX.MobileCallUI.init();
+		this.pullPhoneUiEvent();
+
+		BX.MessengerCommon.pullPhoneEvent();
+
+		BX.addCustomEvent("onOpenPush", BX.delegate(function (push)
+		{
+			var pushParams = BXMobileApp.PushManager.prepareParams(push);
+			if (pushParams.ACTION.substr(0, 8) == 'VI_CALL_')
+			{
+				BX.onCustomEvent(window, "onPull-voximplant", [{command : "invite", params : pushParams.PARAMS}]);
+			}
+		}, this));
+
+		var count = 0;
+		this.viIntiveInterval = setInterval(BX.delegate(function(){
+			var viInvite = BX.localStorage.get('viInvite');
+			if (viInvite)
+			{
+				BX.onCustomEvent(window, "onPull-voximplant", [{command : "invite", params : viInvite}]);
+				BX.localStorage.remove('viInvite');
+				clearInterval(this.viIntiveInterval);
+			}
+			if (count == 30)
+			{
+				clearInterval(this.viIntiveInterval);
+			}
+		}, this), 1000)
+	}
+};
+
+BX.ImWebRTCMobile.prototype.setCallMethod = function(type)
+{
+	if (type == 'telephony')
+	{
+		this.callMethod = type;
+	}
+	else if (type == 'combined')
+	{
+		this.callMethod = type;
+	}
+	else
+	{
+		this.callMethod = 'device';
+	}
+}
+
+BX.ImWebRTCMobile.prototype.pullPhoneUiEvent = function()
+{
+	BX.MobileCallUI.setListener(BX.delegate(function(eventName, eventParams)
+	{
+		/* buttons */
+		if(eventName == BX.MobileCallUI.events.onHangup)
+		{
+			BX.MobileCallUI.form.cancelDelayedClosing();
+
+			this.phoneCallFinish();
+			this.callAbort();
+			this.callOverlayClose();
+		}
+		else if(eventName == BX.MobileCallUI.events.onSpeakerphoneChanged)
+		{
+			this.phoneToggleSpeaker(eventParams.selected);
+		}
+		else if(eventName == BX.MobileCallUI.events.onMuteChanged)
+		{
+			this.phoneToggleAudio(eventParams.selected)
+		}
+		else if(eventName == BX.MobileCallUI.events.onPauseChanged)
+		{
+			BX.MessengerCommon.phoneToggleHold(eventParams.selected)
+		}
+		else if(eventName == BX.MobileCallUI.events.onCloseClicked)
+		{
+			this.phoneCallFinish();
+			this.callAbort();
+		}
+		else if(eventName == BX.MobileCallUI.events.onAnswerClicked)
+		{
+			this.BXIM.stopRepeatSound('ringtone');
+			this.phoneIncomingAnswer();
+		}
+		else if(eventName == BX.MobileCallUI.events.onSkipClicked)
+		{
+			this.phoneCallFinish();
+			this.callAbort();
+			this.callOverlayClose();
+		}
+		else if(eventName == BX.MobileCallUI.events.onAnswerClicked)
+		{
+		}
+		/* NumPad */
+		else if(eventName == BX.MobileCallUI.events.onNumpadButtonClicked)
+		{
+			BX.MessengerCommon.phoneSendDTMF(eventParams);
+		}
+		else if(eventName == BX.MobileCallUI.events.onPhoneNumberReceived)
+		{
+			this.phoneCall(eventParams);
+		}
+		else if(eventName.substr(0, 4) == "crm_")
+		{
+			eventName = eventName.substr(4).split("_");
+
+			var crmUrl = '';
+			if (eventName[0] == "deal")
+			{
+				crmUrl = this.BXIM.pathToCrmDeal.replace('#ID#', eventName[1]);
+			}
+			else if (eventName[0] == "company")
+			{
+				crmUrl = this.BXIM.pathToCrmCompany.replace('#ID#', eventName[1]);
+			}
+			else if (eventName[0] == "contact")
+			{
+				crmUrl = this.BXIM.pathToCrmContact.replace('#ID#', eventName[1]);
+			}
+			else if (eventName[0] == "lead")
+			{
+				crmUrl = this.BXIM.pathToCrmLead.replace('#ID#', eventName[1]);
+			}
+
+			BXMobileApp.PageManager.loadPageBlank({
+				'url' : crmUrl
+				//'bx24ModernStyle' : true // TODO update after release new CRM
+			});
+			BX.MobileCallUI.form.rollUp();
+		}
+		/* Contact list */
+		else if(eventName == BX.MobileCallUI.events.onContactListChoose)
+		{
+			//eventParams - contact item
+		}
+		else if(eventName == BX.MobileCallUI.events.onContactListMenuChoose)
+		{
+			//eventParams - menu item
+		}
+		/* Context menu form */
+		else if(eventName == BX.MobileCallUI.events.onContactListMenuChoose)
+		{
+			//eventParams - menu item
+		}
+	}, this));
+}
+
+BX.ImWebRTCMobile.prototype.phoneCall = function(number, params)
+{
+	if (!this.phoneSupport())
+		return false;
+
+	if (this.debug)
+		this.phoneLog(number, params);
+
+	this.phoneNumberUser = BX.util.htmlspecialchars(number);
+
+	numberOriginal = number;
+	number = BX.MessengerCommon.phoneCorrect(number);
+	if (typeof(params) != 'object')
+		params = {};
+
+	if (number.length <= 0)
+	{
+		this.BXIM.openConfirm({title: BX.message('IM_PHONE_WRONG_NUMBER'), message: BX.message('IM_PHONE_WRONG_NUMBER_DESC')});
+		return false;
+	}
+
+	BX.MobileCallUI.numpad.close();
+
+	if (this.callActive || this.callInit)
+		return false;
+
+	this.BXIM.playSound("start");
+
+	this.initiator = true;
+	this.callInitUserId = this.BXIM.userId;
+	this.callInit = true;
+	this.callActive = false;
+	this.callUserId = 0;
+	this.callChatId = 0;
+	this.phoneNumber = number;
+	this.phoneParams = params;
+
+	this.callOverlayShow({
+		toUserId : 0,
+		phoneNumber : this.phoneNumber,
+		callTitle : this.phoneNumberUser,
+		fromUserId : this.BXIM.userId,
+		status : BX.message('IM_M_CALL_ST_CONNECT'),
+		state : BX.MobileCallUI.form.state.OUTGOING
+	});
+
+	if (!this.phoneLogin || !this.phoneServer)
+	{
+		BX.MessengerCommon.phoneAuthorize();
+	}
+	else
+	{
+		this.phoneApiInit();
+	}
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnIncomingCall = function(e)
+{
+	BX.MessengerCommon.phoneOnIncomingCall(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneIncomingWait = function(chatId, callId, callerId, companyPhoneNumber)
+{
+	if (this.debug)
+		this.phoneLog('incoming call', chatId, callId, callerId, companyPhoneNumber);
+
+	this.phoneNumberUser = callerId;
+
+	if (!this.phonePortalCall)
+	{
+		this.phoneNumberUser = BX.util.htmlspecialchars(this.phoneNumberUser);
+		callerId = callerId.replace(/[^a-zA-Z0-9\.]/g, '');
+	}
+
+	if (!this.callActive && !this.callInit)
+	{
+		this.initiator = true;
+		this.callInitUserId = 0;
+		this.callInit = true;
+		this.callActive = false;
+		this.callUserId = 0;
+		this.callChatId = 0;
+		this.phoneIncoming = true;
+		this.phoneCallTime = 0;
+		this.phoneCallId = callId;
+		this.phoneNumber = callerId;
+		this.phoneParams = {};
+
+		this.callOverlayShow({
+			toUserId : this.BXIM.userId,
+			phoneNumber : this.phoneNumber,
+			companyPhoneNumber : companyPhoneNumber,
+			callTitle : this.phoneNumberUser,
+			fromUserId : 0,
+			status : BX.message('IM_PHONE_INVITE'),
+			state : BX.MobileCallUI.form.state.INCOMING
+		});
+
+		this.callOverlayDrawCrm();
+	}
+}
+
+BX.ImWebRTCMobile.prototype.phoneIncomingAnswer = function()
+{
+	this.callOverlayState(BX.MobileCallUI.form.state.WAITING);
+
+	this.callSelfDisabled = true;
+	BX.MessengerCommon.phoneCommand((this.phoneTransferEnabled? 'answerTransfer': 'answer'), {'CALL_ID' : this.phoneCallId});
+
+	BX.MobileCallUI.numpad.close();
+
+	if (!this.phoneLogin || !this.phoneServer)
+	{
+		BX.MessengerCommon.phoneAuthorize();
+	}
+	else
+	{
+		this.phoneApiInit();
+	}
+}
+
+BX.ImWebRTCMobile.prototype.phoneApiInit = function()
+{
+	if (!this.phoneSupport())
+		return false;
+
+	if (!this.phoneLogin || !this.phoneServer)
+	{
+		this.phoneCallFinish();
+		this.callOverlayProgress('offline');
+		this.callAbort(BX.message('IM_PHONE_ERROR'));
+
+		return false;
+	}
+
+	if (this.phoneAPI)
+	{
+		if (this.phoneSDKinit)
+		{
+			if (this.phoneIncoming)
+			{
+				BX.MessengerCommon.phoneCommand((this.phoneTransferEnabled?'readyTransfer': 'ready'), {'CALL_ID': this.phoneCallId});
+			}
+			else if (this.callInitUserId == this.BXIM.userId)
+			{
+				this.phoneOnSDKReady();
+			}
+		}
+		else
+		{
+			this.phoneOnSDKReady();
+		}
+		return true;
+	}
+
+	this.phoneAPI = BX.MobileVoximplant.getInstance();
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.SDKReady, BX.delegate(this.phoneOnSDKReady, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.ConnectionEstablished, BX.delegate(this.phoneOnConnectionEstablished, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.ConnectionFailed, BX.delegate(this.phoneOnConnectionFailed, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.ConnectionClosed, BX.delegate(this.phoneOnConnectionClosed, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.IncomingCall, BX.delegate(this.phoneOnIncomingCall, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.AuthResult, BX.delegate(this.phoneOnAuthResult, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.MicAccessResult, BX.delegate(this.phoneOnMicResult, this));
+	this.phoneAPI.addEventListener(BX.MobileVoximplant.events.NetStatsReceived, BX.delegate(this.phoneOnNetStatsReceived, this));
+	this.phoneAPI.init();
+
+	return true;
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnSDKReady = function()
+{
+	this.phoneLog('SDK ready');
+
+	if (!this.phoneAPI.connected())
+	{
+		this.callOverlayProgress('wait');
+		this.callOverlayStatus(BX.message('IM_M_CALL_ST_WAIT_ACCESS'));
+		this.phoneAPI.connect();
+	}
+	else
+	{
+		this.phoneLog('Connection exists');
+
+		this.callOverlayProgress('connect');
+		this.callOverlayStatus(BX.message('IM_M_CALL_ST_CONNECT'));
+		this.phoneOnAuthResult({result: true});
+	}
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnConnectionEstablished = function(e)
+{
+	BX.MessengerCommon.phoneOnConnectionEstablished(e);
+	this.phoneAPI.login();
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnConnectionFailed = function(e)
+{
+	BX.MessengerCommon.phoneOnConnectionFailed(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnConnectionClosed = function(e)
+{
+	BX.MessengerCommon.phoneOnConnectionClosed(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnMicResult = function(e)
+{
+	BX.MessengerCommon.phoneOnMicResult(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnAuthResult = function(e)
+{
+	BX.MessengerCommon.phoneOnAuthResult(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnNetStatsReceived = function(e)
+{
+	BX.MessengerCommon.phoneOnNetStatsReceived(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnCallConnected = function(e)
+{
+	this.phoneLog('Call connected', e);
+
+	this.callOverlayProgress('online');
+	this.callOverlayStatus(BX.message('IM_M_CALL_ST_ONLINE'));
+	this.callActive = true;
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnCallDisconnected = function(e)
+{
+	BX.MessengerCommon.phoneOnCallDisconnected(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnCallFailed = function(e)
+{
+	BX.MessengerCommon.phoneOnCallFailed(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnProgressToneStart = function(e)
+{
+	BX.MessengerCommon.phoneOnProgressToneStart(e);
+}
+
+BX.ImWebRTCMobile.prototype.phoneOnProgressToneStop = function(e)
+{
+	BX.MessengerCommon.phoneOnProgressToneStop();
+}
+
+BX.ImWebRTCMobile.prototype.callPhoneOverlayMeter = function(percent)
+{}
+
+BX.ImWebRTCMobile.prototype.callOverlayProgress = function(progress)
+{
+	this.phoneLog('set progress: ', progress)
+
+	if (progress == this.callOverlayOptions.progress)
+		return false;
+
+	this.callOverlayOptions.progress = progress;
+
+	if (progress == 'connect')
+	{
+	}
+	else if (progress == 'wait')
+	{
+		this.callOverlayState(BX.MobileCallUI.form.state.WAITING);
+	}
+	else if (progress == 'online')
+	{
+		if (!this.phonePortalCall)
+		{
+			var headerLabels = {};
+			if (this.phoneCallConfig.RECORDING == "Y")
+			{
+				headerLabels.thirdSmallHeader = {'text' : BX.message('IM_PHONE_REC_NOW'), textColor : "#7fc62c"};
+			}
+			else
+			{
+				headerLabels.thirdSmallHeader = {'text': BX.message('IM_PHONE_REC_OFF'), textColor: "#ee423f"};
+			}
+
+			BX.MobileCallUI.form.updateHeader(headerLabels);
+		}
+
+		this.callOverlayState(BX.MobileCallUI.form.state.STARTED);
+	}
+	else if (progress == 'offline' || progress == 'error')
+	{
+		if (progress == 'offline')
+		{
+			if (!this.phonePortalCall)
+			{
+				var headerLabels = {};
+				if (this.phoneCallConfig.RECORDING == "Y" && this.phoneCallTime > 0)
+				{
+					headerLabels.thirdSmallHeader = {'text' : BX.message('IM_PHONE_REC_DONE'), textColor : "#7fc62c"};
+				}
+				else
+				{
+					headerLabels.thirdSmallHeader = {'text' : ''};
+				}
+				BX.MobileCallUI.form.updateHeader(headerLabels);
+
+				var footerLabels = {};
+				if (this.phoneCrm.LEAD_DATA && !this.phoneCrm.CONTACT_DATA && !this.phoneCrm.COMPANY_DATA && this.phoneCallConfig.CRM_CREATE == 'lead')
+				{
+					footerLabels.actionDoneHint = {'text': BX.message('IM_PHONE_LEAD_SAVED')};
+				}
+				else
+				{
+					footerLabels.actionDoneHint = {'text': ''};
+				}
+				BX.MobileCallUI.form.updateFooter(footerLabels);
+			}
+		}
+		else
+		{
+			var headerLabels = {};
+			headerLabels.thirdSmallHeader = {'text': ''};
+			BX.MobileCallUI.form.updateHeader(headerLabels);
+
+			var footerLabels = {};
+			footerLabels.actionDoneHint = {'text': ''};
+			BX.MobileCallUI.form.updateFooter(footerLabels);
+		}
+
+		this.callOverlayState(BX.MobileCallUI.form.state.FINISHED);
+		BX.MobileCallUI.form.expand();
+		BX.MobileCallUI.numpad.close();
+	}
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayStatus = function(status)
+{
+	if (!status || this.callOverlayOptions.status == status)
+		return false;
+
+	this.phoneLog('callOverlayStatus', status);
+	this.callOverlayOptions.status = status;
+
+	BX.MobileCallUI.form.updateFooter({callStateLabel: {text: status}})
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayDoneHint = function(hint)
+{
+	if (!hint || this.callOverlayOptions.hint == hint)
+		return false;
+
+	this.phoneLog('callOverlayDoneHint', hint);
+	this.callOverlayOptions.hint = hint;
+
+	BX.MobileCallUI.form.updateFooter({actionDoneHint: {text: hint}})
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayState = function(state)
+{
+	if (!state || this.callOverlayOptions.state == state)
+		return false;
+
+	this.phoneLog('callOverlayState', state);
+	this.callOverlayOptions.state = state;
+
+	BX.MobileCallUI.form.updateFooter({}, state)
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayUpdatePhoto = function()
+{
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayShow = function(params)
+{
+	BX.MobileCallUI.numpad.close();
+
+	var callIncoming = params.toUserId == this.BXIM.userId;
+	var callUserId = callIncoming? params.fromUserId: params.toUserId;
+	this.callToPhone = true;
+
+	var phoneNumber = '';
+	if (params.phoneNumber == 'hidden')
+	{
+		phoneNumber = BX.message('IM_PHONE_HIDDEN_NUMBER');
+	}
+	else
+	{
+		if (params.callTitle)
+		{
+			phoneNumber = params.callTitle.toString();
+		}
+		else
+		{
+			phoneNumber = params.phoneNumber.toString();
+		}
+
+		if (phoneNumber.substr(0,1) == '8' || phoneNumber.substr(0,1) == '+')
+		{
+		}
+		else if (!isNaN(parseInt(phoneNumber)) && phoneNumber.length >= 10)
+		{
+			phoneNumber = '+'+phoneNumber;
+		}
+	}
+
+	var companyPhoneTitle = '';
+	if (callIncoming)
+	{
+		companyPhoneTitle = params.companyPhoneNumber? BX.message('IM_PHONE_CALL_TO_PHONE').replace('#PHONE#', params.companyPhoneNumber): BX.message('IM_VI_CALL');
+	}
+	else
+	{
+		companyPhoneTitle = BX.message('IM_PHONE_OUTGOING');
+	}
+	this.callOverlayUserId = callUserId;
+
+	BX.MessengerCommon.getUserParam(this.messenger.currentTab);
+	BX.MessengerCommon.getUserParam(this.BXIM.userId);
+
+	this.messenger.openChatFlag = this.messenger.currentTab.toString().substr(0,4) == 'chat';
+
+	BX.MobileCallUI.form.show({
+		headerLabels: {
+			firstHeader: {text: phoneNumber},
+			firstSmallHeader: {text: companyPhoneTitle, textColor: "#999999"}
+		},
+		footerLabels: {},
+		middleLabels: {
+			imageStub: {backgroundColor: '#464f58', display: 'visible'}
+		},
+		middleButtons: {}
+	});
+
+	if (params.status)
+	{
+		this.callOverlayStatus(params.status);
+	}
+	if (params.state)
+	{
+		this.callOverlayState(params.state);
+	}
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayTimer = function(state)
+{
+	state = typeof(state) == 'undefined'? 'start': state;
+	if (this.callOverlayOptions.timerState == state)
+		return false;
+
+	this.phoneLog('callOverlayTimer', state);
+	this.callOverlayOptions.timerState = state;
+
+	if (state == 'start')
+	{
+		this.phoneCallTimeInterval = setInterval(BX.delegate(function(){
+			this.phoneCallTime++;
+		}, this), 1000);
+
+		BX.MobileCallUI.form.startTimer();
+	}
+	else if (state == 'pause')
+	{
+		clearInterval(this.phoneCallTimeInterval);
+		BX.MobileCallUI.form.pauseTimer();
+	}
+	else
+	{
+		clearInterval(this.phoneCallTimeInterval);
+		BX.MobileCallUI.form.stopTimer();
+	}
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayDrawCrm = function()
+{
+	if (!this.phoneCrm.FOUND)
+		return false;
+
+	if (this.phoneCrm.FOUND == 'Y')
+	{
+		console.log('CRM FOUND', this.phoneCrm);
+
+		var crmContactName = this.phoneCrm.CONTACT && this.phoneCrm.CONTACT.NAME? this.phoneCrm.CONTACT.NAME: '';
+		var crmContactPhoto = this.phoneCrm.CONTACT && this.phoneCrm.CONTACT.PHOTO? this.phoneCrm.CONTACT.PHOTO: '';
+		var crmContactPost = this.phoneCrm.CONTACT && this.phoneCrm.CONTACT.POST? this.phoneCrm.CONTACT.POST: '';
+		var crmCompanyName = this.phoneCrm.COMPANY? this.phoneCrm.COMPANY: '';
+
+		var headerLabels = {};
+		if (!this.phonePortalCall)
+		{
+			if (this.phoneCallConfig.RECORDING == "Y")
+			{
+				headerLabels.thirdSmallHeader = {'text': BX.message('IM_PHONE_REC_ON'), textColor: "#ecd748"};
+			}
+			else
+			{
+				headerLabels.thirdSmallHeader = {'text': BX.message('IM_PHONE_REC_OFF'), textColor: "#ee423f"};
+			}
+		}
+
+		if (crmContactName || crmContactPost || crmCompanyName)
+		{
+			if (crmContactName)
+			{
+				headerLabels.firstHeader = {'text': crmContactName};
+			}
+			if (crmContactPost)
+			{
+				headerLabels.firstSmallHeader = {'text': crmContactPost};
+			}
+			if (crmCompanyName)
+			{
+				headerLabels.secondSmallHeader = {'text': crmCompanyName};
+			}
+		}
+		BX.MobileCallUI.form.updateHeader(headerLabels);
+
+		if (crmContactPhoto)
+		{
+			BX.MobileCallUI.form.updateHeader({}, (crmContactPhoto.substr(0,4) != 'http'? location.origin: '')+crmContactPhoto);
+		}
+
+		var middleButtons = {};
+		var middleChange = false;
+		if (this.phoneCrm.DEALS && this.phoneCrm.DEALS.length > 0)
+		{
+			var middleLabels = {
+				infoTitle: {
+					text: ""
+				},
+				infoDesc: {
+					text: this.phoneCrm.DEALS[0].TITLE
+				},
+				infoHeader: {
+					text: this.phoneCrm.DEALS[0].STAGE,
+					textColor: this.phoneCrm.DEALS[0].STAGE_COLOR
+				},
+				infoSum: {
+					text: this.phoneCrm.DEALS[0].OPPORTUNITY
+				}
+			};
+
+			if (this.phoneCrm.DEAL_URL)
+			{
+				middleButtons['button1'] = {
+					text: BX.message('IM_PHONE_ACTION_T_DEAL'),
+					sort: 100,
+					eventName: "crm_deal_"+this.phoneCrm.DEALS[0].ID
+				};
+			}
+			middleChange = true;
+		}
+
+		var dataSelect = [];
+		if (this.phoneCrm.COMPANY_DATA && this.phoneCrm.CONTACT_DATA)
+		{
+			dataSelect = ['CONTACT_DATA', 'COMPANY_DATA', 'LEAD_DATA'];
+		}
+		else if (this.phoneCrm.CONTACT_DATA && this.phoneCrm.LEAD_DATA)
+		{
+			dataSelect = ['CONTACT_DATA', 'LEAD_DATA'];
+		}
+		else if (this.phoneCrm.LEAD_DATA && this.phoneCrm.COMPANY_DATA)
+		{
+			dataSelect = ['LEAD_DATA', 'COMPANY_DATA'];
+		}
+		else
+		{
+			if (this.phoneCrm.CONTACT_DATA)
+			{
+				dataSelect = ['CONTACT_DATA'];
+			}
+			else if (this.phoneCrm.COMPANY_DATA)
+			{
+				dataSelect = ['COMPANY_DATA'];
+			}
+			else if (this.phoneCrm.LEAD_DATA)
+			{
+				dataSelect = ['LEAD_DATA'];
+			}
+		}
+
+		for (var i = 0; i < dataSelect.length; i++)
+		{
+			var type = dataSelect[i];
+			if (this.phoneCrm[type])
+			{
+				if (type == 'CONTACT_DATA')
+				{
+					middleButtons['buttonData'+i] = {
+						text: BX.message('IM_PHONE_ACTION_T_CONTACT'),
+						sort: 200+i,
+						eventName: "crm_contact_"+this.phoneCrm[type].ID
+					};
+				}
+				else if (type == 'COMPANY_DATA')
+				{
+					middleButtons['buttonData'+i] = {
+						text: BX.message('IM_PHONE_ACTION_T_COMPANY'),
+						sort: 200+i,
+						eventName: "crm_company_"+this.phoneCrm[type].ID
+					};
+				}
+				else if (type == 'LEAD_DATA')
+				{
+					middleButtons['buttonData'+i] = {
+						text: BX.message('IM_PHONE_ACTION_T_LEAD'),
+						sort: 200+i,
+						eventName: "crm_lead_"+this.phoneCrm[type].ID
+					};
+				}
+				middleChange = true;
+			}
+		}
+		if (middleChange)
+		{
+			BX.MobileCallUI.form.updateMiddle(middleLabels, middleButtons);
+		}
+	}
+	else
+	{
+		this.phoneLog('CRM NOT FOUND');
+
+		var headerLabels = {};
+		if (this.phoneCallConfig.RECORDING == "Y")
+		{
+			headerLabels.thirdSmallHeader = {'text': BX.message('IM_PHONE_REC_ON'), textColor: "#ecd748"};
+		}
+		else
+		{
+			headerLabels.thirdSmallHeader = {'text': BX.message('IM_PHONE_REC_OFF'), textColor: "#ee423f"};
+		}
+
+		BX.MobileCallUI.form.updateHeader(headerLabels);
+
+		var middleButtons = {
+			button1: {
+				text: BX.message('IM_CRM_BTN_NEW_LEAD'),
+				sort:100,
+				eventName: "button1"
+			},
+			button2: {
+				text: BX.message('IM_CRM_BTN_NEW_CONTACT'),
+				sort:1,
+				eventName: "button2"
+			}
+		};
+		//BX.MobileCallUI.form.updateMiddle({}, middleButtons);
+	}
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayClose = function()
+{
+	BX.MobileCallUI.numpad.close();
+	BX.MobileCallUI.form.close();
+}
+
+BX.ImWebRTCMobile.prototype.phoneToggleAudio = function(status)
+{
+	if (!this.phoneCurrentCall)
+		return false;
+
+	if (status)
+	{
+		this.phoneCurrentCall.muteMicrophone()
+	}
+	else
+	{
+		this.phoneCurrentCall.unmuteMicrophone()
+	}
+
+	this.phoneMicMuted = status;
+}
+
+BX.ImWebRTCMobile.prototype.phoneToggleSpeaker = function(status)
+{
+	if (!this.phoneCurrentCall)
+		return false;
+
+	this.phoneCurrentCall.setUseLoudSpeaker(status)
+
+	this.phoneSpeakerEnable = status;
+}
+
+BX.ImWebRTCMobile.prototype.phoneSupport = function()
+{
+	return this.phoneEnabled && app.enableInVersion(14) && typeof(BX.MobileVoximplant) != 'undefined';
+}
+
+BX.ImWebRTCMobile.prototype.callAbort = function(reason)
+{
+	this.callOverlayDeleteEvents();
+
+	if (reason)
+		this.callOverlayStatus(reason);
+}
+
+BX.ImWebRTCMobile.prototype.phoneCallFinish = function()
+{
+	BX.MessengerCommon.phoneCallFinish();
+
+	this.callOverlayTimer('pause');
+
+	this.initiator = false;
+	this.callUserId = 0;
+	this.callChatId = 0;
+	this.callInit = false;
+	this.callInitUserId = 0;
+	this.callActive = false;
+	this.audioMuted = false;
+}
+
+BX.ImWebRTCMobile.prototype.callOverlayDeleteEvents = function()
+{
+	var callId = null;
+	if (this.phoneCallId)
+	{
+		callId = this.phoneCallId;
+	}
+	else if (this.callToGroup)
+	{
+		callId = 'chat'+this.callChatId;
+	}
+	else
+	{
+		callId = 'user'+this.callUserId;
+	}
+
+	BX.onCustomEvent(window, 'onImCallEnd', [{'CALL_ID': callId}]);
+
+	this.callToMobile = false;
+	this.callToPhone = false;
+
+	this.phoneCallFinish();
+
+	clearTimeout(this.callInviteTimeout);
+}
+
+BX.ImWebRTCMobile.prototype.phoneLog = function()
+{
+	console.log('Phone Log', JSON.stringify(arguments));
 }
 
 })();

@@ -47,6 +47,8 @@ BX.file_input.prototype.Init = function()
 			this.DisplayExistFile(i);
 	}
 
+	this.fileCount = this.arConfig.files.length;
+
 	this.oFiles = [];
 	this.oNewFile = this.DisplayFileBlock();
 	this.oNewFile.pTextInput.id = this.id + '_text_input';
@@ -830,7 +832,7 @@ BX.file_input.prototype.SetCurrentFile = function(ind)
 
 BX.file_input.prototype.CheckNewFileState = function()
 {
-	if (!this.multiple || (this.multiple && this.maxCount > 0 && this.fileCount >= this.maxCount_))
+	if (!this.multiple || (this.maxCount > 0 && this.fileCount >= this.maxCount))
 		return false;
 	return true;
 };
@@ -932,6 +934,7 @@ BX.file_input.prototype.ClearNewFile = function()
 		return;
 
 	this.newFileCount--;
+	this.fileCount = this.arConfig.files.length + this.newFileCount - 1;
 
 	this.oNewFile.pFileCont.style.display = "";
 	this.oFiles[ind].pFileCont.parentNode.removeChild(this.oFiles[ind].pFileCont);
@@ -941,6 +944,8 @@ BX.file_input.prototype.PushToFiles = function(oFile)
 {
 	this.oFiles.push(oFile);
 	this.newFileCount++;
+
+	this.fileCount = this.arConfig.files.length + this.newFileCount - 1;
 	oFile.pMenu.setAttribute('data-bx-meta', 'new_' + (this.oFiles.length - 1));
 };
 

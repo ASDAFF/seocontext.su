@@ -67,7 +67,7 @@ $arComponentParameters = array(
 			"PARENT" => "BASKET",
 			"NAME" => GetMessage("CVP_ACTION_VARIABLE"),
 			"TYPE" => "STRING",
-			"DEFAULT" => "action",
+			"DEFAULT" => "action_cvp",
 		),
 		"PRODUCT_ID_VARIABLE" => array(
 			"PARENT" => "BASKET",
@@ -274,6 +274,8 @@ while($catalog = $catalogIterator->fetch())
 	if($isOffersCatalog)
 	{
 		$skuCatalogs[$catalog['PRODUCT_IBLOCK_ID']] = $catalog;
+		if (!isset($productsCatalogs[$catalog['PRODUCT_IBLOCK_ID']]))
+			$productsCatalogs[$catalog['PRODUCT_IBLOCK_ID']] = $catalog;
 	}
 	else
 	{
@@ -454,6 +456,3 @@ if (isset($arCurrentValues['CONVERT_CURRENCY']) && 'Y' == $arCurrentValues['CONV
 		"ADDITIONAL_VALUES" => "Y",
 	);
 }
-
-
-?>

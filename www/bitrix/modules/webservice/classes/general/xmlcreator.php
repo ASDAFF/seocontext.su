@@ -134,8 +134,8 @@ class CXMLCreator {
 	{
 		global $APPLICATION;
 
-		//$attrName = CDataXML::xmlspecialchars($attrName);
-		$attrValue = $APPLICATION->ConvertCharset($attrValue /*CDataXML::xmlspecialchars($attrValue)*/, LANG_CHARSET, 'utf-8');
+		//$attrName = static::xmlspecialchars($attrName);
+		$attrValue = $APPLICATION->ConvertCharset($attrValue /*static::xmlspecialchars($attrValue)*/, LANG_CHARSET, 'utf-8');
 
 		$newAttribute = array($attrName => $attrValue);
 		$this->attributs = array_merge($this->attributs, $newAttribute);
@@ -145,13 +145,13 @@ class CXMLCreator {
 	{
 		global $APPLICATION;
 
-		//$data = CDataXML::xmlspecialchars($data);
+		//$data = static::xmlspecialchars($data);
 		$this->data = $APPLICATION->ConvertCharset($data, SITE_CHARSET, "utf-8");
 	}
 
 	function setName($tag)
 	{
-		//$tag = CDataXML::xmlspecialchars($tag);
+		//$tag = static::xmlspecialchars($tag);
 		$this->tag = $tag;
 	}
 
@@ -175,7 +175,7 @@ class CXMLCreator {
 		if (is_array($this->attributs)){
 			foreach($this->attributs as $key=>$val)
 			{
-				$attributs .= " " . CDataXML::xmlspecialchars($key). "=\"" . CDataXML::xmlspecialchars($val) . "\"";
+				$attributs .= " " . static::xmlspecialchars($key). "=\"" . static::xmlspecialchars($val) . "\"";
 			}
 		}
 		return $attributs;
@@ -195,12 +195,12 @@ class CXMLCreator {
 	function getXML()
 	{
 		if (!$this->tag) return "";
-		$xml  = "<" . CDataXML::xmlspecialchars($this->tag) . $this->_getAttributs() . ">";
+		$xml  = "<" . static::xmlspecialchars($this->tag) . $this->_getAttributs() . ">";
 		$xml .= $this->startCDATA;
 		$xml .= $this->data;
 		$xml .= $this->endCDATA;
 		$xml .= $this->_getChildren();
-		$xml .= "</" . CDataXML::xmlspecialchars($this->tag) . ">";
+		$xml .= "</" . static::xmlspecialchars($this->tag) . ">";
 		return $xml;
 	}
 
@@ -244,6 +244,20 @@ class CXMLCreator {
 		}
 
 		return $result;
+	}
+
+	public static function xmlspecialchars($str)
+	{
+		static $search = array("&","<",">","\"","'","\r","\n");
+		static $replace = array("&amp;","&lt;","&gt;","&quot;","&apos;","&#13;","&#10;");
+		return str_replace($search, $replace, $str);
+	}
+
+	public static function xmlspecialcharsback($str)
+	{
+		static $search = array("&lt;","&gt;","&quot;","&apos;","&amp;","&#13;","&#10;");
+		static $replace = array("<",">","\"","'","&","\r","\n");
+		return str_replace($search, $replace, $str);
 	}
 }
 

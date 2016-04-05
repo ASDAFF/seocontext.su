@@ -587,7 +587,7 @@ class CAllIBlock
 	///////////////////////////////////////////////////////////////////
 	// Block by ID
 	///////////////////////////////////////////////////////////////////
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		return CIBlock::GetList(Array(), Array("ID"=>$ID));
 	}
@@ -2089,26 +2089,31 @@ REQ
 		return $arDefFields;
 	}
 
-	function GetProperties($ID, $arOrder=Array(), $arFilter=Array())
+	public static function GetProperties($ID, $arOrder = array(), $arFilter = array())
 	{
 		$props = new CIBlockProperty();
 		$arFilter["IBLOCK_ID"] = $ID;
 		return $props->GetList($arOrder, $arFilter);
 	}
 
-	function GetGroupPermissions($ID)
+	public static function GetGroupPermissions($ID)
 	{
 		/** @global CDatabase $DB */
 		global $DB;
 		$arRes = array();
+		$ID = (int)$ID;
+		if ($ID <= 0)
+			return $arRes;
 
 		$dbres = $DB->Query("
 			SELECT GROUP_ID, PERMISSION
 			FROM b_iblock_group
-			WHERE IBLOCK_ID = ".intval($ID)."
+			WHERE IBLOCK_ID = ".$ID."
 		");
 		while($res = $dbres->Fetch())
 			$arRes[$res["GROUP_ID"]] = $res["PERMISSION"];
+		unset($res);
+		unset($dbres);
 
 		return $arRes;
 	}

@@ -1,9 +1,9 @@
 <?php
 namespace Bitrix\Sale\Delivery;
 
-use Bitrix\Main\Entity;
+use Bitrix\Sale;
 
-class CalculationResult extends Entity\Result
+class CalculationResult extends Sale\Result
 {
 	/** @var string */
 	protected $description = "";

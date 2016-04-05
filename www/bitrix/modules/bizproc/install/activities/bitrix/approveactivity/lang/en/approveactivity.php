@@ -19,4 +19,5 @@ $MESS["BPAA_ACT_NONAPPROVE_TRACK"] = "The user #PERSON# has not approved the doc
 $MESS["BPAA_ACT_PROP_EMPTY1"] = "The 'Users' property is not specified.";
 $MESS["BPAA_ACT_PROP_EMPTY3"] = "The value of the 'Approval type' property is invalid.";
 $MESS["BPAA_ACT_APPROVERS_NONE"] = "none";
+$MESS["BPAA_ACT_COMMENT_ERROR"] = "The '#COMMENT_LABEL#' field is required.";
 ?>

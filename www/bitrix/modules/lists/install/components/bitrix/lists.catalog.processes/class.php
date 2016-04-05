@@ -101,7 +101,6 @@ class ListsCatalogProcessesComponent extends CBitrixComponent
 				array(
 					'IBLOCK_TYPE_ID' => $filter['IBLOCK_TYPE_ID'],
 					'CODE' => $filter['CODE'],
-					'NAME' => $filter['NAME'],
 					'CHECK_PERMISSIONS' => 'N',
 					'SITE_ID' => SITE_ID
 				)

@@ -154,7 +154,10 @@ FormDecode();
 $application = \Bitrix\Main\HttpApplication::getInstance();
 $application->initializeBasicKernel();
 
-//read database connection parameters require_once
+//Defined in dbconn.php
+global $DBType, $DBDebug, $DBDebugToFile, $DBHost, $DBName, $DBLogin, $DBPassword;
+
+//read database connection parameters
 require_once($_SERVER["DOCUMENT_ROOT"].BX_PERSONAL_ROOT."/php_interface/dbconn.php");
 
 if(defined('BX_UTF'))
@@ -187,17 +190,6 @@ if(!defined("CACHED_b_user_counter")) define("CACHED_b_user_counter", 3600);
 if(!defined("CACHED_b_group_subordinate")) define("CACHED_b_group_subordinate", 31536000);
 if(!defined("CACHED_b_smile")) define("CACHED_b_smile", 31536000);
 if(!defined("TAGGED_user_card_size")) define("TAGGED_user_card_size", 100);
-
-/**
- * Defined in dbconn.php
- * @var string $DBType
- * @var bool $DBDebug
- * @var bool $DBDebugToFile
- * @var string $DBHost
- * @var string $DBName
- * @var string $DBLogin
- * @var string $DBPassword
- */
 
 //connect to database, from here global variable $DB is available (CDatabase class)
 require_once($_SERVER["DOCUMENT_ROOT"].BX_ROOT."/modules/main/classes/".$DBType."/database.php");

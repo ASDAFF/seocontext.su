@@ -8,6 +8,7 @@ $MESS["CT_BLFE_TAB_EDIT"] = "Настройки";
 $MESS["CT_BLFE_TAB_EDIT_TITLE"] = "Основные настройки поля";
 $MESS["CT_BLFE_TAB_LIST"] = "Список";
 $MESS["CT_BLFE_TAB_LIST_TITLE"] = "Значения для списочного свойства";
+$MESS["CT_BLFE_FIELD_CODE"] = "Код";
 $MESS["CT_BLFE_FIELD_SORT"] = "Сортировка";
 $MESS["CT_BLFE_FIELD_NAME"] = "Название";
 $MESS["CT_BLFE_FIELD_IS_REQUIRED"] = "Обязательное";
@@ -43,4 +44,7 @@ $MESS["CT_BLFE_FIELD_SHOW_ADD_FORM"] = "Показывать в форме до�
 $MESS["CT_BLFE_FIELD_SHOW_EDIT_FORM"] = "Показывать в форме редактирования";
 $MESS["CT_BLFE_TEXT_WIDTH_NEW"] = "Ширина элемента управления (px)";
 $MESS["CT_BLFE_TEXT_HEIGHT_NEW"] = "Высота элемента управления (px)";
+$MESS["CT_BLFE_FIELD_ADD_READ_ONLY_FIELD"] = "Только для чтения (форма добавления)";
+$MESS["CT_BLFE_FIELD_EDIT_READ_ONLY_FIELD"] = "Только для чтения (форма редактирования)";
+$MESS["CT_BLFE_FIELD_SHOW_FIELD_PREVIEW"] = "Показать поле при формировании ссылки на элемент списка";
 ?>

@@ -39,5 +39,4 @@ $security_default_option = array(
 	"security_event_file_active" => "N",
 	"security_event_file_path" => "",
 	"needed_tests_packages" => "a:3:{i:0;s:10:\"slow_local\";i:1;s:10:\"fast_local\";i:2;s:6:\"remote\";}",
-	"security_scanner_secure_connection" => "Y",
 );

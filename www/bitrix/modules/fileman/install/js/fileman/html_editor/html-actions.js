@@ -101,7 +101,7 @@
 
 			if (!bSilent)
 			{
-				this.editor.On("OnBeforeCommandExec", [isContentAction, action, oAction]);
+				this.editor.On("OnBeforeCommandExec", [isContentAction, action, oAction, value]);
 			}
 
 			if (isContentAction)
@@ -409,6 +409,56 @@
 					{
 						_this.editor.selection.SetSelection(range);
 
+						// If we format text in the table - we could accidentally broke table,
+						// so now we should check and repair all possible tables (mantis: #66342)
+						var
+							table, i, j, k, cellNode,
+							tables = [],
+							bogusNodes = [],
+							nodes = range.getNodes([1]);
+
+						for (i = 0; i < nodes.length; i++)
+						{
+							if (BX.util.in_array(nodes[i].nodeName, ['TD', 'TR', 'TH']))
+							{
+								table = BX.findParent(nodes[i], function(n)
+								{
+									return n.nodeName == "TABLE";
+								}, _this.editor.GetIframeDoc().body);
+
+								if (table && !BX.util.in_array(table, tables))
+								{
+									tables.push(table);
+								}
+							}
+						}
+
+						// Now we have list of tables. In most cases it will be one node.
+						for (i = 0; i < tables.length; i++)
+						{
+							table = tables[i];
+							for (j = 0; j < table.rows.length; j++)
+							{
+								for (k = 0; k < table.rows[j].childNodes.length; k++)
+								{
+									cellNode = table.rows[j].childNodes[k];
+									// If it's cell inside the row, it should at least be on of the table dedicated tag. If not - we will remove it to save html valid.
+									if (cellNode
+										&& cellNode.nodeType == 1
+										&& !BX.util.in_array(cellNode.nodeName, _this.editor.TABLE_TAGS))
+									{
+										bogusNodes.push(cellNode);
+									}
+								}
+							}
+						}
+
+						// Clean invalid tags inside the table.
+						for (i = 0; i < bogusNodes.length; i++)
+						{
+							BX.cleanNode(bogusNodes[i], true);
+						}
+
 						var lastCreatedNode = _this.editor.selection.GetSelectedNode();
 						if (lastCreatedNode && lastCreatedNode.nodeType == 1)
 						{
@@ -598,7 +648,7 @@
 					params = params || {};
 					nodeName = typeof nodeName === "string" ? nodeName.toUpperCase() : nodeName;
 					var
-						childBlockNodes, i, allNodes, createdBlockNodes,
+						childBlockNodes, i, createdBlockNodes,
 						range = params.range || _this.editor.selection.GetRange(),
 						blockElement = nodeName ? _this.actions.formatBlock.state(command, nodeName, className, arStyle) : false,
 						selectedNode;
@@ -4048,6 +4098,35 @@
 			{
 				return range = rng;
 			}
+			function setExternalSelectionFromRange(range)
+			{
+				range = range || _this.editor.selection.GetRange(_this.editor.selection.GetSelection(document));
+
+				var tmpDiv;
+				// mantis:64329
+				if (range.startContainer == range.endContainer &&
+						range.startOffset == 0 &&
+						range.endOffset == range.endContainer.length &&
+						range.startContainer.parentNode &&
+						range.startContainer.parentNode.nodeName == 'A' &&
+						range.startContainer.parentNode.href
+				)
+				{
+					tmpDiv = BX.create('DIV', {html: range.startContainer.parentNode.href}, _this.editor.GetIframeDoc());
+				}
+				else
+				{
+					var html = range.toHtml();
+					html = html.replace(/<br.*?>/ig, "#BX_BR#");
+					tmpDiv = BX.create('DIV', {html: html}, _this.editor.GetIframeDoc());
+				}
+
+				var extSel = _this.editor.util.GetTextContentEx(tmpDiv);
+				extSel = extSel.replace(/#BX_BR#/ig, "<br>");
+				setExternalSelection(extSel);
+
+				BX.remove(tmpDiv);
+			}
 
 			return {
 				exec: function(action)
@@ -4125,6 +4204,9 @@
 						{
 							res = _this.actions.formatBlock.exec('formatBlock', 'blockquote', 'bxhtmled-quote', false, {range: range});
 						}
+
+						if(!sel)
+							_this.editor.selection.ScrollIntoView();
 					}
 
 					range = null;
@@ -4135,6 +4217,7 @@
 					return _this.actions.formatBlock.state('formatBlock', 'blockquote', 'bxhtmled-quote');
 				},
 				value: BX.DoNothing,
+				setExternalSelectionFromRange : setExternalSelectionFromRange,
 				setExternalSelection : setExternalSelection,
 				getExternalSelection : getExternalSelection,
 				setRange : setRange,

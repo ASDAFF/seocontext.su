@@ -14,16 +14,18 @@
 
 use Bitrix\Main\Localization\Loc;
 
+CJSCore::Init(array('lists'));
 \Bitrix\Main\Page\Asset::getInstance()->addJs('/bitrix/js/bizproc/tools.js');
 \Bitrix\Main\Page\Asset::getInstance()->addCss('/bitrix/components/bitrix/bizproc.workflow.faces/templates/.default/style.css');
 
 $randString = $component->randString();
+$jsClass = 'ListsProcessesClass_'.$randString;
 ?>
 
 <div class="bx-bp-btn-panel">
 	<p id="bx-lists-create-processes" class="webform-small-button webform-small-button-accept bp-small-button"
 	   title="<?= GetMessage("CT_BLL_BUTTON_NEW_PROCESSES") ?>"
-	   onclick="javascript:BX['ListsProcessesClass_<?=$randString?>'].showProcesses();">
+	   onclick="javascript:BX.Lists['<?=$jsClass?>'].showProcesses();">
 		<?= GetMessage("CT_BLL_BUTTON_NEW_PROCESSES") ?>
 	</p>
 </div>
@@ -86,6 +88,6 @@ $APPLICATION->IncludeComponent(
 
 <script type="text/javascript">
 	BX(function () {
-		BX['ListsProcessesClass_<?= $randString?>'] = new BX.ListsProcessesClass({});
+		BX.Lists['<?=$jsClass?>'] = new BX.Lists.ListsProcessesClass({});
 	});
 </script>

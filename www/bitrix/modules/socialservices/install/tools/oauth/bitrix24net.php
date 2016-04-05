@@ -16,15 +16,26 @@ if(isset($_REQUEST["state"]) && is_string($_REQUEST["state"]))
 		$site = substr(preg_replace("/[^a-z0-9_]/i", "", $arState['site_id']), 0, 2);
 		define("SITE_ID", $site);
 	}
+	elseif(isset($arState['admin']))
+	{
+		define('ADMIN_SECTION', true);
+	}
 }
 
 require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include/prolog_before.php");
 
-if(CModule::IncludeModule("socialservices"))
+if(isset($_REQUEST["update_broadcast"]))
 {
-	$oAuthManager = new CSocServAuthManager();
-	$oAuthManager->Authorize("Bitrix24Net");
+	\Bitrix\Main\Config\Option::set("socialservices", "network_last_update", time());
 }
+else
+{
+	if(CModule::IncludeModule("socialservices"))
+	{
+		$oAuthManager = new CSocServAuthManager();
+		$oAuthManager->Authorize("Bitrix24Net");
+	}
 
-require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include/epilog_after.php");
+	require_once($_SERVER['DOCUMENT_ROOT']."/bitrix/modules/main/include/epilog_after.php");
+}
 ?>

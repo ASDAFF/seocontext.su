@@ -51,6 +51,10 @@ if($_SERVER['REQUEST_METHOD'] == "POST" && ($save!="" || $apply!="") && $POST_RI
 		"SUBJECT" => $SUBJECT,
 		"EMAIL_FROM"	=> $EMAIL_FROM,
 		"MESSAGE" => $MESSAGE,
+		"TEMPLATE_TYPE" => $TEMPLATE_TYPE,
+		"TEMPLATE_ID" => $TEMPLATE_ID,
+		"PRIORITY" => $PRIORITY,
+		"LINK_PARAMS" => $LINK_PARAMS,
 		"CREATED_BY" => $USER->GetID(),
 
 		"REITERATE" => "N",
@@ -269,10 +273,37 @@ if($_SERVER['REQUEST_METHOD'] == "POST" && ($save!="" || $apply!="") && $POST_RI
 		{
 			if(!empty($TEMPLATE_ACTION_SAVE_NAME) && !empty($MESSAGE))
 			{
-				\Bitrix\Sender\TemplateTable::add(array(
+				$CONTENT = $MESSAGE;
+				$useBlockEditor = false;
+
+				if($TEMPLATE_TYPE && $TEMPLATE_ID)
+				{
+					\Bitrix\Main\Loader::includeModule('fileman');
+					$chainTemplate = \Bitrix\Sender\Preset\Template::getById($TEMPLATE_TYPE, $TEMPLATE_ID);
+
+					if($chainTemplate && $chainTemplate['HTML'])
+					{
+						$CONTENT = \Bitrix\Fileman\Block\Editor::fillTemplateBySliceContent($chainTemplate['HTML'], $CONTENT);
+
+						if($CONTENT)
+						{
+							$useBlockEditor = true;
+						}
+					}
+				}
+
+				$addResult = \Bitrix\Sender\TemplateTable::add(array(
 					'NAME' => $TEMPLATE_ACTION_SAVE_NAME,
-					'CONTENT' => $MESSAGE
+					'CONTENT' => $CONTENT
 				));
+
+				if($useBlockEditor && $addResult->isSuccess())
+				{
+					\Bitrix\Sender\MailingChainTable::update(
+						array('ID' => $ID),
+						array('TEMPLATE_TYPE' => 'USER', 'TEMPLATE_ID' => $addResult->getId())
+					);
+				}
 			}
 		}
 
@@ -333,6 +364,24 @@ if($ID>0)
 	}
 }
 
+$chainCharset = '';
+if($MAILING_ID>0)
+{
+	$mailingSiteDb = \Bitrix\Sender\MailingTable::getList(array('select' => array('SITE_ID'), 'filter' => array('ID' => $MAILING_ID)));
+	if($mailingSite = $mailingSiteDb->fetch())
+	{
+		$mailingSiteCharsetDb = \Bitrix\Main\SiteTable::getList(array(
+			'select'=>array('CULTURE_CHARSET'=>'CULTURE.CHARSET'),
+			'filter' => array('LID' => $mailingSite['SITE_ID'])
+		));
+		if($mailingSiteCharset = $mailingSiteCharsetDb->fetch())
+		{
+			$chainCharset = $mailingSiteCharset['CULTURE_CHARSET'];
+		}
+	}
+}
+
+
 if($bVarsFromForm)
 	$DB->InitTableVarsForEdit("b_sender_mailing_chain", "", "str_");
 
@@ -368,6 +417,7 @@ if($ID>0 && $POST_RIGHT>="W")
 $context = new CAdminContextMenu($aMenu);
 $context->Show();
 
+\Bitrix\Sender\PostingRecipientTable::setPersonalizeList(\Bitrix\Sender\MailingTable::getPersonalizeList($MAILING_ID));
 $arMailing = \Bitrix\Sender\MailingTable::getRowById($MAILING_ID);
 ?>
 
@@ -390,6 +440,12 @@ if(!isset($SEND_TYPE))
 }
 
 $templateListHtml = \Bitrix\Sender\Preset\Template::getTemplateListHtml('tabControl_layout');
+$templateName = '';
+$template = \Bitrix\Sender\Preset\Template::getById($str_TEMPLATE_TYPE, $str_TEMPLATE_ID);
+if($template)
+{
+	$templateName = $template['NAME'];
+}
 ?>
 
 
@@ -550,7 +606,7 @@ $tabControl->BeginNextTab();
 	<tr class="hidden-when-show-template-list" <?=(empty($str_MESSAGE) ? 'style="display: none;"' : '')?>>
 		<td><?echo GetMessage("sender_chain_edit_field_sel_templ")?></td>
 		<td>
-			<span class="sender-template-message-caption-container"></span> <a class="sender-link-email sender-template-message-caption-container-btn" href="javascript: void(0);"><?echo GetMessage("sender_chain_edit_field_sel_templ_another")?></a>
+			<span class="sender-template-message-caption-container"><?=htmlspecialcharsbx($templateName)?></span> <a class="sender-link-email sender-template-message-caption-container-btn" href="javascript: void(0);"><?echo GetMessage("sender_chain_edit_field_sel_templ_another")?></a>
 		</td>
 	</tr>
 	<tr class="hidden-when-show-template-list"><td colspan="2">&nbsp;</td></tr>
@@ -612,7 +668,12 @@ $tabControl->BeginNextTab();
 			<?=\Bitrix\Sender\TemplateTable::initEditor(array(
 				'FIELD_NAME' => 'MESSAGE',
 				'FIELD_VALUE' => $str_MESSAGE,
-				'HAVE_USER_ACCESS' => $isUserHavePhpAccess
+				//'CONTENT_URL' => '/bitrix/admin/sender_mailing_chain_admin.php?action=get_template&ID=' . $ID . '&lang=' . LANGUAGE_ID . '&' . bitrix_sessid_get(),
+				'TEMPLATE_TYPE' => $str_TEMPLATE_TYPE,
+				'TEMPLATE_ID' => $str_TEMPLATE_ID,
+				'HAVE_USER_ACCESS' => $isUserHavePhpAccess,
+				'SITE' => $mailingSite['SITE_ID'],
+				'CHARSET' => $chainCharset,
 			));?>
 			<input type="hidden" name="IS_TEMPLATE_LIST_SHOWN" id="IS_TEMPLATE_LIST_SHOWN" value="<?=(empty($str_MESSAGE) ?"Y":"N")?>">
 		</td>
@@ -664,6 +725,26 @@ $tabControl->BeginNextTab();
 				);
 			}
 			?>
+		</td>
+	</tr>
+
+	<tr class="hidden-when-show-template-list" <?=(empty($str_MESSAGE) ? 'style="display: none;"' : '')?>>
+		<td><?echo GetMessage("sender_chain_edit_field_priority")?></td>
+		<td>
+			<input type="text" name="PRIORITY" id="MSG_PRIORITY" size="10" maxlength="255" value="<?echo $str_PRIORITY?>">
+			<select onchange="document.getElementById('MSG_PRIORITY').value=this.value">
+				<option value=""></option>
+				<option value="1 (Highest)"<?if($str_PRIORITY=='1 (Highest)')echo ' selected'?>><?echo GetMessage("sender_chain_edit_field_priority_1")?></option>
+				<option value="3 (Normal)"<?if($str_PRIORITY=='3 (Normal)')echo ' selected'?>><?echo GetMessage("sender_chain_edit_field_priority_3")?></option>
+				<option value="5 (Lowest)"<?if($str_PRIORITY=='5 (Lowest)')echo ' selected'?>><?echo GetMessage("sender_chain_edit_field_priority_5")?></option>
+			</select>
+		</td>
+	</tr>
+
+	<tr class="hidden-when-show-template-list" <?=(empty($str_MESSAGE) ? 'style="display: none;"' : '')?>>
+		<td><?echo GetMessage("sender_chain_edit_field_linkparams")?></td>
+		<td>
+			<input type="text" id="LINK_PARAMS" name="LINK_PARAMS" value="<?=$str_LINK_PARAMS?>" style="width: 450px;">
 		</td>
 	</tr>
 <?
@@ -854,10 +935,8 @@ $tabControl->BeginNextTab();
 					ShowTemplateListL(false);
 				});
 
-				letterManager.onShowTemplateList(function()
-				{
-					ShowTemplateListL(true);
-				});
+				letterManager.onShowTemplateList(function(){ ShowTemplateListL(true); });
+				letterManager.onHideTemplateList(function(){ ShowTemplateListL(false); });
 
 			</script>
 

@@ -120,6 +120,11 @@ if (strlen($filter_user_email)>0)
 if (IntVal($filter_user_id)>0)
 	$arFilter["ORDER.USER_ID"] = IntVal($filter_user_id);
 
+$allowedStatusesView = \Bitrix\Sale\DeliveryStatus::getStatusesUserCanDoOperations($USER->GetID(), array('view'));
+
+if($saleModulePermissions < "W")
+	$arFilter["=STATUS_ID"] = $allowedStatusesView;
+
 if($arID = $lAdmin->GroupAction())
 {
 	$shipments = array();
@@ -514,8 +519,8 @@ $oFilter->Begin();
 			'STATUS_NAME' => 'Bitrix\Sale\Internals\StatusLangTable:STATUS.NAME'
 		),
 		"filter" => array(
-						'=Bitrix\Sale\Internals\StatusLangTable:STATUS.NAME'  => $lang,
-						'TYPE'      => 'O'
+			'=Bitrix\Sale\Internals\StatusLangTable:STATUS.LID'  => $lang,
+			'TYPE' => 'D'
 		)
 	);
 	$result = \Bitrix\Sale\Internals\StatusTable::getList($params);

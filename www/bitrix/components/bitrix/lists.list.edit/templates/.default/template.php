@@ -2,7 +2,10 @@
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
 	die();
 
+CJSCore::Init(array('lists'));
+
 $arToolbar = array();
+$jsClass = 'ListsEditClass_'.$arResult['RAND_STRING'];
 
 if($arParams["IBLOCK_TYPE_ID"] == COption::GetOptionString("lists", "livefeed_iblock_type_id"))
 {
@@ -26,7 +29,7 @@ if($arResult["IBLOCK_ID"])
 	$arToolbar[] = array(
 		"TEXT"=>GetMessage("CT_BLLE_TOOLBAR_DELETE".$typeTranslation),
 		"TITLE"=>GetMessage("CT_BLLE_TOOLBAR_DELETE_TITLE".$typeTranslation),
-		"LINK"=>"javascript:jsDelete('".CUtil::JSEscape("form_".$arResult["FORM_ID"])."', '".GetMessage("CT_BLLE_TOOLBAR_DELETE_WARNING".$typeTranslation)."')",
+		"LINK"=>"javascript:BX.Lists['".$jsClass."'].deleteIblock('".CUtil::JSEscape("form_".$arResult["FORM_ID"])."', '".GetMessage("CT_BLLE_TOOLBAR_DELETE_WARNING".$typeTranslation)."')",
 		"ICON"=>"btn-delete-list",
 	);
 	$arToolbar[] = array(
@@ -42,9 +45,16 @@ if($arResult["IBLOCK_ID"])
 		$arToolbar[] = array(
 			"TEXT"=>GetMessage("CT_BLLE_TOOLBAR_MIGRATE_PROCESSES"),
 			"TITLE"=>GetMessage("CT_BLLE_TOOLBAR_MIGRATE_PROCESSES"),
-			"LINK"=>"javascript:jsMigrate('".CUtil::JSEscape("form_".$arResult["FORM_ID"])."', '".GetMessage("CT_BLLE_TOOLBAR_MIGRATE_WARNING_PROCESS")."')",
+			"LINK"=>"javascript:BX.Lists['".$jsClass."'].migrateList('".CUtil::JSEscape("form_".$arResult["FORM_ID"])."', '".GetMessage("CT_BLLE_TOOLBAR_MIGRATE_WARNING_PROCESS")."')",
 			"ICON"=>"btn-delete-list",
 		);
+	$arToolbar[] = array(
+		"TEXT"=>GetMessage("CT_BLLE_TOOLBAR_LIST_COPY".$typeTranslation),
+		"TITLE"=>GetMessage("CT_BLLE_TOOLBAR_LIST_COPY_TITLE".$typeTranslation),
+		"LINK"=>"javascript:BX.Lists['".$jsClass."'].copyIblock()",
+		"ICON"=>"btn-copy",
+		"LINK_PARAM" => "id='lists-edit-copy-iblock'"
+	);
 }
 
 if(count($arToolbar))
@@ -69,9 +79,7 @@ IBlockShowRights(
 	/*$arPossibleRights=*/$arResult["TASKS"],
 	/*$arActualRights=*/$arResult["RIGHTS"],
 	/*$bDefault=*/true,
-	/*$bForceInherited=*/false,
-	/*$arSelected=*/$arResult["SELECTED"],
-	/*$arHighLight=*/$arResult["HIGHLIGHT"]
+	/*$bForceInherited=*/false
 );
 $rights_html = ob_get_contents();
 ob_end_clean();
@@ -155,4 +163,22 @@ $APPLICATION->IncludeComponent(
 	),
 	$component, array("HIDE_ICONS" => "Y")
 );
+
+$socnetGroupId = $arParams["SOCNET_GROUP_ID"] ? $arParams["SOCNET_GROUP_ID"] : 0;
 ?>
+
+<script type="text/javascript">
+	BX(function () {
+		BX.Lists['<?=$jsClass?>'] = new BX.Lists.ListsEditClass({
+			randomString: '<?=$arResult['RAND_STRING']?>',
+			iblockTypeId: '<?=$arParams["IBLOCK_TYPE_ID"]?>',
+			iblockId: '<?=$arResult["IBLOCK_ID"]?>',
+			socnetGroupId: '<?=$socnetGroupId?>',
+			listsUrl: '<?=CUtil::JSEscape($arResult["LISTS_URL"])?>'
+		});
+
+		BX.message({
+			CT_BLLE_TOOLBAR_LIST_COPY_BUTTON_TITLE: '<?=GetMessageJS("CT_BLLE_TOOLBAR_LIST_COPY_BUTTON_TITLE")?>'
+		});
+	});
+</script>

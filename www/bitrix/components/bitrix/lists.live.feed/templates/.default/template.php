@@ -73,7 +73,9 @@ Asset::getInstance()->addJs($this->GetFolder().'/right.js');
 		LISTS_CANCEL_BUTTON_INSTALL: '<?=GetMessageJS("LISTS_CANCEL_BUTTON_INSTALL")?>',
 		LISTS_TITLE_POPUP_MARKETPLACE: '<?=GetMessageJS("LISTS_TITLE_POPUP_MARKETPLACE")?>',
 		LISTS_MARKETPLACE_TITLE_SYSTEM_PROCESSES: '<?=GetMessageJS("LISTS_MARKETPLACE_TITLE_SYSTEM_PROCESSES")?>',
-		LISTS_MARKETPLACE_TITLE_USER_PROCESSES: '<?=GetMessageJS("LISTS_MARKETPLACE_TITLE_USER_PROCESSES")?>'
+		LISTS_MARKETPLACE_TITLE_USER_PROCESSES: '<?=GetMessageJS("LISTS_MARKETPLACE_TITLE_USER_PROCESSES")?>',
+		LISTS_DESIGNER_POPUP_TITLE: '<?=GetMessageJS("LISTS_DESIGNER_POPUP_TITLE")?>',
+		LISTS_DESIGNER_POPUP_DESCRIPTION: '<?=GetMessageJS("LISTS_DESIGNER_POPUP_DESCRIPTION")?>'
 	});
 </script>
 
@@ -139,5 +141,10 @@ Asset::getInstance()->addJs($this->GetFolder().'/right.js');
 
 <div id="bx-lists-marketplace_processes" style="display:none;">
 	<div id="bx-lists-marketplace_processes-content" class="bx-lists-marketplace_processes-content">
+	</div>
+</div>
+
+<div id="bx-lists-designer-template-popup" style="display:none;">
+	<div id="bx-lists-designer-template-popup-content" class="bx-lists-designer-template-popup-content">
 	</div>
 </div>

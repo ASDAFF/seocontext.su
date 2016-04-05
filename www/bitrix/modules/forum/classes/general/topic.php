@@ -5,7 +5,7 @@ IncludeModuleLangFile(__FILE__);
 /**********************************************************************/
 class CAllForumTopic
 {
-	function CanUserViewTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
+	public static function CanUserViewTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
 	{
 		$TID = intVal($TID);
 		$arTopic = CForumTopic::GetByID($TID);
@@ -25,7 +25,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CanUserAddTopic($FID, $arUserGroups, $iUserID = 0, $arForum = false, $ExternalPermission = false)
+	public static function CanUserAddTopic($FID, $arUserGroups, $iUserID = 0, $arForum = false, $ExternalPermission = false)
 	{
 		if (!$arForum || (!is_array($arForum)) || (intVal($arForum["ID"]) != intVal($FID)))
 			$arForum = CForumNew::GetByID($FID);
@@ -48,7 +48,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CanUserUpdateTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
+	public static function CanUserUpdateTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
 	{
 		$TID = intVal($TID);
 		$iUserID = intVal($iUserID);
@@ -89,7 +89,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CanUserDeleteTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
+	public static function CanUserDeleteTopic($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
 	{
 		$TID = intVal($TID);
 		$arTopic = CForumTopic::GetByID($TID);
@@ -113,7 +113,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CanUserDeleteTopicMessage($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
+	public static function CanUserDeleteTopicMessage($TID, $arUserGroups, $iUserID = 0, $ExternalPermission = false)
 	{
 		$TID = intVal($TID);
 		$arTopic = CForumTopic::GetByID($TID);
@@ -137,7 +137,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CheckFields($ACTION, &$arFields)
+	public static function CheckFields($ACTION, &$arFields)
 	{
 		// Fatal Errors
 		if (is_set($arFields, "TITLE") || $ACTION=="ADD")
@@ -210,7 +210,7 @@ class CAllForumTopic
 		return True;
 	}
 
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 
@@ -311,7 +311,7 @@ class CAllForumTopic
 		return $ID;
 	}
 
-	function Update($ID, $arFields, $skip_counts = False)
+	public static function Update($ID, $arFields, $skip_counts = False)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -506,7 +506,7 @@ class CAllForumTopic
 		return $ID;
 	}
 
-	function MoveTopic2Forum($TID, $FID, $leaveLink = "N")
+	public static function MoveTopic2Forum($TID, $FID, $leaveLink = "N")
 	{
 		global $DB;
 		$FID = intVal($FID);
@@ -635,7 +635,7 @@ class CAllForumTopic
 		return true;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -693,7 +693,7 @@ class CAllForumTopic
 		return true;
 	}
 
-	function GetByID($ID, $arAddParams = array())
+	public static function GetByID($ID, $arAddParams = array())
 	{
 		global $DB;
 
@@ -744,7 +744,7 @@ class CAllForumTopic
 		return False;
 	}
 
-	function GetByIDEx($ID, $arAddParams = array())
+	public static function GetByIDEx($ID, $arAddParams = array())
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -835,7 +835,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function GetNeighboringTopics($TID, $arUserGroups) // out-of-date function
+	public static function GetNeighboringTopics($TID, $arUserGroups) // out-of-date function
 	{
 		$TID = intVal($TID);
 		$arTopic = CForumTopic::GetByID($TID);
@@ -868,7 +868,7 @@ class CAllForumTopic
 		return array($PREV_TOPIC, $NEXT_TOPIC);
 	}
 
-	function GetSelectFields($arAddParams = array(), $fields = array())
+	public static function GetSelectFields($arAddParams = array(), $fields = array())
 	{
 		global $DB;
 		$arAddParams = (is_array($arAddParams) ? $arAddParams : array());
@@ -925,7 +925,7 @@ class CAllForumTopic
 		return $res;
 	}
 
-	function SetReadLabels($ID, $arUserGroups) // out-of-date function
+	public static function SetReadLabels($ID, $arUserGroups) // out-of-date function
 	{
 		$ID = intVal($ID);
 		$arTopic = CForumTopic::GetByID($ID);
@@ -961,7 +961,7 @@ class CAllForumTopic
 		}
 	}
 
-	function SetReadLabelsNew($ID, $update = false, $LastVisit = false, $arAddParams = array())
+	public static function SetReadLabelsNew($ID, $update = false, $LastVisit = false, $arAddParams = array())
 	{
 		global $DB, $USER;
 
@@ -1028,7 +1028,7 @@ class CAllForumTopic
 		return false;
 	}
 
-	function CleanUp($period = 168)
+	public static function CleanUp($period = 168)
 	{
 		global $DB;
 		$period = intVal($period)*3600;
@@ -1042,7 +1042,7 @@ class CAllForumTopic
 
 
 	//---------------> Topic utils
-	function SetStat($ID = 0, $arParams = array())
+	public static function SetStat($ID = 0, $arParams = array())
 	{
 		global $DB;
 		$ID = intVal($ID);
@@ -1132,7 +1132,7 @@ class CAllForumTopic
 		return CForumTopic::Update($ID, $arFields);
 	}
 
-	function OnBeforeIBlockElementDelete($ELEMENT_ID)
+	public static function OnBeforeIBlockElementDelete($ELEMENT_ID)
 	{
 		$ELEMENT_ID = intVal($ELEMENT_ID);
 		if ($ELEMENT_ID > 0 && CModule::IncludeModule("iblock"))
@@ -1164,7 +1164,7 @@ class CAllForumTopic
 		return true;
 	}
 
-	function GetMessageCount($forumID, $topicID, $approved = null)
+	public static function GetMessageCount($forumID, $topicID, $approved = null)
 	{
 		global $CACHE_MANAGER;
 		static $arCacheCount = array();
@@ -1367,4 +1367,3 @@ class _CTopicDBResult extends CDBResult
 		return $res;
 	}
 }
-?>

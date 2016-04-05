@@ -2792,7 +2792,7 @@ function __run()
 			blockWidth = Math.round(100 / setLength) + '%',
 			sliderWidth = (100 * setLength) + '%';
 
-		if (setLength > 0)
+		if (setLength > 1)
 		{
 			this.smileSetsIndex = {};
 			this.smileTabsWrap = this.pValuesCont.appendChild(BX.create('DIV', {props: {className: 'bxhtmled-smile-tabs-wrap'}}));
@@ -2803,9 +2803,11 @@ function __run()
 
 			for(i = 0; i < this.smileSets.length; i++)
 			{
-				this.smileSetsIndex[this.smileSets[i].id] = i;
+				if (!this.smileSets[i].ID && this.smileSets[i].id)
+					this.smileSets[i].ID = this.smileSets[i].id;
+				this.smileSetsIndex[this.smileSets[i].ID] = i;
 				this.smileSets[i].butWrap = this.smileTabsWrap.appendChild(BX.create('SPAN', {props: {className: 'bxhtmled-smile-tab'}}));
-				this.smileSets[i].butWrap.setAttribute('data-bx-smile-set', this.smileSets[i].id);
+				this.smileSets[i].butWrap.setAttribute('data-bx-smile-set', this.smileSets[i].ID);
 				this.smileSets[i].butWrapImage = false;
 				this.smileSets[i].smilesBlock = this.smileSlider.appendChild(BX.create('DIV', {props: {className: 'bxhtmled-smiles-wrap'}, style: {width: blockWidth}}));
 
@@ -2968,9 +2970,7 @@ function __run()
 
 		if ((this.editor.synchro.IsFocusedOnTextarea() || !this.editor.iframeView.isFocused || this.savedRange.collapsed) && range && !range.collapsed)
 		{
-			var tmpDiv = BX.create('DIV', {html: range.toHtml()}, this.editor.GetIframeDoc());
-			this.editor.action.actions.quote.setExternalSelection(this.editor.util.GetTextContentEx(tmpDiv));
-			BX.remove(tmpDiv);
+			this.editor.action.actions.quote.setExternalSelectionFromRange(range);
 		}
 
 		QuoteButton.superclass.OnMouseDown.apply(this, arguments);
@@ -5895,6 +5895,8 @@ function __run()
 			nodes = [];
 		}
 
+		var isBody = nodes.length == 1 && nodes[0].nodeName == 'BODY';
+
 		if (nodes.length == 1 && BX.util.in_array(nodes[0].nodeName, ['TD', 'TH', 'TR', 'TABLE']))
 		{
 			this.colorRow.style.display = '';
@@ -5915,19 +5917,22 @@ function __run()
 //			this.heightRow.style.display = 'none';
 //		}
 
-		for (i = 0; i < nodes.length; i++)
+		if (!isBody)
 		{
-			if (style === undefined && className === undefined)
+			for (i = 0; i < nodes.length; i++)
 			{
-				style = nodes[i].style.cssText;
-				className = nodes[i].className;
+				if (style === undefined && className === undefined)
+				{
+					style = nodes[i].style.cssText;
+					className = nodes[i].className;
+				}
+				else
+				{
+					style = nodes[i].style.cssText === style ? style : false;
+					className = nodes[i].className === className ? className : false;
+				}
+				nodeNames.push(nodes[i].nodeName);
 			}
-			else
-			{
-				style = nodes[i].style.cssText === style ? style : false;
-				className = nodes[i].className === className ? className : false;
-			}
-			nodeNames.push(nodes[i].nodeName);
 		}
 
 		this.SetValues({
@@ -5937,7 +5942,10 @@ function __run()
 			className: className
 		});
 
-		this.SetTitle(BX.message('BXEdDefaultPropDialog').replace('#NODES_LIST#', nodeNames.join(', ')));
+		if (isBody)
+			this.SetTitle(BX.message('BXEdDefaultPropDialog').replace('#NODES_LIST#', BX.message('BXEdDefaultPropDialogTextNode')));
+		else
+			this.SetTitle(BX.message('BXEdDefaultPropDialog').replace('#NODES_LIST#', nodeNames.join(', ')));
 
 		// Call parrent Dialog.Show()
 		DefaultDialog.superclass.Show.apply(this, arguments);

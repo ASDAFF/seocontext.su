@@ -639,22 +639,41 @@ class CAllBlogComment
 		return $arSp;
 	}
 
-	function GetSocNetUserPerms($postId = 0, $authorId = 0)
+	function GetSocNetUserPerms($postId = 0, $authorId = 0, $userId = 0)
 	{
 		global $APPLICATION, $USER, $AR_BLOG_PERMS;
 
-		$userId = IntVal($USER->GetID());
+		if (
+			!isset($userId)
+			|| intval($userId) <= 0
+		)
+		{
+			$userId = IntVal($USER->GetID());
+			$bCurrent = true;
+		}
+
 		$postId = IntVal($postId);
 		$authorId = IntVal($authorId);
-		if($postId <= 0)
+		if ($postId <= 0)
+		{
 			return false;
+		}
 
 		$perms = BLOG_PERMS_DENY;
 
-		$blogModulePermissions = $APPLICATION->GetGroupRight("blog");
-		if($authorId > 0 && $userId == $authorId)
+		$blogModulePermissions = $APPLICATION->GetGroupRight("blog", ($bCurrent ? false : CUser::GetUserGroup($userId)));
+		if (
+			$authorId > 0
+			&& $userId == $authorId
+		)
+		{
 			$perms = BLOG_PERMS_FULL;
-		elseif ($blogModulePermissions >= "W" || CSocNetUser::IsCurrentUserModuleAdmin())
+		}
+
+		elseif (
+			$blogModulePermissions >= "W"
+			|| ($bCurrent ? CSocNetUser::IsCurrentUserModuleAdmin() : CSocNetUser::IsUserModuleAdmin($userId))
+		)
 		{
 			end($AR_BLOG_PERMS);
 			$perms = key($AR_BLOG_PERMS);
@@ -673,7 +692,7 @@ class CAllBlogComment
 			else
 			{
 				$arCodes = CAccess::GetUserCodesArray($userId);
-				foreach($arCodes as $code)
+				foreach ($arCodes as $code)
 				{
 					if (
 						preg_match('/^DR([0-9]+)/', $code, $match)
@@ -691,7 +710,7 @@ class CAllBlogComment
 				CBlogPost::$arUACCache[$userId] = $arEntities;
 			}
 
-			if(!empty($arEntities["DR"]) && !empty($arPerms["DR"]))
+			if (!empty($arEntities["DR"]) && !empty($arPerms["DR"]))
 			{
 				foreach($arPerms["DR"] as $id => $val)
 				{
@@ -702,8 +721,19 @@ class CAllBlogComment
 					}
 				}
 			}
-			if((!empty($arPerms["U"][$userId]) && in_array("US".$userId, $arPerms["U"][$userId])) || ($authorId >0 && $userId == $authorId)) // if author
+			if (
+				(
+					!empty($arPerms["U"][$userId])
+					&& in_array("US".$userId, $arPerms["U"][$userId])
+				)
+				|| (
+					$authorId > 0
+					&& $userId == $authorId
+				)
+			) // if author
+			{
 				$perms = BLOG_PERMS_FULL;
+			}
 			else
 			{
 				if($authorId <= 0)
@@ -718,18 +748,31 @@ class CAllBlogComment
 					}
 				}
 
-				if(!empty($arPerms["U"][$userId]) || (!empty($arPerms["U"][$authorId]) && in_array("US".$authorId, $arPerms["U"][$authorId])) || $perms == BLOG_PERMS_READ)
+				if (
+					!empty($arPerms["U"][$userId])
+					|| (
+						!empty($arPerms["U"][$authorId])
+						&& in_array("US".$authorId, $arPerms["U"][$authorId])
+					)
+					|| $perms == BLOG_PERMS_READ
+				)
 				{
 					if (CSocNetFeaturesPerms::CanPerformOperation($userId, SONET_ENTITY_USER, $authorId, "blog", "write_comment"))
+					{
 						$perms = BLOG_PERMS_WRITE;
+					}
 					elseif (CSocNetFeaturesPerms::CanPerformOperation($userId, SONET_ENTITY_USER, $authorId, "blog", "premoderate_comment"))
+					{
 						$perms = BLOG_PERMS_PREMODERATE;
+					}
 					elseif (CSocNetFeaturesPerms::CanPerformOperation($userId, SONET_ENTITY_USER, $authorId, "blog", "view_comment"))
+					{
 						$perms = BLOG_PERMS_READ;
+					}
 				}
 			}
 
-			if($perms <= BLOG_PERMS_FULL)
+			if ($perms <= BLOG_PERMS_FULL)
 			{
 				$arGroupsId = Array();
 
@@ -740,23 +783,36 @@ class CAllBlogComment
 						//if(!empty($arEntities["SG"][$gid]))
 						$arGroupsId[] = $gid;
 					}
+
 					$operation = Array("full_comment", "moderate_comment", "write_comment", "premoderate_comment");
-					if($perms < BLOG_PERMS_READ)
+					if ($perms < BLOG_PERMS_READ)
+					{
 						$operation[] = "view_comment";
+					}
 				}
 
-				if(!empty($arGroupsId))
+				if (!empty($arGroupsId))
 				{
-					foreach($operation as $v)
+					foreach ($operation as $v)
 					{
-						if($perms <= BLOG_PERMS_READ)
+						if ($perms <= BLOG_PERMS_READ)
 						{
 							$f = CSocNetFeaturesPerms::GetOperationPerm(SONET_ENTITY_GROUP, $arGroupsId, "blog", $v);
 							if(!empty($f))
 							{
 								foreach($f as $gid => $val)
 								{
-									if((!empty($arEntities["SG"][$gid]) && in_array($val, $arEntities["SG"][$gid])) || $val == SONET_ROLES_ALL || ($userId > 0 && $val == SONET_ROLES_AUTHORIZED))
+									if (
+										(
+											!empty($arEntities["SG"][$gid])
+											&& in_array($val, $arEntities["SG"][$gid])
+										)
+										|| $val == SONET_ROLES_ALL
+										|| (
+											$userId > 0
+											&& $val == SONET_ROLES_AUTHORIZED
+										)
+									)
 									{
 										switch($v)
 										{
@@ -831,7 +887,6 @@ class CAllBlogComment
 			$arParams["NAME_TEMPLATE"] = isset($arParams["NAME_TEMPLATE"]) ? $arParams["NAME_TEMPLATE"] : CSite::GetNameFormat();
 			$arParams["SHOW_LOGIN"] = ($arParams["SHOW_LOGIN"] == "N" ? "N" : "Y");
 
-
 			$comment["DateFormated"] = FormatDateFromDB($comment["DATE_CREATE"], $arParams["DATE_TIME_FORMAT"], true);
 			$timestamp = MakeTimeStamp($comment["DATE_CREATE"]);
 
@@ -852,7 +907,6 @@ class CAllBlogComment
 					"AVATAR_SIZE_COMMENT" => $arParams["AVATAR_SIZE_COMMENT"]
 				)
 			);
-
 
 			if (intval($arAuthor["PERSONAL_PHOTO"]) > 0)
 			{
@@ -879,13 +933,41 @@ class CAllBlogComment
 			$arParserParams = Array(
 				"imageWidth" => 800,
 				"imageHeight" => 800,
+				"pathToUser" => $arParams["PATH_TO_USER"]
 			);
+			if (!empty($arParams["LOG_ID"]))
+			{
+				$arParserParams["pathToUserEntityType"] = 'LOG_ENTRY';
+				$arParserParams["pathToUserEntityId"] = intval($arParams["LOG_ID"]);
+			}
 			$comment["TextFormated"] = $p->convert($comment["POST_TEXT"], false, array(), $arAllow, $arParserParams);
 
 			$p->bMobile = true;
 			$comment["TextFormatedMobile"] = $p->convert($comment["POST_TEXT"], false, array(), $arAllow, $arParserParams);
 			$comment["TextFormatedJS"] = CUtil::JSEscape(htmlspecialcharsBack($comment["POST_TEXT"]));
 			$comment["TITLE"] = CUtil::JSEscape(htmlspecialcharsBack($comment["TITLE"]));
+
+			$authorType = false;
+			if (
+				isset($arAuthor["EXTERNAL_AUTH_ID"])
+				&& $arAuthor["EXTERNAL_AUTH_ID"] == 'email'
+			)
+			{
+				$authorType = 'EMAIL';
+			}
+			elseif (
+				IsModuleInstalled('extranet')
+				&& (
+					empty($arAuthor["UF_DEPARTMENT"])
+					|| (
+						is_array($arAuthor["UF_DEPARTMENT"])
+						&& empty($arAuthor["UF_DEPARTMENT"][0])
+					)
+				)
+			)
+			{
+				$authorType = 'EXTRANET';
+			}
 
 			$eventHandlerID = AddEventHandler("main", "system.field.view.file", Array("CSocNetLogTools", "logUFfileShow"));
 			$res = $APPLICATION->IncludeComponent(
@@ -908,7 +990,10 @@ class CAllBlogComment
 								"NAME" => $arAuthor["~NAME"],
 								"LAST_NAME" => $arAuthor["~LAST_NAME"],
 								"SECOND_NAME" => $arAuthor["~SECOND_NAME"],
-								"AVATAR" => $arAuthor["PERSONAL_PHOTO_resized"]["src"]
+								"LOGIN" => $arAuthor["~LOGIN"],
+								"AVATAR" => $arAuthor["PERSONAL_PHOTO_resized"]["src"],
+								"EXTERNAL_AUTH_ID" => (isset($arAuthor["EXTERNAL_AUTH_ID"]) ? $arAuthor["EXTERNAL_AUTH_ID"] : ''),
+								"TYPE" => $authorType
 							),
 							"FILES" => false,
 							"UF" => $comment["UF"],
@@ -945,9 +1030,14 @@ HTML
 					"RESULT" => $commentId,
 					"PUSH&PULL" => array(
 						"ACTION" => "REPLY",
-						"ID" => $commentId
+						"ID" => $commentId,
+						"AUTHOR_ID" => $arAuthor["ID"]
 					),
-					"MODE" => "PULL_MESSAGE",
+					"MODE" => (
+						is_array($arParams) && isset($arParams["MODE"])
+							? $arParams["MODE"]
+							: "PLAIN"
+					),
 					"VIEW_URL" => "",
 					"EDIT_URL" => "",
 					"MODERATE_URL" => "",

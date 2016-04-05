@@ -1,59 +1,104 @@
-function jsAccTypeChanged(form_id, element_id, flag)
+BX.namespace("BX.Lists");
+BX.Lists.ListsEditClass = (function ()
 {
-	var _form = document.getElementById(form_id);
-	var _element = document.getElementById(element_id);
-	if(_form && _element)
+	var ListsEditClass = function (parameters)
 	{
-		if(flag)
-			_element.style.display = 'none';
-		else
-			_element.style.display = 'block';
-	}
-}
+		this.randomString = parameters.randomString;
+		this.ajaxUrl = '/bitrix/components/bitrix/lists.list.edit/ajax.php';
+		this.iblockTypeId = parameters.iblockTypeId;
+		this.iblockId = parameters.iblockId;
+		this.socnetGroupId = parameters.socnetGroupId;
+		this.jsClass = 'ListsEditClass_'+parameters.randomString;
+		this.listsUrl = parameters.listsUrl || '';
+		this.copyIblockElement = BX('lists-edit-copy-iblock');
+	};
 
-function addNewTableRow(tableID, col_count, regexp, rindex)
-{
-	var tbl = document.getElementById(tableID);
-	var cnt = tbl.rows.length;
-	var oRow = tbl.insertRow(cnt-1);
-
-	for(var i=0;i<col_count;i++)
+	ListsEditClass.prototype.copyIblock = function()
 	{
-		var oCell = oRow.insertCell(i);
-		var html = tbl.rows[cnt-2].cells[i].innerHTML;
-		oCell.innerHTML = html.replace(regexp,
-			function(html)
-			{
-				return html.replace('[n'+arguments[rindex]+']', '[n'+(1+parseInt(arguments[rindex]))+']');
-			}
+		var cloneButton = this.copyIblockElement.cloneNode(true),
+			parentButton = this.copyIblockElement.parentNode;
+
+		this.copyIblockElement.setAttribute('href', '');
+		this.copyIblockElement.innerHTML = '';
+		this.copyIblockElement.appendChild(
+			BX.create('span', {
+			props: {
+				className: 'bx-context-button-icon btn-copy'
+				}
+			})
 		);
-	}
-}
+		this.copyIblockElement.appendChild(
+			BX.create('span', {
+				props: {
+					className: 'bx-context-button-text'
+				},
+				text: BX.message('CT_BLLE_TOOLBAR_LIST_COPY_BUTTON_TITLE')
+			})
+		);
 
-function jsDelete(form_id, message)
-{
-	var _form = document.getElementById(form_id);
-	var _flag = document.getElementById('action');
-	if(_form && _flag)
-	{
-		if(confirm(message))
-		{
-			_flag.value = 'delete';
-			_form.submit();
-		}
-	}
-}
+		BX.Lists.ajax({
+			method: 'POST',
+			dataType: 'json',
+			url: BX.Lists.addToLinkParam(this.ajaxUrl, 'action', 'copyIblock'),
+			data: {
+				iblockTypeId: this.iblockTypeId,
+				iblockId: this.iblockId,
+				socnetGroupId: this.socnetGroupId
+			},
+			onsuccess: BX.delegate(function (result)
+			{
+				if(result.status == 'success')
+				{
+					BX.Lists.showModalWithStatusAction({
+						status: 'success',
+						message: result.message
+					});
+					setTimeout(BX.delegate(function() {
+						document.location.href = this.listsUrl
+					}, this), 1000);
+				}
+				else
+				{
+					result.errors = result.errors || [{}];
+					BX.Lists.showModalWithStatusAction({
+						status: 'error',
+						message: result.errors.pop().message
+					});
 
-function jsMigrate(formId, message)
-{
-	var _form = document.getElementById(formId);
-	var _flag = document.getElementById('action');
-	if(_form && _flag)
+					BX.Lists.removeElement(this.copyIblockElement);
+					parentButton.appendChild(cloneButton);
+				}
+			}, this)
+		});
+	};
+
+	ListsEditClass.prototype.deleteIblock = function(form_id, message)
 	{
-		if(confirm(message))
+		var _form = BX(form_id);
+		var _flag = BX('action');
+		if(_form && _flag)
 		{
-			_flag.value = 'migrate';
-			_form.submit();
+			if(confirm(message))
+			{
+				_flag.value = 'delete';
+				_form.submit();
+			}
 		}
-	}
-}
+	};
+
+	ListsEditClass.prototype.migrateList = function(formId, message)
+	{
+		var _form = BX(formId);
+		var _flag = BX('action');
+		if(_form && _flag)
+		{
+			if(confirm(message))
+			{
+				_flag.value = 'migrate';
+				_form.submit();
+			}
+		}
+	};
+
+	return ListsEditClass;
+})();

@@ -1,7 +1,10 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
 	die();
 
+CJSCore::Init(array('lists'));
 $randString = $component->randString();
+$jsClass = 'ListsIblockClass_'.$randString;
+
 $claim = false;
 $title = GetMessage("CT_BLL_TOOLBAR_ADD_TITLE_LIST");
 if($arParams["IBLOCK_TYPE_ID"] == COption::GetOptionString("lists", "livefeed_iblock_type_id"))
@@ -27,7 +30,7 @@ if($arParams['CAN_EDIT']): ?>
 			</a>
 		<? endif; ?>
 		<? if($arParams["IBLOCK_TYPE_ID"] != "lists" && $arParams["IBLOCK_TYPE_ID"] != "lists_socnet" && empty($arResult["ITEMS"])): ?>
-			<p id="bx-lists-default-processes" onclick="javascript:BX['LiveFeedShowClass_<?=$randString?>'].createDefaultProcesses();" class="webform-small-button webform-small-button-cancel bp-small-button" title="<?= GetMessage("CT_BLL_TOOLBAR_ADD_DEFAULT") ?>">
+			<p id="bx-lists-default-processes" onclick="javascript:BX.Lists['<?=$jsClass?>'].createDefaultProcesses();" class="webform-small-button webform-small-button-cancel bp-small-button" title="<?= GetMessage("CT_BLL_TOOLBAR_ADD_DEFAULT") ?>">
 				<?= GetMessage("CT_BLL_TOOLBAR_ADD_DEFAULT") ?>
 			</p>
 		<? endif; ?>
@@ -48,7 +51,7 @@ if($arParams['CAN_EDIT']): ?>
 		<? if($claim && $arParams['CAN_EDIT']): ?>
 			<span class="bp-bx-application-check">
 				<input type="checkbox" value="" id="bx-lists-show-live-feed-<?= $item['ID'] ?>" <?= $item['SHOW_LIVE_FEED'] ? 'checked' : '' ?>
-					   onclick="javascript:BX['LiveFeedShowClass_<?=$randString?>'].showLiveFeed(<?= $item['ID'] ?>);">
+					   onclick="javascript:BX.Lists['<?=$jsClass?>'].showLiveFeed(<?= $item['ID'] ?>);">
 				<label for="bx-lists-show-live-feed-<?= $item['ID'] ?>"><?= GetMessage("CT_BLL_TOOLBAR_SHOW_LIVE_FEED") ?></label>
 			</span>
 		<? endif; ?>
@@ -57,7 +60,7 @@ if($arParams['CAN_EDIT']): ?>
 
 <script type="text/javascript">
 	BX(function () {
-		BX['LiveFeedShowClass_<?= $randString?>'] = new BX.LiveFeedShowClass({
+		BX.Lists['<?=$jsClass?>'] = new BX.Lists.ListsIblockClass({
 			randomString: '<?= $randString ?>'
 		});
 	});

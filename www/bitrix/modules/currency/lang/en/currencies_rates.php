@@ -42,4 +42,5 @@ $MESS["CURRENCY_RATES_A_EDIT"] = "Change currency rate";
 $MESS["BX_CURRENCY_RATE_EDIT_ERR_ADD"] = "Error adding currency rate";
 $MESS["BX_CURRENCY_RATE_EDIT_ERR_UPDATE"] = "Error editing currency rate ID #ID#";
 $MESS["BX_CURRENCY_GET_RATE_ERR_UNKNOWN"] = "Unknown error getting currency rate";
+$MESS["BX_CURRENCY_RATE_EDIT_MESS_AMOUNT"] = "The Currency module uses the <b>direct quotes</b> of currencies against the base currency. Provide the price of a currency unit (1, or 10, 100, 1000 if so required by the currency face value) in the base currency. There must not be a record for the base currency in the currency rate list.";
 ?>

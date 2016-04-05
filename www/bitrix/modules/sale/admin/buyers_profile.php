@@ -1350,7 +1350,7 @@ if(!empty($arUser))
 	}
 
 	if ($rsCount === 1)
-		$siteLID = "&SITE_ID=".$arSitesShop[0]["ID"]."&user_id=".$ID;
+		$siteLID = "&SITE_ID=".$arSitesShop[0]["ID"]."&USER_ID=".$ID;
 	else
 	{
 		foreach ($arSitesShop as $key => $val)

@@ -3,8 +3,16 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
 	die();
 
 CUtil::InitJSCore(array("window"));
+CJSCore::Init(array('lists'));
 
 $arToolbar = array();
+$jsClass = 'ListsElementEditClass_'.$arResult['RAND_STRING'];
+$urlTabBp = CHTTP::urlAddParams(
+	$APPLICATION->GetCurPageParam("", array($arResult["FORM_ID"]."_active_tab")),
+	array($arResult["FORM_ID"]."_active_tab" => "tab_bp")
+);
+$socnetGroupId = $arParams["SOCNET_GROUP_ID"] ? $arParams["SOCNET_GROUP_ID"] : 0;
+$sectionId = $arResult["SECTION_ID"] ? $arResult["SECTION_ID"] : 0;
 
 if (isset($arResult["LIST_COPY_ELEMENT_URL"]))
 {
@@ -24,7 +32,8 @@ if($arResult["CAN_DELETE_ELEMENT"])
 	$arToolbar[] = array(
 		"TEXT"=>$arResult["IBLOCK"]["ELEMENT_DELETE"],
 		"TITLE"=>GetMessage("CT_BLEE_TOOLBAR_DELETE_TITLE"),
-		"LINK"=>"javascript:jsDelete('form_".$arResult["FORM_ID"]."', '".GetMessage("CT_BLEE_TOOLBAR_DELETE_WARNING")."')",
+		"LINK"=>"javascript:BX.Lists['".$jsClass."'].elementDelete('form_".$arResult["FORM_ID"]."',
+			'".GetMessage("CT_BLEE_TOOLBAR_DELETE_WARNING")."')",
 		"ICON"=>"btn-delete-element",
 	);
 }
@@ -53,19 +62,40 @@ $APPLICATION->IncludeComponent(
 );
 
 $arTabElement = array();
+$custom_html = "";
 foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 {
 	$show = "Y";
-	if(!empty($arField["SETTINGS"]["SHOW_EDIT_FORM"]) || !empty($arField["SETTINGS"]["SHOW_ADD_FORM"]))
-	{
-		if($arResult["ELEMENT_ID"] > 0)
-			$show = $arField["SETTINGS"]["SHOW_EDIT_FORM"];
-		else
-			$show = $arField["SETTINGS"]["SHOW_ADD_FORM"];
-	}
+	if($arResult["ELEMENT_ID"] > 0 && !empty($arField["SETTINGS"]["SHOW_EDIT_FORM"]))
+		$show = $arField["SETTINGS"]["SHOW_EDIT_FORM"];
+	if(!$arResult["ELEMENT_ID"] && !empty($arField["SETTINGS"]["SHOW_ADD_FORM"]))
+		$show = $arField["SETTINGS"]["SHOW_ADD_FORM"];
+
+	$read = "N";
+	if($arResult["ELEMENT_ID"] > 0 && !empty($arField["SETTINGS"]["EDIT_READ_ONLY_FIELD"]))
+		$read = $arField["SETTINGS"]["EDIT_READ_ONLY_FIELD"];
+	if(!$arResult["ELEMENT_ID"] && !empty($arField["SETTINGS"]["ADD_READ_ONLY_FIELD"]))
+		$read = $arField["SETTINGS"]["ADD_READ_ONLY_FIELD"];
 
 	if($FIELD_ID == "ACTIVE_FROM" || $FIELD_ID == "ACTIVE_TO")
 	{
+		if($read == "Y")
+		{
+			if($arResult["ELEMENT_ID"] > 0 && empty($arResult["FORM_DATA"][$FIELD_ID]))
+				$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+			else
+				$html = '<input disabled type="text" value="'.$arResult["FORM_DATA"][$FIELD_ID].'"><input type="hidden" name="'.$FIELD_ID.'" value="'.$arResult["FORM_DATA"][$FIELD_ID].'">';
+			$arTabElement[] = array(
+				"id" => $FIELD_ID,
+				"name" => $arField["~NAME"],
+				"required" => $arField["IS_REQUIRED"]=="Y"? true: false,
+				"type" => "custom",
+				"value" => $html,
+				"show" => $show
+			);
+			continue;
+		}
+
 		$arTabElement[] = array(
 			"id" => $FIELD_ID,
 			"name" => $arField["~NAME"],
@@ -87,14 +117,22 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 
 		$obFileControl = new CListFileControl($obFile, $FIELD_ID);
 
-		$html = $obFileControl->GetHTML(array(
+		$params = array(
 			'max_size' => 102400,
 			'max_width' => 150,
 			'max_height' => 150,
 			'url_template' => $arParams["~LIST_FILE_URL"],
 			'a_title' => GetMessage("CT_BLEE_ENLARGE"),
 			'download_text' => GetMessage("CT_BLEE_DOWNLOAD"),
-		));
+		);
+
+		if($read == "Y")
+			$params['show_input'] = false;
+
+		if($arResult["ELEMENT_ID"] > 0 && $read == "Y" && empty($arResult["FORM_DATA"][$FIELD_ID]))
+			$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+		else
+			$html = $obFileControl->GetHTML($params);
 
 		$arTabElement[] = array(
 			"id" => $FIELD_ID,
@@ -107,6 +145,20 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	}
 	elseif($FIELD_ID == "PREVIEW_TEXT" || $FIELD_ID == "DETAIL_TEXT")
 	{
+		if($read == "Y")
+		{
+			$arTabElement[] = array(
+				"id" => $FIELD_ID,
+				"name" => $arField["~NAME"],
+				"required" => $arField["IS_REQUIRED"]=="Y"? true: false,
+				"type" => "custom",
+				"value" => '<textarea disabled>'.$arResult["FORM_DATA"][$FIELD_ID].'</textarea>
+					<input type="hidden" name="'.$FIELD_ID.'" value="'.$arResult["FORM_DATA"][$FIELD_ID].'">',
+				"show" => $show
+			);
+			continue;
+		}
+
 		if($arField["SETTINGS"]["USE_EDITOR"] == "Y")
 		{
 			$params = array(
@@ -195,6 +247,62 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		&& $arField["MULTIPLE"] == "Y"
 	)
 	{
+		if($arResult["ELEMENT_ID"] > 0 && $read == "Y")
+		{
+			$empty = false;
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+			$count = 0;
+			foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $formData)
+			{
+				if (empty($formData['VALUE']) && !$count)
+					$empty = true;
+				$arResult["FORM_DATA"][$FIELD_ID][$key] = $formData["VALUE"];
+			}
+
+			if($empty)
+			{
+				$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+			}
+			else
+			{
+				$elementQuery = CIBlockElement::getList(
+					array(),
+					array("=ID" => $arResult["FORM_DATA"][$FIELD_ID]),
+					false,
+					false,
+					array("ID", "NAME", "IBLOCK_ID")
+				);
+				$html = '';
+				while($element = $elementQuery->getNext())
+				{
+					$urlElement = str_replace(
+						array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
+						array($element["IBLOCK_ID"], 0, $element["ID"], $arParams["SOCNET_GROUP_ID"]),
+						$arParams["LIST_ELEMENT_URL"]
+					);
+					$html .= '<a href="'.$urlElement.'">'.$element["NAME"].'</a><br>';
+				}
+			}
+
+			$arTabElement[] = array(
+				"id"=>$FIELD_ID.'[]',
+				"name"=>$arField["~NAME"],
+				"required"=>$arField["IS_REQUIRED"]=="Y"? true: false,
+				"type"=>"custom",
+				"value"=>$html,
+				"show" => $show
+			);
+
+			if($read == "Y")
+			{
+				foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'[]" value="'.$formDataValue.'">';
+			}
+
+			continue;
+		}
+
 		$html = call_user_func_array($arField["PROPERTY_USER_TYPE"]["GetPublicEditHTMLMulty"],
 			array(
 				$arField,
@@ -219,13 +327,17 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	elseif(is_array($arField["PROPERTY_USER_TYPE"]) && array_key_exists("GetPublicEditHTML", $arField["PROPERTY_USER_TYPE"]))
 	{
 		$params = array('width' => '100%','height' => '200px');
-		if($arField["MULTIPLE"] == "Y")
+		if($arField["MULTIPLE"] == "Y" && $arField["TYPE"] != "S:DiskFile")
 		{
 			$checkHtml = false;
 			$html = '<table id="tbl'.$FIELD_ID.'">';
+
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 			foreach($arResult["FORM_DATA"]["~".$FIELD_ID] as $key => $value)
 			{
-				if($arField["TYPE"] == "S:HTML")
+				if($arField["TYPE"] == "S:HTML" && $read == "N")
 				{
 					if(is_array($value['VALUE']))
 						$value['VALUE']['TEXT'] ? $htmlContent = $value['VALUE']['TEXT'] : $htmlContent = '';
@@ -240,7 +352,23 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 				}
 				else
 				{
-					$html .= '<tr><td>'.call_user_func_array($arField["PROPERTY_USER_TYPE"]["GetPublicEditHTML"],
+					$method = "GetPublicEditHTML";
+					if($read == "Y")
+					{
+						$method = "GetPublicViewHTML";
+						if($arField["TYPE"] == "S:HTML")
+						{
+							if(is_array($value['VALUE']))
+								$value['VALUE']['TEXT'] ? $htmlContent = $value['VALUE']['TEXT'] : $htmlContent = '';
+							else
+								$value['VALUE'] ? $htmlContent = $value['VALUE'] : $htmlContent = '';
+							$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE][TEXT]" value="'.$htmlContent.'">';
+						}
+						else
+							$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value['VALUE'].'">';
+					}
+
+					$html .= '<tr><td>'.call_user_func_array($arField["PROPERTY_USER_TYPE"][$method],
 							array(
 								$arField,
 								$value,
@@ -255,10 +383,17 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 				}
 			}
 			$html .= '</table>';
-			if($checkHtml)
-				$html .= '<input type="button" onclick="createAdditionalHtmlEditor(\'tbl'.$FIELD_ID.'\', \''.$FIELD_ID.'\', \''.$FIELD_ID.'\');" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
-			else
-				$html .= '<input type="button" onclick="addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
+			if($read == "N")
+			{
+				if($checkHtml)
+					$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+					onclick="BX.Lists[\''.$jsClass.'\'].createAdditionalHtmlEditor(\'tbl'.$FIELD_ID.'\',
+						\''.$FIELD_ID.'\', \''.$FIELD_ID.'\');">';
+				else
+					$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+					onclick="BX.Lists.addNewTableRow(\'tbl'.$FIELD_ID.'\', 1,
+						/'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)">';
+			}
 
 			$arTabElement[] = array(
 				"id"=>$FIELD_ID,
@@ -272,9 +407,43 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		else
 		{
 			$html = '';
+
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 			foreach($arResult["FORM_DATA"]["~".$FIELD_ID] as $key => $value)
 			{
-				$html = call_user_func_array($arField["PROPERTY_USER_TYPE"]["GetPublicEditHTML"],
+				$method = "GetPublicEditHTML";
+				if($read == "Y")
+				{
+					$method = "GetPublicViewHTML";
+					if($arField["TYPE"] != "S:DiskFile")
+					{
+						if($arField["TYPE"] == "S:HTML")
+						{
+							if(is_array($value['VALUE']))
+								$value['VALUE']['TEXT'] ? $htmlContent = $value['VALUE']['TEXT'] : $htmlContent = '';
+							else
+								$value['VALUE'] ? $htmlContent = $value['VALUE'] : $htmlContent = '';
+							$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE][TEXT]" value="'.$htmlContent.'">';
+						}
+						else
+							$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value['VALUE'].'">';
+					}
+				}
+
+				$html = '';
+				if($arResult["ELEMENT_ID"] > 0 && $arField["TYPE"] == "S:DiskFile" && $read == "N")
+				{
+					$html .= call_user_func_array($arField["PROPERTY_USER_TYPE"]["GetPublicViewHTML"],
+						array(
+							$arField,
+							$value,
+							array(),
+						));
+				}
+
+				$html .= call_user_func_array($arField["PROPERTY_USER_TYPE"][$method],
 					array(
 						$arField,
 						$value,
@@ -289,6 +458,62 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 				break;
 			}
 
+			if($arField["TYPE"] == "E:EList" && $arResult["ELEMENT_ID"] > 0 && $read == "Y")
+			{
+				$empty = false;
+				if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+					$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+				$count = 0;
+				foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $formData)
+				{
+					if (empty($formData['VALUE']) && !$count)
+						$empty = true;
+					$arResult["FORM_DATA"][$FIELD_ID][$key] = $formData["VALUE"];
+				}
+
+				if($empty)
+				{
+					$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+				}
+				else
+				{
+					$elementQuery = CIBlockElement::getList(
+						array(),
+						array("=ID" => $arResult["FORM_DATA"][$FIELD_ID]),
+						false,
+						false,
+						array("ID", "NAME", "IBLOCK_ID")
+					);
+					$html = '';
+					while($element = $elementQuery->getNext())
+					{
+						$urlElement = str_replace(
+							array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
+							array($element["IBLOCK_ID"], 0, $element["ID"], $arParams["SOCNET_GROUP_ID"]),
+							$arParams["LIST_ELEMENT_URL"]
+						);
+						$html .= '<a href="'.$urlElement.'">'.$element["NAME"].'</a><br>';
+					}
+				}
+
+				$arTabElement[] = array(
+					"id"=>$FIELD_ID.'[]',
+					"name"=>$arField["~NAME"],
+					"required"=>$arField["IS_REQUIRED"]=="Y"? true: false,
+					"type"=>"custom",
+					"value"=>$html,
+					"show" => $show
+				);
+
+				if($read == "Y")
+				{
+					foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+						$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'[]" value="'.$formDataValue.'">';
+				}
+
+				continue;
+			}
+
 			$arTabElement[] = array(
 				"id"=>$FIELD_ID,
 				"name"=>$arField["~NAME"],
@@ -301,18 +526,49 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	}
 	elseif($arField["PROPERTY_TYPE"] == "N")
 	{
+		$disabled = '';
+		if($read == "Y")
+			$disabled = 'disabled';
+
 		if($arField["MULTIPLE"] == "Y")
 		{
 			$html = '<table id="tbl'.$FIELD_ID.'">';
+
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 			foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
-				$html .= '<tr><td><input type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'"></td></tr>';
+			{
+				if($read == "Y")
+				{
+					if (empty($value['VALUE']))
+						continue;
+
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+				}
+				$html .= '<tr><td><input '.$disabled.' type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'"></td></tr>';
+			}
 			$html .= '</table>';
-			$html .= '<input type="button" onclick="addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
+			if($read == "N")
+				$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+				onclick="BX.Lists.addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)">';
 		}
 		else
 		{
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 			foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
-				$html = '<input type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+			{
+				if($read == "Y")
+				{
+					if (empty($value['VALUE']))
+						continue;
+
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+				}
+				$html = '<input '.$disabled.' type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+			}
 		}
 
 		$arTabElement[] = array(
@@ -326,40 +582,74 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	}
 	elseif($arField["PROPERTY_TYPE"] == "S")
 	{
+		$disabled = '';
+		if($read == "Y")
+			$disabled = 'disabled';
+
 		if($arField["MULTIPLE"] == "Y")
 		{
 			$html = '<table id="tbl'.$FIELD_ID.'">';
 			if ($arField["ROW_COUNT"] > 1)
 			{
+				if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+					$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 				foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 				{
-					$html .= '<tr><td><textarea name="'.$FIELD_ID.'['.$key.'][VALUE]" rows="'.intval($arField["ROW_COUNT"]).'" cols="'.intval($arField["COL_COUNT"]).'">'.$value["VALUE"].'</textarea></td></tr>';
+					if($read == "Y")
+					{
+						if(empty($value['VALUE']))
+							continue;
+						$html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+					}
+					$html .= '<tr><td><textarea '.$disabled.' name="'.$FIELD_ID.'['.$key.'][VALUE]" rows="'.intval($arField["ROW_COUNT"]).'" cols="'.intval($arField["COL_COUNT"]).'">'.$value["VALUE"].'</textarea></td></tr>';
 				}
 			}
 			else
 			{
+				if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+					$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 				foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 				{
-					$html .= '<tr><td><input type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'"></td></tr>';
+					if($read == "Y")
+					{
+						if(empty($value['VALUE']))
+							continue;
+						$html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
+					}
+					$html .= '<tr><td><input '.$disabled.' type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'"></td></tr>';
 				}
 			}
 			$html .= '</table>';
-			$html .= '<input type="button" onclick="addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
+			if($read == "N")
+				$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+				onclick="BX.Lists.addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)">';
 		}
 		else
 		{
 			if ($arField["ROW_COUNT"] > 1)
 			{
+				if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+					$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 				foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 				{
-					$html = '<textarea name="'.$FIELD_ID.'['.$key.'][VALUE]" rows="'.intval($arField["ROW_COUNT"]).'" cols="'.intval($arField["COL_COUNT"]).'">'.$value["VALUE"].'</textarea>';
+					$html = '<textarea '.$disabled.' name="'.$FIELD_ID.'['.$key.'][VALUE]" rows="'.intval($arField["ROW_COUNT"]).'" cols="'.intval($arField["COL_COUNT"]).'">'.$value["VALUE"].'</textarea>';
+					if($read == "Y")
+						$html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
 				}
 			}
 			else
 			{
+				if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+					$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 				foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 				{
-					$html = '<input type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'" size="'.intval($arField["COL_COUNT"]).'">';
+					$html = '<input '.$disabled.' type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'" size="'.intval($arField["COL_COUNT"]).'">';
+					if($read == "Y")
+						$html .= '<input type="hidden" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'">';
 				}
 			}
 		}
@@ -381,6 +671,17 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 			$items[$ar_enum["ID"]] = $ar_enum["VALUE"];
 
 		if($arField["MULTIPLE"] == "Y")
+			$params = array("size"=>5, "multiple"=>"multiple");
+		else
+			$params = array();
+
+		if($read == "Y")
+			$params["disabled"] = 'disabled';
+
+		if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+			$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
+		if($arField["MULTIPLE"] == "Y")
 		{
 			$arTabElement[] = array(
 				"id"=>$FIELD_ID.'[]',
@@ -389,9 +690,14 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 				"type"=>'list',
 				"items"=>$items,
 				"value"=>$arResult["FORM_DATA"][$FIELD_ID],
-				"params" => array("size"=>5, "multiple"=>"multiple"),
-				"show" => $show
+				"params"=>$params,
+				"show"=>$show
 			);
+			if($read == "Y")
+			{
+				foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'[]" value="'.$formDataValue.'">';
+			}
 		}
 		else
 		{
@@ -402,8 +708,14 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 				"type"=>'list',
 				"items"=>$items,
 				"value"=>$arResult["FORM_DATA"][$FIELD_ID],
-				"show" => $show
+				"params"=>$params,
+				"show"=>$show
 			);
+			if($read == "Y")
+			{
+				foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'" value="'.$formDataValue.'">';
+			}
 		}
 	}
 	elseif($arField["PROPERTY_TYPE"] == "F")
@@ -411,8 +723,19 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		if($arField["MULTIPLE"] == "Y")
 		{
 			$html = '<table id="tbl'.$FIELD_ID.'">';
+
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
+			$count = 0;
 			foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 			{
+				if($read == "Y")
+				{
+					if (empty($value['VALUE']) && $count)
+						continue;
+				}
+
 				$html .= '<tr><td>';
 
 				$obFile = new CListFile(
@@ -426,19 +749,31 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 
 				$obFileControl = new CListFileControl($obFile, $FIELD_ID.'['.$key.'][VALUE]');
 
-				$html .= $obFileControl->GetHTML(array(
+				$params = array(
 					'max_size' => 102400,
 					'max_width' => 150,
 					'max_height' => 150,
 					'url_template' => $arParams["~LIST_FILE_URL"],
 					'a_title' => GetMessage("CT_BLEE_ENLARGE"),
 					'download_text' => GetMessage("CT_BLEE_DOWNLOAD"),
-				));
+				);
+
+				if($read == "Y")
+					$params['show_input'] = false;
+
+				if($arResult["ELEMENT_ID"] > 0 && $read == "Y" && empty($value["VALUE"]))
+					$html .= GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+				else
+					$html .= $obFileControl->GetHTML($params);
 
 				$html .= '</td></tr>';
+
+				$count++;
 			}
 			$html .= '</table>';
-			$html .= '<input type="button" onclick="addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
+			if($read == "N")
+				$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+				onclick="BX.Lists.addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)">';
 
 			$arTabElement[] = array(
 				"id"=>$FIELD_ID,
@@ -451,6 +786,9 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		}
 		else
 		{
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 			foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 			{
 				$obFile = new CListFile(
@@ -464,15 +802,22 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 
 				$obFileControl = new CListFileControl($obFile, $FIELD_ID.'['.$key.'][VALUE]');
 
-				$html = $obFileControl->GetHTML(array(
+				$params = array(
 					'max_size' => 102400,
 					'max_width' => 150,
 					'max_height' => 150,
 					'url_template' => $arParams["~LIST_FILE_URL"],
 					'a_title' => GetMessage("CT_BLEE_ENLARGE"),
 					'download_text' => GetMessage("CT_BLEE_DOWNLOAD"),
-				));
+				);
 
+				if($read == "Y")
+					$params['show_input'] = false;
+
+				if($arResult["ELEMENT_ID"] > 0 && $read == "Y" && empty($value["VALUE"]))
+					$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+				else
+					$html = $obFileControl->GetHTML($params);
 
 				$arTabElement[] = array(
 					"id"=>$FIELD_ID.'['.$key.'][VALUE]',
@@ -501,6 +846,9 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		else
 			$params = array();
 
+		if($read == "Y")
+			$params["disabled"] = 'disabled';
+
 		$arTabElement[] = array(
 			"id"=>$FIELD_ID.'[]',
 			"name"=>$arField["~NAME"],
@@ -511,6 +859,15 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 			"params" => $params,
 			"show" => $show
 		);
+
+		if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+			$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
+		if($read == "Y")
+		{
+			foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+				$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'[]" value="'.$formDataValue.'">';
+		}
 	}
 	elseif($arField["PROPERTY_TYPE"] == "E")
 	{
@@ -522,6 +879,50 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 		$rsElements = CIBlockElement::GetList(array("NAME"=>"ASC"), array("IBLOCK_ID"=>$arField["LINK_IBLOCK_ID"]), false, false, array("ID", "NAME"));
 		while($ar = $rsElements->Fetch())
 			$items[$ar["ID"]] = $ar["NAME"];
+
+		if($arResult["ELEMENT_ID"] > 0 && $read == "Y")
+		{
+			$elementQuery = CIBlockElement::getList(
+				array(),
+				array("=ID" => $arResult["FORM_DATA"][$FIELD_ID]),
+				false,
+				false,
+				array("ID", "NAME", "IBLOCK_ID")
+			);
+			$html = '';
+			while($element = $elementQuery->getNext())
+			{
+				$urlElement = str_replace(
+					array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
+					array($element["IBLOCK_ID"], 0, $element["ID"], $arParams["SOCNET_GROUP_ID"]),
+					$arParams["LIST_ELEMENT_URL"]
+				);
+				$html .= '<a href="'.$urlElement.'">'.$element["NAME"].'</a><br>';
+			}
+
+			if(empty($arResult["FORM_DATA"][$FIELD_ID]))
+				$html = GetMessage("CT_BLEE_READ_ONLY_FIELD_NOT_DATA");
+
+			$arTabElement[] = array(
+				"id"=>$FIELD_ID.'[]',
+				"name"=>$arField["~NAME"],
+				"required"=>$arField["IS_REQUIRED"]=="Y"? true: false,
+				"type"=>"custom",
+				"value"=>$html,
+				"show" => $show
+			);
+
+			if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+				$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
+			if($read == "Y")
+			{
+				foreach($arResult["FORM_DATA"][$FIELD_ID] as $formDataValue)
+					$custom_html .= '<input type="hidden" name="'.$FIELD_ID.'[]" value="'.$formDataValue.'">';
+			}
+
+			continue;
+		}
 
 		ob_start();
 
@@ -584,10 +985,15 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	elseif($arField["MULTIPLE"] == "Y")
 	{
 		$html = '<table id="tbl'.$FIELD_ID.'"><tr><td>';
+
+		if(!is_array($arResult["FORM_DATA"][$FIELD_ID]))
+			$arResult["FORM_DATA"][$FIELD_ID] = array($arResult["FORM_DATA"][$FIELD_ID]);
+
 		foreach($arResult["FORM_DATA"][$FIELD_ID] as $key => $value)
 			$html .= '<tr><td><input type="text" name="'.$FIELD_ID.'['.$key.'][VALUE]" value="'.$value["VALUE"].'"></td></tr>';
 		$html .= '</td></tr></table>';
-		$html .= '<input type="button" onclick="addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'">';
+		$html .= '<input type="button" value="'.GetMessage("CT_BLEE_ADD_BUTTON").'"
+		onclick="BX.Lists.addNewTableRow(\'tbl'.$FIELD_ID.'\', 1, /'.$FIELD_ID.'\[(n)([0-9]*)\]/g, 2)">';
 
 		$arTabElement[] = array(
 			"id"=>$FIELD_ID,
@@ -611,6 +1017,18 @@ foreach($arResult["FIELDS"] as $FIELD_ID => $arField)
 	}
 	else
 	{
+		if($read == "Y")
+		{
+			$arTabElement[] = array(
+				"id" => $FIELD_ID,
+				"name" => $arField["~NAME"],
+				"required" => $arField["IS_REQUIRED"]=="Y"? true: false,
+				"type" => "custom",
+				"value" => '<input disabled type="text" value="'.$arResult["FORM_DATA"][$FIELD_ID].'"><input type="hidden" name="'.$FIELD_ID.'" value="'.$arResult["FORM_DATA"][$FIELD_ID].'">',
+			);
+			continue;
+		}
+
 		$arTabElement[] = array(
 			"id"=>$FIELD_ID,
 			"name"=>$arField["~NAME"],
@@ -698,7 +1116,6 @@ $arTabs = array(
 	array("id"=>"tab_se", "name"=>$arResult["IBLOCK"]["SECTION_NAME"], "icon"=>"", "fields"=>$arTabSection),
 );
 
-$custom_html = "";
 
 if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 {
@@ -735,6 +1152,19 @@ if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 
 	foreach ($arDocumentStates as $arDocumentState)
 	{
+		$templateId = intval($arDocumentState["TEMPLATE_ID"]);
+		$templateConstants = CBPWorkflowTemplateLoader::getTemplateConstants($templateId);
+
+		if(
+			empty($arDocumentState["TEMPLATE_PARAMETERS"]) &&
+			empty($arDocumentState["ID"]) &&
+			empty($templateConstants) &&
+			!CIBlockRights::UserHasRightTo($arResult["IBLOCK_ID"], $arResult["IBLOCK_ID"], 'iblock_edit')
+		)
+		{
+			continue;
+		}
+
 		$bizProcIndex++;
 
 		if ($arResult["ELEMENT_ID"] > 0)
@@ -764,18 +1194,16 @@ if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 				"type" => "section",
 			);
 
-			if(
-				$arParams["IBLOCK_TYPE_ID"] != COption::GetOptionString("lists", "livefeed_iblock_type_id") &&
-				strlen($arDocumentState["ID"]) &&
-				CIBlockElementRights::UserHasRightTo($arResult["IBLOCK_ID"], $arResult["ELEMENT_ID"], "element_rights_edit") &&
-				strlen($arDocumentState["WORKFLOW_STATUS"])
-			)
+			if(strlen($arDocumentState["ID"]) && CIBlockElementRights::UserHasRightTo($arResult["IBLOCK_ID"],
+					$arResult["ELEMENT_ID"], "element_edit") && strlen($arDocumentState["WORKFLOW_STATUS"]))
 			{
 				$arTab2Fields[] = array(
 					"id" => "BIZPROC_STOP".$bizProcIndex,
 					"name" => GetMessage("CT_BLEE_BIZPROC_STOP_LABEL"),
 					"type" => "label",
-					"value" => '<a href="javascript:jsStopBP(\''.CUtil::JSEscape('form_'.$arResult["FORM_ID"]).'\', \''.CUtil::JSEscape($arDocumentState["ID"]).'\');">'.GetMessage("CT_BLEE_BIZPROC_STOP").'</a>',
+					"value" => '<a href="javascript:void(0)"
+						onclick="BX.Lists[\''.$jsClass.'\'].completeWorkflow(\''.$arDocumentState["ID"].'\',
+						\'stop\')">'.GetMessage("CT_BLEE_BIZPROC_STOP").'</a>'
 				);
 			}
 
@@ -826,36 +1254,22 @@ if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 						"value" => '<a href="'.htmlspecialcharsbx($url).'">'.(strlen($arDocumentState["STATE_TITLE"])? $arDocumentState["STATE_TITLE"] : $arDocumentState["STATE_NAME"]).'</a>',
 					);
 
-					$canDeleteWorkflow = false;
-					if($arParams["IBLOCK_TYPE_ID"] != COption::GetOptionString("lists", "livefeed_iblock_type_id"))
-					{
-						$canDeleteWorkflow = CBPDocument::CanUserOperateDocumentType(
-							CBPCanUserOperateOperation::CreateWorkflow,
-							$GLOBALS["USER"]->GetID(),
-							BizProcDocument::getDocumentComplexId($arParams["IBLOCK_TYPE_ID"], $arResult["ELEMENT_ID"]),
-							array("UserGroups" => $arCurrentUserGroups)
-						);
-					}
+					$canDeleteWorkflow = CBPDocument::CanUserOperateDocumentType(
+						CBPCanUserOperateOperation::CreateWorkflow,
+						$GLOBALS["USER"]->GetID(),
+						BizProcDocument::getDocumentComplexId($arParams["IBLOCK_TYPE_ID"], $arResult["ELEMENT_ID"]),
+						array("UserGroups" => $arCurrentUserGroups)
+					);
 
 					if ($canDeleteWorkflow)
 					{
-						$backUrl = CHTTP::urlAddParams(
-							$APPLICATION->GetCurPageParam("", array($arResult["FORM_ID"]."_active_tab")),
-							array($arResult["FORM_ID"]."_active_tab" => "tab_bp")
-						);
-						$url = CHTTP::urlAddParams(str_replace(
-								array("#list_id#", "#section_id#", "#element_id#", "#group_id#"),
-								array($arResult["IBLOCK_ID"], intval($arResult["SECTION_ID"]), $arResult["ELEMENT_ID"], $arParams["SOCNET_GROUP_ID"]),
-								$arParams["~BIZPROC_WORKFLOW_DELETE_URL"]
-							),
-							array("id" => $arDocumentState["ID"], "back_url" => $backUrl, "sessid" => bitrix_sessid()),
-							array("skip_empty" => true, "encode" => true)
-						);
 						$arTab2Fields[] = array(
 							"id" => "BIZPROC_DELETE".$bizProcIndex,
 							"name" => GetMessage("CT_BLEE_BIZPROC_DELETE_LABEL"),
 							"type" => "label",
-							"value" => '<a href="'.htmlspecialcharsbx($url).'">'.GetMessage("CT_BLEE_BIZPROC_DELETE").'</a>',
+							"value" => '<a href="javascript:void(0)"
+								onclick="BX.Lists[\''.$jsClass.'\'].completeWorkflow(\''.$arDocumentState["ID"].'\',
+								\'delete\')">'.GetMessage("CT_BLEE_BIZPROC_DELETE").'</a>'
 						);
 					}
 				}
@@ -870,7 +1284,6 @@ if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 				}
 			}
 
-			$templateId = intval($arDocumentState["TEMPLATE_ID"]);
 			$arWorkflowParameters = $arDocumentState["TEMPLATE_PARAMETERS"];
 			if(!is_array($arWorkflowParameters))
 				$arWorkflowParameters = array();
@@ -917,7 +1330,25 @@ if(CModule::IncludeModule("bizproc") && ($arResult["IBLOCK"]["BIZPROC"] != "N"))
 						"value" => $html,
 					);
 				}
+
+				if(!empty($templateConstants) &&
+					CIBlockRights::UserHasRightTo($arResult["IBLOCK_ID"], $arResult["IBLOCK_ID"], 'iblock_edit'))
+				{
+					$listTemplateId = array();
+					$listTemplateId[$templateId]['ID'] = $templateId;
+					$listTemplateId[$templateId]['NAME'] = $arDocumentState["TEMPLATE_NAME"];
+					$arTab2Fields[] = array(
+						"id" => "BIZPROC_CONSTANTS".$bizProcIndex,
+						"name" => GetMessage("CT_BLEE_BIZPROC_CONSTANTS_LABLE"),
+						"type" => "label",
+						"value" => '<a href="javascript:void(0)" id="lists-fill-constants-'.$bizProcIndex.'"
+							onclick="BX.Lists[\''.$jsClass.'\'].fillConstants('.CUtil::PhpToJSObject($listTemplateId).');">'.
+							GetMessage("CT_BLEE_BIZPROC_CONSTANTS_FILL").'</a>',
+					);
+				}
 			}
+
+
 
 			$arEvents = CBPDocument::GetAllowableEvents($GLOBALS["USER"]->GetID(), $arCurrentUserGroups, $arDocumentState);
 			if(count($arEvents))
@@ -1044,9 +1475,7 @@ if(isset($arResult["RIGHTS"]))
 		/*$arPossibleRights=*/$arResult["TASKS"],
 		/*$arActualRights=*/$arResult["RIGHTS"],
 		/*$bDefault=*/true,
-		/*$bForceInherited=*/$arResult["ELEMENT_ID"] <= 0,
-		/*$arSelected=*/$arResult["SELECTED"],
-		/*$arHighLight=*/$arResult["HIGHLIGHT"]
+		/*$bForceInherited=*/$arResult["ELEMENT_ID"] <= 0
 	);
 	$rights_html = ob_get_contents();
 	ob_end_clean();
@@ -1091,3 +1520,47 @@ $APPLICATION->IncludeComponent(
 	$component, array("HIDE_ICONS" => "Y")
 );
 ?>
+
+<div id="lists-fill-constants" style="display:none;">
+	<div id="lists-fill-constants-content" class="lists-fill-constants-content"></div>
+</div>
+
+<div id="lists-notify-admin-popup" style="display:none;">
+	<div id="lists-notify-admin-popup-content" class="lists-notify-admin-popup-content">
+	</div>
+</div>
+
+<script type="text/javascript">
+	BX(function () {
+		BX.Lists['<?=$jsClass?>'] = new BX.Lists.ListsElementEditClass({
+			randomString: '<?=$arResult['RAND_STRING']?>',
+			urlTabBp: '<?=$urlTabBp?>',
+			iblockTypeId: '<?=$arParams["IBLOCK_TYPE_ID"]?>',
+			iblockId: '<?=$arResult["IBLOCK_ID"]?>',
+			elementId: '<?=$arResult["ELEMENT_ID"]?>',
+			socnetGroupId: '<?=$socnetGroupId?>',
+			sectionId: '<?= $sectionId ?>',
+			isConstantsTuned: <?= $arResult["isConstantsTuned"] ? 'true' : 'false' ?>,
+			elementUrl: '<?= $arResult["ELEMENT_URL"] ?>'
+		});
+
+		BX.message({
+			CT_BLEE_BIZPROC_SAVE_BUTTON: '<?=GetMessageJS("CT_BLEE_BIZPROC_SAVE_BUTTON")?>',
+			CT_BLEE_BIZPROC_CANCEL_BUTTON: '<?=GetMessageJS("CT_BLEE_BIZPROC_CANCEL_BUTTON")?>',
+			CT_BLEE_BIZPROC_CONSTANTS_FILL_TITLE: '<?=GetMessageJS("CT_BLEE_BIZPROC_CONSTANTS_FILL_TITLE")?>',
+			CT_BLEE_BIZPROC_NOTIFY_TITLE: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_TITLE")?>',
+			CT_BLEE_BIZPROC_SELECT_STAFF_SET_RESPONSIBLE: '<?=GetMessageJS("CT_BLEE_BIZPROC_SELECT_STAFF_SET_RESPONSIBLE")?>',
+			CT_BLEE_BIZPROC_NOTIFY_ADMIN_TEXT_ONE: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_ADMIN_TEXT_ONE")?>',
+			CT_BLEE_BIZPROC_NOTIFY_ADMIN_TEXT_TWO: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_ADMIN_TEXT_TWO")?>',
+			CT_BLEE_BIZPROC_NOTIFY_ADMIN_MESSAGE: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_ADMIN_MESSAGE")?>',
+			CT_BLEE_BIZPROC_NOTIFY_ADMIN_MESSAGE_BUTTON: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_ADMIN_MESSAGE_BUTTON")?>',
+			CT_BLEE_BIZPROC_NOTIFY_ADMIN_BUTTON_CLOSE: '<?=GetMessageJS("CT_BLEE_BIZPROC_NOTIFY_ADMIN_BUTTON_CLOSE")?>'
+		});
+
+		BX.viewElementBind(
+			'form_<?=$arResult["FORM_ID"]?>',
+			{showTitle: true},
+			{attr: 'data-bx-viewer'}
+		);
+	});
+</script>

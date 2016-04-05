@@ -65,10 +65,20 @@ class CBPStateMachineWorkflowActivity
 	public function SetWorkflowStatus($status)
 	{
 		$this->workflowStatus = $status;
-		if ($status == CBPWorkflowStatus::Completed)
+		if ($status == CBPWorkflowStatus::Completed || $status == CBPWorkflowStatus::Terminated)
 		{
 			$this->ClearVariables();
 			$this->ClearProperties();
+
+			/** @var CBPActivity $event */
+			foreach ($this->arEventsMap as $eventName)
+			{
+				foreach ($eventName as $event)
+				{
+					if (method_exists($event, 'Cancel'))
+						$event->Cancel();
+				}
+			}
 		}
 		try
 		{

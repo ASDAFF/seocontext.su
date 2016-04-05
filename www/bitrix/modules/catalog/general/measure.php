@@ -1,5 +1,7 @@
 <?
+use Bitrix\Main\Localization\Loc;
 
+Loc::loadMessages(__FILE__);
 /**
  * Class CCatalogMeasureAll
  */
@@ -8,12 +10,59 @@ class CCatalogMeasureAll
 	const DEFAULT_MEASURE_CODE = 796;
 	protected static $defaultMeasure = null;
 	/**
-	 * @param $action
-	 * @param $arFields
+	 * @param string $action
+	 * @param array $arFields
+	 * @param int $id
 	 * @return bool
 	 */
-	protected static function checkFields($action, &$arFields)
+	protected static function checkFields($action, &$arFields, $id = 0)
 	{
+		global $APPLICATION;
+		$action = strtoupper($action);
+		if ($action != 'ADD' && $action != 'UPDATE')
+			return false;
+		$id = (int)$id;
+		if ($action == 'UPDATE' && $id <= 0)
+			return false;
+
+		if (array_key_exists('CODE', $arFields))
+		{
+			$code = trim($arFields['CODE']);
+			if ($code === '')
+			{
+				$APPLICATION->ThrowException(Loc::getMessage('CAT_MEASURE_ERR_CODE_IS_ABSENT'));
+				return false;
+			}
+			elseif(preg_match('/^[0-9]+$/', $code) !== 1)
+			{
+				$APPLICATION->ThrowException(Loc::getMessage('CAT_MEASURE_ERR_CODE_IS_BAD'));
+				return false;
+			}
+			else
+			{
+				$arFields['CODE'] = (int)$code;
+			}
+		}
+
+		$cnt = 0;
+		switch ($action)
+		{
+			case 'ADD':
+				if (!isset($arFields['CODE']))
+					return false;
+				$cnt = CCatalogMeasure::getList(array(), array("CODE" => $arFields['CODE']), array());
+				break;
+			case 'UPDATE':
+				if (isset($arFields['CODE']))
+					$cnt = CCatalogMeasure::getList(array(), array("CODE" => $arFields['CODE'], '!ID' => $id), array(), false, array('ID'));
+				break;
+		}
+		if ($cnt > 0)
+		{
+			$APPLICATION->ThrowException(Loc::getMessage('CAT_MEASURE_ERR_CODE_ALREADY_EXISTS'));
+			return false;
+		}
+
 		if((is_set($arFields, "IS_DEFAULT")) && (($arFields["IS_DEFAULT"]) == 'Y'))
 		{
 			$dbMeasure = CCatalogMeasure::getList(array(), array("IS_DEFAULT" => 'Y'), false, false, array('ID'));
@@ -33,10 +82,12 @@ class CCatalogMeasureAll
 	 */
 	public static function update($id, $arFields)
 	{
-		$id = (int)$id;
-		if($id < 0 || !self::checkFields('UPDATE', $arFields))
-			return false;
 		global $DB;
+
+		$id = (int)$id;
+		if(!self::checkFields('UPDATE', $arFields, $id))
+			return false;
+
 		$strUpdate = $DB->PrepareUpdate("b_catalog_measure", $arFields);
 		$strSql = "UPDATE b_catalog_measure SET ".$strUpdate." WHERE ID = ".$id;
 		if(!$DB->Query($strSql, true, "File: ".__FILE__."<br>Line: ".__LINE__))

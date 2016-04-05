@@ -5,6 +5,7 @@ if (empty($arResult["ELEMENTS_LIST"])):
 endif;
 
 $GLOBALS['APPLICATION']->RestartBuffer();
+
 $number_element = 1;
 $count_elements = count($arResult['ELEMENT_FOR_JS']);
 
@@ -231,9 +232,12 @@ function to_init(e)
 	}
 	catch(e){}
 
+	if (!window.jsUtils)
+		BX.loadScript('/bitrix/js/main/utils.js?v=<?=@filemtime($_SERVER['DOCUMENT_ROOT'].'/bitrix/js/main/utils.js')?>');
+
 	if (is_loaded)
 	{
-		jsUtils.addEvent(window, "resize", Show);
+		BX.bind(window, "resize", Show);
 		Show();
 		// Source
 		BPCSourse.prototype.OnBeforeSendData = function()

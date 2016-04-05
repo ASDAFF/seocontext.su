@@ -223,6 +223,10 @@ $arJSCoreConfig = array(
 		'rel' => array('amcharts'),
 		'skip_core' => true,
 	),
+	'helper' => array(
+		'js' => '/bitrix/js/main/helper/helper.js',
+		'css' => '/bitrix/js/main/helper/css/helper.css',
+	),
 );
 
 foreach ($arJSCoreConfig as $ext => $arExt)

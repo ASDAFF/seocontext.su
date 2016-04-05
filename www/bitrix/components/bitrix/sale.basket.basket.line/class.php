@@ -9,9 +9,15 @@ class SaleBasketLineComponent extends CBitrixComponent
 	{
 		// common
 
-		$arParams['PATH_TO_BASKET'] = htmlspecialcharsEx(Trim($arParams['PATH_TO_BASKET']));
+		$arParams['PATH_TO_BASKET'] = trim($arParams['PATH_TO_BASKET']);
 		if ($arParams['PATH_TO_BASKET'] == '')
-			$arParams['PATH_TO_BASKET'] = '={SITE_DIR."personal/cart/"}';
+			$arParams['PATH_TO_BASKET'] = SITE_DIR.'personal/cart/';
+
+		$arParams['PATH_TO_ORDER'] = trim($arParams['PATH_TO_ORDER']);
+		if ($arParams['PATH_TO_ORDER'] == '')
+			$arParams['PATH_TO_ORDER'] = SITE_DIR.'personal/order/make/';
+
+		$arParams["HIDE_ON_BASKET_PAGES"] = (isset($arParams["HIDE_ON_BASKET_PAGES"]) && $arParams["HIDE_ON_BASKET_PAGES"] == 'N' ? 'N' : 'Y');
 
 		if ($arParams['SHOW_NUM_PRODUCTS'] != 'N')
 			$arParams['SHOW_NUM_PRODUCTS'] = 'Y';
@@ -27,31 +33,27 @@ class SaleBasketLineComponent extends CBitrixComponent
 		if ($arParams['SHOW_PERSONAL_LINK'] != 'Y')
 			$arParams['SHOW_PERSONAL_LINK'] = 'N';
 
-		$arParams['PATH_TO_PERSONAL'] = htmlspecialcharsEx(Trim($arParams['PATH_TO_PERSONAL']));
+		$arParams['PATH_TO_PERSONAL'] = trim($arParams['PATH_TO_PERSONAL']);
 		if ($arParams['PATH_TO_PERSONAL'] == '')
-			$arParams['PATH_TO_PERSONAL'] = '={SITE_DIR."personal/"}';
+			$arParams['PATH_TO_PERSONAL'] = SITE_DIR.'personal/';
 
 		// authorization
 
 		if ($arParams['SHOW_AUTHOR'] != 'Y')
 			$arParams['SHOW_AUTHOR'] = 'N';
 
-		$arParams['PATH_TO_REGISTER'] = htmlspecialcharsEx(Trim($arParams['PATH_TO_REGISTER']));
+		$arParams['PATH_TO_REGISTER'] = trim($arParams['PATH_TO_REGISTER']);
 		if ($arParams['PATH_TO_REGISTER'] == '')
-			$arParams['PATH_TO_REGISTER'] = '={SITE_DIR."login/"}';
+			$arParams['PATH_TO_REGISTER'] = SITE_DIR.'login/';
 
-		$arParams['PATH_TO_PROFILE'] = htmlspecialcharsEx(Trim($arParams['PATH_TO_PROFILE']));
+		$arParams['PATH_TO_PROFILE'] = trim($arParams['PATH_TO_PROFILE']);
 		if ($arParams['PATH_TO_PROFILE'] == '')
-			$arParams['PATH_TO_PROFILE'] = '={SITE_DIR."personal/"}';
+			$arParams['PATH_TO_PROFILE'] = SITE_DIR.'personal/';
 
 		// list
 
 		if ($arParams['SHOW_PRODUCTS'] != 'Y')
 			$arParams['SHOW_PRODUCTS'] = 'N';
-
-		$arParams['PATH_TO_ORDER'] = htmlspecialcharsEx(Trim($arParams['PATH_TO_ORDER']));
-		if ($arParams['PATH_TO_ORDER'] == '')
-			$arParams['PATH_TO_ORDER'] = '={SITE_DIR."personal/order/make/"}';
 
 		if ($arParams['SHOW_DELAY'] != 'N')
 			$arParams['SHOW_DELAY'] = 'Y';
@@ -118,6 +120,18 @@ class SaleBasketLineComponent extends CBitrixComponent
 
 	public function executeComponent()
 	{
+		if ($this->arParams['HIDE_ON_BASKET_PAGES'] == 'Y')
+		{
+			$currentPage = strtolower(\Bitrix\Main\Context::getCurrent()->getRequest()->getRequestedPage());
+			$basketPage = strtolower($this->arParams['PATH_TO_BASKET']);
+			$orderPage = strtolower($this->arParams['PATH_TO_ORDER']);
+			if (
+				strncmp($currentPage, $basketPage, strlen($basketPage)) == 0
+				|| strncmp($currentPage, $orderPage, strlen($orderPage)) == 0
+			)
+				return;
+		}
+
 		if(! \Bitrix\Main\Loader::includeModule ('sale'))
 		{
 			ShowError(GetMessage('SALE_MODULE_NOT_INSTALL'));

@@ -97,7 +97,6 @@ if($strWarning == "")
 	if($strWarning == "")
 	{
 		$arComponent = PHPParser::FindComponent($componentName, $filesrc, $src_line);
-
 		if ($arComponent === false)
 			$strWarning .= GetMessage("comp_prop_err_comp")."<br>";
 		else
@@ -209,11 +208,26 @@ $componentPath = CComponentEngine::MakeComponentPath($componentName);
 if($strWarning !== "")
 {
 	$obJSPopup->ShowValidationError($strWarning);
+	?>
+	<script>
+		(function()
+		{
+			if (BX && BX.WindowManager)
+			{
+				var oPopup = BX.WindowManager.Get();
+				if (oPopup && oPopup.PARTS && oPopup.PARTS.CONTENT_DATA)
+				{
+					oPopup.PARTS.CONTENT_DATA.style.display = 'none';
+				}
+			}
+		})();
+	</script>
+	<?
 }
 
-$obJSPopup->StartContent();
-?>
+$obJSPopup->StartContent();?>
 
+<?if($strWarning === ""):?>
 <script>
 (function()
 {
@@ -273,6 +287,8 @@ $obJSPopup->StartContent();
 </script>
 <div id="bx-comp-params-wrap" class="bxcompprop-wrap-public"></div>
 <?CComponentParamsManager::DisplayFileDialogsScripts();?>
+<?endif; /*($strWarning === "") */?>
+
 <?$obJSPopup->StartButtons();?>
 	<input type="button" value="<?= GetMessage("comp_prop_save")?>" onclick="<?=$obJSPopup->jsPopup?>.PostParameters('<?= PageParams().'&amp;action=save'?>');" title="<?= GetMessage("comp_prop_save_title")?>" name="save" class="adm-btn-save" />
 	<input type="button" value="<?= GetMessage("comp_prop_cancel")?>" onclick="<?=$obJSPopup->jsPopup?>.CloseDialog()" title="<?= GetMessage("comp_prop_cancel_title")?>" />

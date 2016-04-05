@@ -48,36 +48,18 @@ class webservice extends CModule
 
 	function InstallFiles()
 	{
-		CheckDirPath($_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/webservice.checkauth");
-		CheckDirPath($_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/webservice.server");
-		//CheckDirPath($_SERVER["DOCUMENT_ROOT"]."/ws");
+		if($_ENV["COMPUTERNAME"]!='BX')
+		{
+			CopyDirFiles(
+				$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/components", 
+				$_SERVER["DOCUMENT_ROOT"]."/bitrix/components", 
+				true, true);
 
-		CopyDirFiles(
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/components/bitrix/webservice.checkauth", 
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/webservice.checkauth", 
-			true, true);
-			
-		CopyDirFiles(
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/components/bitrix/webservice.server", 
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/webservice.server", 
-			true, true);
-
-		CopyDirFiles(
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/components/bitrix/webservice.statistic",
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/components/bitrix/webservice.statistic",
-			true, true);
-
-		CopyDirFiles(
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/tools", 
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/tools", 
-			true, true);
-		
-		/*
-		CopyDirFiles(
-			$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/ws", 
-			$_SERVER["DOCUMENT_ROOT"]."/ws", 
-			false);
-		*/
+			CopyDirFiles(
+				$_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/webservice/install/tools", 
+				$_SERVER["DOCUMENT_ROOT"]."/bitrix/tools", 
+				true, true);
+		}
 		
 		return true;
 	}

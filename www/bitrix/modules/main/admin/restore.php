@@ -1513,7 +1513,7 @@ class CDBRestore
 		return $this->f_end;
 	}
 
-	function getNextName($file)
+	public static function getNextName($file)
 	{
 		static $CACHE;
 		$c = &$CACHE[$file];

@@ -18,11 +18,22 @@ $arAllOptions = Array(
 	//Array("property_internal_keywords", GetMessage('SEO_OPT_PROP_INTERNAL_KEYWORDS'), array("text"), "keywords_inner"),
 );
 
-$aTabs = array(
-	array("DIV" => "edit1", "TAB" => GetMessage('SEO_OPT_TAB_PROP'), "ICON" => "seo_settings", "TITLE" => GetMessage('SEO_OPT_TAB_PROP_TITLE')),
-	array("DIV" => "edit3", "TAB" => GetMessage('SEO_OPT_TAB_SEARCHERS'), "ICON" => "seo_settings", "TITLE" => GetMessage('SEO_OPT_TAB_SEARCHERS_TITLE')),
-	array("DIV" => "edit2", "TAB" => GetMessage("MAIN_TAB_RIGHTS"), "ICON" => "seo_settings", "TITLE" => GetMessage("MAIN_TAB_TITLE_RIGHTS")),
-);
+$bShowYandexServices =
+	COption::GetOptionString('main', 'vendor', '') == '1c_bitrix'
+	&& \Bitrix\Main\Localization\Loc::getDefaultLang(LANGUAGE_ID) == 'ru';
+
+
+$aTabs = array();
+
+if($bShowYandexServices)
+{
+	$aTabs[] = array("DIV" => "edit0", "TAB" => GetMessage('SEO_OPT_TAB_CLOUDADV'), "ICON" => "seo_settings", "TITLE" => GetMessage('SEO_OPT_TAB_CLOUDADV_TITLE'));
+}
+
+
+$aTabs[] = array("DIV" => "edit1", "TAB" => GetMessage('SEO_OPT_TAB_PROP'), "ICON" => "seo_settings", "TITLE" => GetMessage('SEO_OPT_TAB_PROP_TITLE'));
+$aTabs[] = array("DIV" => "edit3", "TAB" => GetMessage('SEO_OPT_TAB_SEARCHERS'), "ICON" => "seo_settings", "TITLE" => GetMessage('SEO_OPT_TAB_SEARCHERS_TITLE'));
+$aTabs[] = array("DIV" => "edit2", "TAB" => GetMessage("MAIN_TAB_RIGHTS"), "ICON" => "seo_settings", "TITLE" => GetMessage("MAIN_TAB_TITLE_RIGHTS"));
 
 $tabControl = new CAdminTabControl("tabControl", $aTabs);
 
@@ -97,6 +108,50 @@ $tabControl->Begin();
 <form method="POST" action="<?echo $APPLICATION->GetCurPage()?>?mid=<?=htmlspecialcharsbx($mid)?>&amp;lang=<?echo LANG?>" name="seo_settings">
 <?=bitrix_sessid_post();?>
 <?
+if($bShowYandexServices):
+	$tabControl->BeginNextTab();
+
+?>
+<tr>
+	<td>
+<?
+		\Bitrix\Main\Localization\Loc::loadMessages(dirname(__FILE__).'/admin/seo_search.php');
+		\Bitrix\Main\Localization\Loc::loadMessages(dirname(__FILE__).'/admin/seo_adv.php');
+
+		$engine = new \Bitrix\Seo\Engine\YandexDirect();
+		require_once(dirname(__FILE__)."/admin/tab/seo_search_yandex_direct_auth.php");
+
+		if(\Bitrix\Seo\Service::isRegistered())
+		{
+?>
+		<a href="javascript:void(0)" onclick="return clearCloudAdvRegister()"><?=GetMessage("SEO_OPT_TAB_CLOUDADV_CLEAR")?></a>
+<script>
+	function clearCloudAdvRegister()
+	{
+		if(confirm('<?=CUtil::JSEscape(GetMessage('SEO_OPT_TAB_CLOUDADV_CLEAR_CONFIRM'))?>'))
+		{
+			BX.ajax.loadJSON('/bitrix/tools/seo_yandex_direct.php?action=unregister&sessid=' + BX.bitrix_sessid(), function(result)
+			{
+				if(result['result'])
+				{
+					BX.reload();
+				}
+				else if(result["error"])
+				{
+					alert('<?=CUtil::JSEscape(GetMessage("SEO_ERROR"))?> : ' + result['error']['message']);
+				}
+			});
+		}
+	}
+</script>
+<?
+		}
+?>
+	</td>
+</tr>
+
+<?
+endif;
 $tabControl->BeginNextTab();
 
 foreach($arAllOptions as $arOption):

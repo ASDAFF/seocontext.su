@@ -268,7 +268,7 @@ class CCalendarSect
 		{
 			if (!isset(self::$sections[$ID]) || $bRerequest)
 			{
-				$Sect = CCalendarSect::GetList(array('arFilter' => array('ID' => $ID), 'checkPermissions' => $checkPermissions));
+				$Sect = self::GetList(array('arFilter' => array('ID' => $ID), 'checkPermissions' => $checkPermissions));
 				if($Sect && is_array($Sect) && is_array($Sect[0]))
 				{
 					self::$sections[$ID] = $Sect[0];
@@ -560,18 +560,45 @@ class CCalendarSect
 		return $ID;
 	}
 
-	public static function Delete($ID)
+	public static function Delete($id, $checkPermissions = true)
 	{
 		global $DB;
-		if (!CCalendarSect::CanDo('calendar_edit_section', $ID))
+		if ($checkPermissions !== false && !CCalendarSect::CanDo('calendar_edit_section', $id))
 			return CCalendar::ThrowError('EC_ACCESS_DENIED');
 
+		$arEvents = CCalendarEvent::GetList(
+			array(
+				'arFilter' => array(
+					"SECTION" => array(IntVal($id))
+				),
+				'setDefaultLimit' => false,
+				'parseRecursion' => false,
+				'checkPermissions' => false
+			)
+		);
+
+		$meetingIds = array();
+		foreach($arEvents as $event)
+		{
+			if ($event['IS_MEETING'] && $event['PARENT_ID'] === $event['ID'])
+			{
+				$meetingIds[] = intval($event['PARENT_ID']);
+				CCalendarLiveFeed::OnDeleteCalendarEventEntry($event['PARENT_ID'], $event);
+			}
+		}
+
+		if (count($meetingIds) > 0)
+		{
+			$meetingIds = implode(',', $meetingIds);
+			$DB->Query("DELETE from b_calendar_event WHERE PARENT_ID in (".$meetingIds.")", false, "File: ".__FILE__."<br>Line: ".__LINE__);
+		}
+
 		// Del link from table
-		$strSql = "DELETE FROM b_calendar_event_sect WHERE SECT_ID=".IntVal($ID);
+		$strSql = "DELETE FROM b_calendar_event_sect WHERE SECT_ID=".IntVal($id);
 		$DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 
 		// Del from
-		$strSql = "DELETE FROM b_calendar_section WHERE ID=".IntVal($ID);
+		$strSql = "DELETE FROM b_calendar_section WHERE ID=".IntVal($id);
 		$DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 
 		CCalendarEvent::DeleteEmpty();
@@ -851,7 +878,7 @@ class CCalendarSect
 		if (!self::CheckSign($sign, $userId, $sectId))
 			return CCalendar::ThrowError(GetMessage('EC_ACCESS_DENIED'));
 
-		$arSections = CCalendarSect::GetList(
+		$arSections = self::GetList(
 			array(
 				'arFilter' => array('ID' => $sectId),
 				'checkPermissions' => false
@@ -904,95 +931,86 @@ class CCalendarSect
 		header("Keep-Alive: timeout=15, max=100");
 	}
 
-	private static function FormatICal($Section, $Events)
+	private static function FormatICal($section, $events)
 	{
-		$res = 'BEGIN:VCALENDAR
-PRODID:-//Bitrix//Bitrix Calendar//EN
-VERSION:2.0
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:'.self::_ICalPaste($Section['NAME']).'
-X-WR-CALDESC:'.self::_ICalPaste($Section['DESCRIPTION'])."\n";
+		global $APPLICATION;
 
+		$res = 'BEGIN:VCALENDAR'."\n".
+			'PRODID:-//Bitrix//Bitrix Calendar//EN'."\n".
+			'VERSION:2.0'."\n".
+			'CALSCALE:GREGORIAN'."\n".
+			'METHOD:PUBLISH'."\n".
+			'X-WR-CALNAME:'.self::_ICalPaste($section['NAME'])."\n".
+			'X-WR-CALDESC:'.self::_ICalPaste($section['DESCRIPTION'])."\n";
 
-	$localTime = new DateTime();
-	$localOffset = $localTime->getOffset();
-	$h24 = CCalendar::GetDayLen();
+		$localTime = new DateTime();
+		$localOffset = $localTime->getOffset();
 
-	foreach ($Events as $event)
-	{
-		//$fts = CCalendar::Timestamp($event['DT_FROM']);
-		//$tts = CCalendar::Timestamp($event['DT_TO']);
-		$fts = $event['DT_FROM_TS'];
-		$tts = $event['DT_TO_TS'];
-
-
-		if ($event['DT_SKIP_TIME'] == 'Y') // All days events
+		foreach ($events as $event)
 		{
-			$dtStart = date("Ymd", $event['DT_FROM_TS']);
-			if ($event['DT_LENGTH'] == $h24)
+			$fromTs = CCalendar::Timestamp($event['DATE_FROM']);
+			$toTs = CCalendar::Timestamp($event['DATE_TO']);
+			if ($event['DT_SKIP_TIME'] === "Y")
 			{
-				$dtEnd = $dtStart;
+				$dtStart = date("Ymd", $fromTs);
+				$dtEnd = date("Ymd", $toTs + CCalendar::GetDayLen());
 			}
 			else
 			{
-				$dtEnd = date("Ymd", $event['DT_TO_TS'] - $h24);
+				$fromTsUTC = $fromTs - $event['TZ_OFFSET_FROM'];
+				$toTsUTC = $toTs - $event['TZ_OFFSET_TO'];
+				$dtStart = date("Ymd\THis\Z", $fromTsUTC);
+				$dtEnd = date("Ymd\THis\Z", $toTsUTC);
 			}
-		}
-		else // Events with time
-		{
-			$dtStart = date("Ymd\THis\Z", $event['DT_FROM_TS'] - $localOffset);
-			$dtEnd = date("Ymd\THis\Z", $event['DT_TO_TS'] - $localOffset);
-		}
 
-		$dtStamp = str_replace('T000000Z', '', date("Ymd\THisZ", CCalendar::Timestamp($event['TIMESTAMP_X']) - $localOffset));
-		$uid = md5(uniqid(rand(), true).$event['ID']).'@bitrix';
-		$period = '';
+			$dtStamp = str_replace('T000000Z', '', date("Ymd\THisZ", CCalendar::Timestamp($event['TIMESTAMP_X']) - $localOffset));
+			$uid = md5(uniqid(rand(), true).$event['ID']).'@bitrix';
+			$period = '';
 
-		$rrule = CCalendarEvent::ParseRRULE($event['RRULE']);
+			$rrule = CCalendarEvent::ParseRRULE($event['RRULE']);
 
-		if($rrule && isset($rrule['FREQ']) && $rrule['FREQ'] != 'NONE')
-		{
-			$period = 'RRULE:FREQ='.$rrule['FREQ'].';';
-			$period .= 'INTERVAL='.$rrule['INTERVAL'].';';
-			if ($rrule['FREQ'] == 'WEEKLY')
-				$period .= 'BYDAY='.implode(',', $rrule['BYDAY']).';';
-
-			if ($event['DT_SKIP_TIME'] == 'Y') // All days events
+			if($rrule && isset($rrule['FREQ']) && $rrule['FREQ'] != 'NONE')
 			{
-				if ($event['DT_LENGTH'] == $h24)
-					$dtEnd_ = $dtStart;
-				else
-					$dtEnd_ = date("Ymd", $event['DT_FROM_TS'] + $event['DT_LENGTH'] - $h24 - $localOffset);
-			}
-			else // Events with time
-			{
-				$dtEnd_ = date("Ymd\THisZ", $event['DT_FROM_TS'] + $event['DT_LENGTH'] - $localOffset);
+				$period = 'RRULE:FREQ='.$rrule['FREQ'].';';
+				$period .= 'INTERVAL='.$rrule['INTERVAL'].';';
+				if ($rrule['FREQ'] == 'WEEKLY')
+					$period .= 'BYDAY='.implode(',', $rrule['BYDAY']).';';
+
+				$until = date("Ymd", $event['DATE_TO_TS_UTC']);
+				if ($until != '20380101')
+					$period .= 'UNTIL='.$until.';';
+				$period .= 'WKST=MO';
+				$period .= "\n";
 			}
 
-			if (date("Ymd", $tts) != '20380101')
-				$period .= 'UNTIL='.$dtEnd.';';
-			$period .= 'WKST=MO';
-			$dtEnd = $dtEnd_;
-			$period .= "\n";
+			$res .= 'BEGIN:VEVENT'."\n";
+
+			if ($event['DT_SKIP_TIME'] === "Y")
+			{
+				$res .= 'DTSTART;VALUE=DATE:'.$dtStart."\n".
+					'DTEND;VALUE=DATE:'.$dtEnd."\n";
+			}
+			else
+			{
+				$res .= 'DTSTART;VALUE=DATE-TIME:'.$dtStart."\n".
+					'DTEND;VALUE=DATE-TIME:'.$dtEnd."\n";
+			}
+
+			$res .= 'DTSTAMP:'.$dtStamp."\n".
+				'UID:'.$uid."\n".
+				'SUMMARY:'.self::_ICalPaste($event['NAME'])."\n".
+				'DESCRIPTION:'.self::_ICalPaste($event['DESCRIPTION'])."\n".$period."\n".
+				'CLASS:PRIVATE'."\n".
+				'LOCATION:'.self::_ICalPaste(CCalendar::GetTextLocation($event['LOCATION']))."\n".
+				'SEQUENCE:0'."\n".
+				'STATUS:CONFIRMED'."\n".
+				'TRANSP:TRANSPARENT'."\n".
+				'END:VEVENT'."\n";
 		}
-		$res .= 'BEGIN:VEVENT
-DTSTART;VALUE=DATE:'.$dtStart.'
-DTEND;VALUE=DATE:'.$dtEnd.'
-DTSTAMP:'.$dtStamp.'
-UID:'.$uid.'
-SUMMARY:'.self::_ICalPaste($event['NAME']).'
-DESCRIPTION:'.self::_ICalPaste($event['DESCRIPTION'])."\n".$period.'
-CLASS:PRIVATE
-LOCATION:'.self::_ICalPaste(CCalendar::GetTextLocation($event['LOCATION'])).'
-SEQUENCE:0
-STATUS:CONFIRMED
-TRANSP:TRANSPARENT
-END:VEVENT'."\n";
-		}
+
 		$res .= 'END:VCALENDAR';
 		if (!defined('BX_UTF') || BX_UTF !== true)
-			$res = $GLOBALS["APPLICATION"]->ConvertCharset($res, LANG_CHARSET, 'UTF-8');
+			$res = $APPLICATION->ConvertCharset($res, LANG_CHARSET, 'UTF-8');
 
 		return $res;
 	}
@@ -1001,7 +1019,6 @@ END:VEVENT'."\n";
 	{
 		$str = preg_replace ("/\r/i", '', $str);
 		$str = preg_replace ("/\n/i", '\\n', $str);
-		//$str = htmlspecialcharsback($str);
 		return $str;
 	}
 
@@ -1068,7 +1085,10 @@ END:VEVENT'."\n";
 		}
 
 		// Creator of the section
-		$access['U'.CCalendar::GetUserId()] = CCalendar::GetAccessTasksByName('calendar_section', 'calendar_access');
+		if ($type !== 'user')
+		{
+			$access['U'.CCalendar::GetUserId()] = CCalendar::GetAccessTasksByName('calendar_section', 'calendar_access');
+		}
 
 		$arAccessCodes = array();
 		foreach($access as $code => $o)
@@ -1095,6 +1115,38 @@ END:VEVENT'."\n";
 			return $USER->LoginHitByHash();
 
 		return false;
+	}
+
+	public static function GetLastUsedSection($type, $ownerId, $userId)
+	{
+		$lastSection = CUserOptions::GetOption("calendar", "last_section", false, $userId);
+		if (isset($lastSection[$type.'_'.$ownerId]))
+			return $lastSection[$type.'_'.$ownerId];
+		return false;
+	}
+
+	public static function GetSectionForOwner($type, $ownerId, $autoCreate = true)
+	{
+		$sectionId = false;
+		$autoCreated = false;
+		$section = false;
+
+		$res = self::GetList(array('arFilter' => array('CAL_TYPE' => $type,'OWNER_ID' => $ownerId), 'checkPermissions' => false));
+		if ($res && is_array($res) && isset($res[0]))
+		{
+			$section = $res[0];
+			$sectionId = $res[0]['ID'];
+		}
+		elseif ($autoCreate)
+		{
+			$section = self::CreateDefault(array(
+				'type' => $type,
+				'ownerId' => $ownerId
+			));
+			$autoCreated = true;
+			$sectionId = $section['ID'];
+		}
+		return array('sectionId' => $sectionId, 'autoCreated' => $autoCreated, 'section' => $section);
 	}
 }
 ?>

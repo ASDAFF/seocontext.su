@@ -125,7 +125,7 @@ if (!CWikiUtils::IsReadable())
 	return;
 }
 
-$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+$arParams['ELEMENT_NAME'] = rawurldecode($arParams['ELEMENT_NAME']);
 $arFilter = array(
 //	'IBLOCK_LID' => SITE_ID,
 	'IBLOCK_ID' => $arParams['IBLOCK_ID'],

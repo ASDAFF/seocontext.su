@@ -144,4 +144,27 @@ abstract class CollectableEntity
 		return $parent->isMathActionOnly();
 	}
 
+	/**
+	 * @internal
+	 * @param array $map
+	 *
+	 * @return array
+	 */
+	public static function getAllFieldsByMap(array $map)
+	{
+		$fields = array();
+		foreach ($map as $key => $value)
+		{
+			if (is_array($value) && !array_key_exists('expression', $value))
+			{
+				$fields[] = $key;
+			}
+			elseif ($value instanceof Main\Entity\ScalarField)
+			{
+				$fields[] = $value->getName();
+			}
+		}
+		return $fields;
+	}
+
 }

@@ -1,13 +1,16 @@
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();?>
 <?
-//$APPLICATION->SetAdditionalCSS("/bitrix/themes/.default/adminstyles.css");
-$APPLICATION->SetAdditionalCSS("/bitrix/themes/.default/pubstyles.css");
-$APPLICATION->SetAdditionalCSS("/bitrix/themes/.default/jspopup.css");
-$APPLICATION->SetAdditionalCSS("/bitrix/themes/.default/calendar.css");
-$APPLICATION->AddHeadScript('/bitrix/js/main/utils.js');
-$APPLICATION->AddHeadScript('/bitrix/js/main/popup_menu.js');
-$APPLICATION->AddHeadScript('/bitrix/js/main/admin_tools.js');
-CUtil::InitJSCore(array("window", "ajax")); 
+use Bitrix\Main\Page\Asset;
+
+Asset::getInstance()->addCss("/bitrix/themes/.default/pubstyles.css");
+Asset::getInstance()->addCss("/bitrix/themes/.default/jspopup.css");
+Asset::getInstance()->addCss("/bitrix/themes/.default/calendar.css");
+Asset::getInstance()->addJs('/bitrix/js/main/utils.js');
+Asset::getInstance()->addJs('/bitrix/js/main/popup_menu.js');
+Asset::getInstance()->addJs('/bitrix/js/main/admin_tools.js');
+CUtil::InitJSCore(array("window", "ajax", 'bp_selector'));
+Asset::getInstance()->addJs('/bitrix/js/main/public_tools.js');
+Asset::getInstance()->addJs('/bitrix/js/bizproc/bizproc.js');
 require_once($_SERVER["DOCUMENT_ROOT"].BX_ROOT."/modules/main/interface/admin_lib.php");
 //////////////////////////////////////////////////////////////////////////////
 
@@ -121,8 +124,13 @@ function BCPProcessImport()
 	}).Show();
 }
 
-function BCPSaveTemplateComplete()
+function BCPSaveTemplateComplete(data)
 {
+	if (data != '<!--SUCCESS-->')
+	{
+		alert('<?=GetMessageJS('BIZPROC_WFEDIT_SAVE_ERROR')?>');
+		return;
+	}
 	BCPEmptyWorkflow = false;
 }
 
@@ -222,10 +230,7 @@ td.statset {background: url(/bitrix/images/bizproc/stat_sett.gif) 50% center no-
 
 .activityerr a.activitydel {background: url(/bitrix/images/bizproc/err_act_button_del.gif) 50% center no-repeat;}
 .activityerr a.activityset {background: url(/bitrix/images/bizproc/err_act_button_sett.gif) 50% center no-repeat;}
-
 </style>
-<script src="/bitrix/js/main/public_tools.js"></script>
-<script src="/bitrix/js/bizproc/bizproc.js"></script>
 
 <?
 global $JSMESS;
@@ -248,12 +253,12 @@ foreach($arResult['ACTIVITIES'] as $actId => $actProps)
 	$actPath = substr($actProps["PATH_TO_ACTIVITY"], strlen($_SERVER["DOCUMENT_ROOT"]));
 	if(file_exists($actProps["PATH_TO_ACTIVITY"]."/".$actId.".js"))
 	{
-		echo '<script src="'.$actPath.'/'.$actId.'.js"></script>';
+		Asset::getInstance()->addJs($actPath.'/'.$actId.'.js');
 		GetJSLangMess($actProps["PATH_TO_ACTIVITY"], $actId);
 	}
 
 	if(file_exists($actProps["PATH_TO_ACTIVITY"]."/".$actId.".css"))
-		echo '<link rel="stylesheet" type="text/css" href="'.$actPath.'/'.$actId.'.css">';
+		Asset::getInstance()->addCss($actPath.'/'.$actId.'.css');
 
 	if(file_exists($actProps["PATH_TO_ACTIVITY"]."/icon.gif"))
 		$arResult['ACTIVITIES'][$actId]['ICON'] = $actPath.'/icon.gif';
@@ -268,6 +273,7 @@ var arWorkflowParameters = <?=CUtil::PhpToJSObject($arResult['PARAMETERS'])?>;
 var arWorkflowVariables = <?=CUtil::PhpToJSObject($arResult['VARIABLES'])?>;
 var arWorkflowConstants = <?=CUtil::PhpToJSObject($arResult['CONSTANTS'])?>;
 var arWorkflowTemplate = <?=CUtil::PhpToJSObject($arResult['TEMPLATE'][0])?>;
+var arDocumentFields = <?=CUtil::PhpToJSObject($arResult['DOCUMENT_FIELDS'])?>;
 
 var workflowTemplateName = <?=CUtil::PhpToJSObject($arResult['TEMPLATE_NAME'])?>;
 var workflowTemplateDescription = <?=CUtil::PhpToJSObject($arResult['TEMPLATE_DESC'])?>;
@@ -277,6 +283,8 @@ var document_type = <?=CUtil::PhpToJSObject($arResult['DOCUMENT_TYPE'])?>;
 var MODULE_ID = <?=CUtil::PhpToJSObject(MODULE_ID)?>;
 var ENTITY = <?=CUtil::PhpToJSObject(ENTITY)?>;
 var BPMESS = <?=CUtil::PhpToJSObject($JSMESS)?>;
+var BPDesignerUseJson = true;
+var BPTemplateIsModified = false;
 
 var CURRENT_SITE_ID = <?=CUtil::PhpToJSObject(SITE_ID)?>;
 
@@ -328,6 +336,7 @@ function ReDraw()
 		else
 		{
 			var d = rootActivity.Table.parentNode;
+			var modificationFlag = BPTemplateIsModified;
 
 			while(rootActivity.childActivities.length>0)
 				rootActivity.RemoveChild(rootActivity.childActivities[0]);
@@ -335,6 +344,8 @@ function ReDraw()
 			rootActivity.Init(arWorkflowTemplate);
 			rootActivity.RemoveResources();
 			rootActivity.Draw(d);
+
+			BPTemplateIsModified = modificationFlag;
 		}
 	}
 }
@@ -353,14 +364,19 @@ function start()
 	BCPShowParams();
 	<?endif;?>
 }
-<?if ($arResult['TEMPLATE_CHECK_STATUS']):?>
 setTimeout("start()", 0);
-<?endif?>
+
+window.onbeforeunload = function()
+{
+	return BPTemplateIsModified ? '<?=GetMessageJS('BIZPROC_WFEDIT_BEFOREUNLOAD')?>' : null;
+}
+
 </script>
 
 <? if (!$arResult['TEMPLATE_CHECK_STATUS']):
 	echo ShowError(GetMessage('BIZPROC_WFEDIT_CHECK_ERROR'));
-else:?>
+endif;
+?>
 <form>
 
 <div id="wf1" style="width: 100%; border-bottom: 2px #efefef dotted; " ></div>
@@ -373,5 +389,4 @@ else:?>
 </div>
 
 </form>
-<?endif;?>
 </div>

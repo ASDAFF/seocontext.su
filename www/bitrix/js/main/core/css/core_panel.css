@@ -1283,6 +1283,7 @@ span.bx-context-toolbar-vertical-mode span.bx-context-toolbar-button-underlay
 	font: normal normal bold 12px/29px "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 	color:#dde7e9 !important;
 	background: scroll transparent url(../images/panel/top-panel-sprite-2.png) right -1129px !important;
+	vertical-align: top !important;
 }
 
 #bx-panel.bx-panel-folded .adm-header-notif-block

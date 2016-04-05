@@ -7,6 +7,7 @@
  */
 namespace Bitrix\Sender;
 
+use Bitrix\Main\Config\Option;
 use Bitrix\Main\Event;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\Type;
@@ -93,14 +94,8 @@ class PostingManager
 			));
 			if ($postingDb->fetch())
 			{
-				$fixedUrl = str_replace(
-					array(
-						'&bx_sender_conversion_id=' . $recipient['ID'],
-						'?bx_sender_conversion_id=' . $recipient['ID']
-					),
-					array('', ''),
-					$url
-				);
+				$uri = new \Bitrix\Main\Web\Uri($url);
+				$fixedUrl = $uri->deleteParams(array('bx_sender_conversion_id'))->getLocator();
 				$addClickDb = PostingClickTable::add(array(
 					'POSTING_ID' => $recipient['POSTING_ID'],
 					'RECIPIENT_ID' => $recipient['ID'],
@@ -157,6 +152,27 @@ class PostingManager
 	 */
 	protected static function sendInternal($mailingChainId, array $params)
 	{
+		// event before sending
+		$eventSendParams = $params;
+		$eventSendParams['MAILING_CHAIN_ID'] = $mailingChainId;
+		$event = new Event('sender', 'OnBeforePostingSendRecipient', array($eventSendParams));
+		$event->send();
+		foreach ($event->getResults() as $eventResult)
+		{
+			if($eventResult->getType() == \Bitrix\Main\EventResult::ERROR)
+			{
+				return PostingRecipientTable::SEND_RESULT_ERROR;
+			}
+
+			if(is_array($eventResult->getParameters()))
+			{
+				$eventSendParams = array_merge($eventSendParams, $eventResult->getParameters());
+			}
+		}
+		unset($eventSendParams['MAILING_CHAIN_ID']);
+		$params = $eventSendParams;
+
+		// prepare common params
 		if(static::$currentMailingChainFields !== null)
 		{
 			if(static::$currentMailingChainFields['ID'] != $mailingChainId)
@@ -170,7 +186,9 @@ class PostingManager
 				'filter' => array('ID' => $mailingChainId)
 			));
 			if(!($mailingChain = $mailingChainDb->fetch()))
+			{
 				return PostingRecipientTable::SEND_RESULT_ERROR;
+			}
 
 
 			$charset = false;
@@ -210,10 +228,37 @@ class PostingManager
 				'FILE' => $attachmentList
 			);
 			static::$currentMailingChainFields['ID'] = $mailingChain['ID'];
+
+			// create final mail-text due to filling template by blocks
+			static::$currentMailingChainFields['IS_MESSAGE_WITH_TEMPLATE'] = false;
+			if($mailingChain['TEMPLATE_TYPE'] && $mailingChain['TEMPLATE_ID'])
+			{
+				$chainTemplate = \Bitrix\Sender\Preset\Template::getById($mailingChain['TEMPLATE_TYPE'], $mailingChain['TEMPLATE_ID']);
+				if($chainTemplate && $chainTemplate['HTML'])
+				{
+					$document = new \Bitrix\Main\Web\DOM\Document;
+					$document->loadHTML($chainTemplate['HTML']);
+					\Bitrix\Main\Loader::includeModule('fileman');
+					if(\Bitrix\Fileman\Block\Editor::fillDocumentBySliceContent($document, $mailingChain['MESSAGE']))
+					{
+						\Bitrix\Main\Web\DOM\StyleInliner::inlineDocument($document);
+						$mailingChain['MESSAGE'] = $document->saveHTML();
+
+						static::$currentMailingChainFields['IS_MESSAGE_WITH_TEMPLATE'] = true;
+					}
+					else
+					{
+						unset($document);
+					}
+				}
+			}
+
+
 			static::$currentMailingChainFields['MESSAGE'] = array(
 				'BODY_TYPE' => 'html',
 				'EMAIL_FROM' => $mailingChain['EMAIL_FROM'],
 				'EMAIL_TO' => '#EMAIL_TO#',
+				'PRIORITY' => $mailingChain['PRIORITY'],
 				'SUBJECT' => $mailingChain['SUBJECT'],
 				'MESSAGE' => $mailingChain['MESSAGE'],
 				'MESSAGE_PHP' => \Bitrix\Main\Mail\Internal\EventMessageTable::replaceTemplateToPhp($mailingChain['MESSAGE']),
@@ -222,9 +267,28 @@ class PostingManager
 			static::$currentMailingChainFields['CHARSET'] = $charset;
 			static::$currentMailingChainFields['SERVER_NAME'] = $serverName;
 			static::$currentMailingChainFields['LINK_PROTOCOL'] = \Bitrix\Main\Config\Option::get("sender", "link_protocol", 'http');
+
+			static::$currentMailingChainFields['LINK_PARAMS'] = $mailingChain['LINK_PARAMS'];
 		}
 
 
+		$trackClick = isset($params['TRACK_CLICK']) ? $params['TRACK_CLICK'] : null;
+		if($trackClick && static::$currentMailingChainFields['LINK_PARAMS'])
+		{
+			if(!is_array($trackClick['URL_PARAMS']))
+			{
+				$trackClick['URL_PARAMS'] = array();
+			}
+
+			parse_str(static::$currentMailingChainFields['LINK_PARAMS'], $trackClickTmp);
+			if(is_array($trackClickTmp))
+			{
+				$trackClick['URL_PARAMS'] = array_merge($trackClick['URL_PARAMS'], $trackClickTmp);
+			}
+		}
+
+
+		// prepare params for send email
 		$messageParams = array(
 			'EVENT' => static::$currentMailingChainFields['EVENT'],
 			'FIELDS' => $params['FIELDS'],
@@ -251,9 +315,33 @@ class PostingManager
 			}
 		}
 
+		// event on sending
+		$eventMessageParams = $messageParams;
+		$eventMessageParams['MAILING_CHAIN_ID'] = $mailingChainId;
+		$eventMessageParams['IS_MESSAGE_WITH_TEMPLATE'] = static::$currentMailingChainFields['IS_MESSAGE_WITH_TEMPLATE'];
+		$event = new Event('sender', 'OnPostingSendRecipient', array($eventMessageParams));
+		$event->send();
+		foreach ($event->getResults() as $eventResult)
+		{
+			if($eventResult->getType() == \Bitrix\Main\EventResult::ERROR)
+			{
+				return PostingRecipientTable::SEND_RESULT_ERROR;
+			}
+
+			if(is_array($eventResult->getParameters()))
+			{
+				$eventMessageParams = array_merge($eventMessageParams, $eventResult->getParameters());
+			}
+		}
+		static::$currentMailingChainFields['IS_MESSAGE_WITH_TEMPLATE'] = $eventMessageParams['IS_MESSAGE_WITH_TEMPLATE'];
+		unset($eventMessageParams['IS_MESSAGE_WITH_TEMPLATE']);
+		unset($eventMessageParams['MAILING_CHAIN_ID']);
+		$messageParams = $eventMessageParams;
+
 		$message = Mail\EventMessageCompiler::createInstance($messageParams);
 		$message->compile();
 
+		// add unsubscribe info to header
 		$mailHeaders = $message->getMailHeaders();
 		if(!empty($params['FIELDS']['UNSUBSCRIBE_LINK']))
 		{
@@ -261,11 +349,24 @@ class PostingManager
 			$mailHeaders['List-Unsubscribe'] = '<'.$unsubUrl.'>';
 		}
 
-		// send mail
-		$result = Mail\Mail::send(array(
+		$mailBody = null;
+		if(static::$currentMailingChainFields['IS_MESSAGE_WITH_TEMPLATE'] && Option::get('sender', 'use_inliner_for_each_template_mail', 'N') == 'Y')
+		{
+			// inline styles
+			$mailBody = \Bitrix\Main\Web\DOM\StyleInliner::inlineHtml($message->getMailBody());
+		}
+
+		if(!$mailBody)
+		{
+			$mailBody = $message->getMailBody();
+		}
+
+
+		// set email params
+		$mailParams = array(
 			'TO' => $message->getMailTo(),
 			'SUBJECT' => $message->getMailSubject(),
-			'BODY' => $message->getMailBody(),
+			'BODY' => $mailBody,
 			'HEADER' => $mailHeaders,
 			'CHARSET' => $message->getMailCharset(),
 			'CONTENT_TYPE' => $message->getMailContentType(),
@@ -274,9 +375,31 @@ class PostingManager
 			'LINK_PROTOCOL' => static::$currentMailingChainFields['LINK_PROTOCOL'],
 			'LINK_DOMAIN' => static::$currentMailingChainFields['SERVER_NAME'],
 			'TRACK_READ' => (isset($params['TRACK_READ']) ? $params['TRACK_READ'] : null),
-			'TRACK_CLICK' => (isset($params['TRACK_CLICK']) ? $params['TRACK_CLICK'] : null)
-		));
+			'TRACK_CLICK' => $trackClick
+		);
 
+		// event on sending email
+		$eventMailParams = $mailParams;
+		$eventMailParams['MAILING_CHAIN_ID'] = $mailingChainId;
+		$event = new Event('sender', 'OnPostingSendRecipientEmail', array($eventMailParams));
+		$event->send();
+		foreach ($event->getResults() as $eventResult)
+		{
+			if($eventResult->getType() == \Bitrix\Main\EventResult::ERROR)
+			{
+				return PostingRecipientTable::SEND_RESULT_ERROR;
+			}
+
+			if(is_array($eventResult->getParameters()))
+			{
+				$eventMailParams = array_merge($eventMailParams, $eventResult->getParameters());
+			}
+		}
+		unset($eventMailParams['MAILING_CHAIN_ID']);
+		$mailParams = $eventMailParams;
+
+		// send mail
+		$result = Mail\Mail::send($mailParams);
 		if($result)
 			return PostingRecipientTable::SEND_RESULT_SUCCESS;
 		else
@@ -510,7 +633,27 @@ class PostingManager
 
 
 		// update status of posting
-		PostingTable::update(array('ID' => $id), array('STATUS' => $STATUS, 'DATE_SENT' => $DATE));
+		$postingUpdateFields = array(
+			'STATUS' => $STATUS,
+			'DATE_SENT' => $DATE,
+			'COUNT_SEND_ALL' => 0
+		);
+		$recipientStatusToPostingFieldMap = PostingTable::getRecipientStatusToPostingFieldMap();
+		foreach($recipientStatusToPostingFieldMap as $recipientStatus => $postingFieldName)
+		{
+			if(!array_key_exists($recipientStatus, $statusList))
+			{
+				$postingCountFieldValue = 0;
+			}
+			else
+			{
+				$postingCountFieldValue = $statusList[$recipientStatus];
+			}
+
+			$postingUpdateFields['COUNT_SEND_ALL'] += $postingCountFieldValue;
+			$postingUpdateFields[$postingFieldName] = $postingCountFieldValue;
+		}
+		PostingTable::update(array('ID' => $id), $postingUpdateFields);
 
 		// return status to continue or end of sending
 		if($STATUS == PostingTable::STATUS_PART)

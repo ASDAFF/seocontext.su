@@ -114,12 +114,7 @@
 	border-bottom: 1px solid transparent;
 }
 
-.bp-post .bp-status {
-	display: table;
-	overflow: hidden;
-	height: 102px;
-}
-
+.bp-post .bp-status,
 .bp-post .bp-status-cancel, .bp-post .bp-status-ready {
 	display: table;
 	overflow: hidden;
@@ -209,3 +204,17 @@
 
 .bx-lists-live-feed-title-link {color:#000000;}
 .bx-lists-live-feed-title-link:hover {color:#000000;}
+
+.bp-opacity-animation
+{
+	opacity: 1;
+	-webkit-transition: opacity .5s ease;
+	-moz-transition: opacity .5s ease;
+	-ms-transition: opacity .5s ease;
+	-o-transition: opacity .5s ease;
+	transition: opacity .5s ease;
+}
+.bp-hidden
+{
+	opacity: 0;
+}

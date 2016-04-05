@@ -229,4 +229,9 @@ abstract class EntityCollection
 		}
 		return false;
 	}
+
+	public function verify()
+	{
+		return new Sale\Result();
+	}
 }

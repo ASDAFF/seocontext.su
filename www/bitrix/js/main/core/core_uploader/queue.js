@@ -311,7 +311,8 @@
 					if (currentNode.number > 0 && item.number > 0)
 						break;
 				}
-				if (this.itForUpload.hasItem(currentNode.getAttribute("bx-bxu-item-id")))
+				var id = currentNode.getAttribute("bx-bxu-item-id");
+				if (this.itForUpload.hasItem(id))
 				{
 					var act = (item.number <= currentNode.number ? "beforeItem" : (
 						item.nextSibling ? "afterItem" : "inTheEnd")), it = null;
@@ -335,6 +336,30 @@
 						this.itForUpload.setItem(buff.id, buff);
 				}
 
+				if (this.items.hasItem(id))
+				{
+					var act = (item.number <= currentNode.number ? "beforeItem" : (
+						item.nextSibling ? "afterItem" : "inTheEnd")), it = null;
+					if (act != "inTheEnd")
+					{
+						for (j = item.number + (act == "beforeItem" ? 0 : 1); j < n; j++)
+						{
+							if (this.items.hasItem(obj.childNodes[j].getAttribute("bx-bxu-item-id")))
+							{
+								it = obj.childNodes[j].getAttribute("bx-bxu-item-id");
+								break;
+							}
+						}
+						if (it === null)
+							act = "inTheEnd";
+					}
+					var buff = this.items.removeItem(currentNode.getAttribute("bx-bxu-item-id"));
+					if (act != "inTheEnd")
+						this.items.insertBeforeItem(buff.id, buff, it);
+					else
+						this.items.setItem(buff.id, buff);
+				}
+
 				currentNode.parentNode.removeChild(currentNode);
 				if (item.number <= currentNode.number)
 				{
@@ -350,6 +375,8 @@
 				}
 
 			}
+			BX.onCustomEvent(item, "onFileOrderIsChanged", [item.id, item, this.caller]);
+			BX.onCustomEvent(this.uploader, "onQueueIsChanged", [this, "sort", item.id, item]);
 			return true;
 		},
 		deleteItem : function (id, item) {

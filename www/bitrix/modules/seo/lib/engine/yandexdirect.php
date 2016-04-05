@@ -86,6 +86,7 @@ class YandexDirect extends Engine\YandexBase implements IEngine
 	const ERROR_NO_STATS = 2;
 
 	const MAX_STAT_DAYS_DELTA = 7;
+	const CAMPAIGN_LIMIT = 100;
 
 	const ERROR_WRONG_CURRENCY = 245;
 
@@ -103,7 +104,7 @@ class YandexDirect extends Engine\YandexBase implements IEngine
 
 	public function getCurrentUser()
 	{
-		if(Service::isAuthorized($this->getCode()))
+		if(Service::isRegistered())
 		{
 			$currentAuth = Service::getAuth($this->getCode());
 			return $currentAuth['user'];
@@ -179,11 +180,24 @@ class YandexDirect extends Engine\YandexBase implements IEngine
 			$campaignId = array($campaignId);
 		}
 
-		$result = $this->getProxy()->getInterface()->getCampaign(static::ENGINE_ID, $campaignId);
+		$offset = 0;
 
-		if(!empty($result['error']))
+		$result = array();
+
+		while($offset < count($campaignId))
 		{
-			throw new YandexDirectException($result);
+			$currentCampaigns = array_slice($campaignId, $offset, static::CAMPAIGN_LIMIT);
+
+			$currentResult = $this->getProxy()->getInterface()->getCampaign(static::ENGINE_ID, $currentCampaigns);
+
+			if(!empty($currentResult['error']))
+			{
+				throw new YandexDirectException($currentResult);
+			}
+
+			$result = array_merge($result, $currentResult);
+
+			$offset += static::CAMPAIGN_LIMIT;
 		}
 
 		return $result;
@@ -391,7 +405,7 @@ class YandexDirect extends Engine\YandexBase implements IEngine
 		);
 
 		$result = $this->getProxy()->getInterface()->moderateBanners(static::ENGINE_ID, $queryData);
-		AddMessage2Log($result);
+
 		if(!empty($result['error']))
 		{
 			throw new YandexDirectException($result);

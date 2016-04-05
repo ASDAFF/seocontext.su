@@ -24,7 +24,7 @@ class ByPublicMode extends Restrictions\Base
 		return Loc::getMessage("SALE_DLVR_RSTR_BY_PUBLIC_MODE_DESCRIPT");
 	}
 
-	public function check($dummy, array $restrictionParams, $deliveryId = 0)
+	public static function check($dummy, array $restrictionParams, $deliveryId = 0)
 	{
 		$context = Application::getInstance()->getContext();
 		$request = $context->getRequest();
@@ -35,9 +35,9 @@ class ByPublicMode extends Restrictions\Base
 		return $restrictionParams["PUBLIC_SHOW"] == 'Y';
 	}
 
-	public function checkByShipment(\Bitrix\Sale\Shipment $shipment, array $restrictionParams, $deliveryId = 0)
+	protected static function extractParams(\Bitrix\Sale\Shipment $shipment)
 	{
-		return $this->check("", $restrictionParams, $deliveryId);
+		return null;
 	}
 
 	public static function getParamsStructure()

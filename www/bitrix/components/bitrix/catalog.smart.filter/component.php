@@ -19,7 +19,7 @@ if(!Loader::includeModule('iblock'))
 
 $FILTER_NAME = (string)$arParams["FILTER_NAME"];
 
-if($this->StartResultCache(false, ($arParams["CACHE_GROUPS"]? $USER->GetGroups(): false)))
+if($this->StartResultCache(false, 'v2'.($arParams["CACHE_GROUPS"]? $USER->GetGroups(): false)))
 {
 	$arResult["FACET_FILTER"] = false;
 	$arResult["COMBO"] = array();
@@ -429,8 +429,28 @@ if ($_CHECK)
 							&& is_array($arResult["ITEMS"][$NAME]["VALUES"])
 						)
 						{
-							$arResult["ITEMS"][$NAME]["VALUES"]["MIN"]["FILTERED_VALUE"] = $row["MIN_VALUE_NUM"];
-							$arResult["ITEMS"][$NAME]["VALUES"]["MAX"]["FILTERED_VALUE"] = $row["MAX_VALUE_NUM"];
+							$currency = $row["VALUE"];
+							$existCurrency = strlen($currency) > 0;
+							if ($existCurrency)
+								$currency = $this->facet->lookupDictionaryValue($currency);
+
+							$priceValue = $this->convertPrice($row["MIN_VALUE_NUM"], $currency);
+							if (
+								!isset($arResult["ITEMS"][$NAME]["VALUES"]["MIN"]["FILTERED_VALUE"])
+								|| $arResult["ITEMS"][$NAME]["VALUES"]["MIN"]["FILTERED_VALUE"] > $priceValue
+							)
+							{
+								$arResult["ITEMS"][$NAME]["VALUES"]["MIN"]["FILTERED_VALUE"] = $priceValue;
+							}
+
+							$priceValue = $this->convertPrice($row["MAX_VALUE_NUM"], $currency);
+							if (
+									!isset($arResult["ITEMS"][$NAME]["VALUES"]["MAX"]["FILTERED_VALUE"])
+									|| $arResult["ITEMS"][$NAME]["VALUES"]["MAX"]["FILTERED_VALUE"] > $priceValue
+							)
+							{
+								$arResult["ITEMS"][$NAME]["VALUES"]["MAX"]["FILTERED_VALUE"] = $priceValue;
+							}
 						}
 					}
 				}

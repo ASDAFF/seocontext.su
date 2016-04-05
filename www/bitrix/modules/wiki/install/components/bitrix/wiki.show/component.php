@@ -81,7 +81,7 @@ if(strlen($arParams['PATH_TO_USER'])<=0)
 }
 
 if(isset($_REQUEST['redirect']))
-	$arResult['REDIRECTED_FROM'] = urldecode($_REQUEST['redirect']);
+	$arResult['REDIRECTED_FROM'] = rawurldecode($_REQUEST['redirect']);
 else
 	$arResult['REDIRECTED_FROM'] = false;
 
@@ -177,7 +177,7 @@ if($arResult["PAGE_CACHE_CLEAR"])
 
 if($this->StartResultCache(false, array($USER->GetGroups(), $arCache)))
 {
-	$arParams['ELEMENT_NAME'] = urldecode($arParams['ELEMENT_NAME']);
+	$arParams['ELEMENT_NAME'] = CWikiUtils::htmlspecialcharsback($arParams['ELEMENT_NAME']);
 	$arFilter = array(
 		'IBLOCK_ID' => $arParams['IBLOCK_ID'],
 		'CHECK_PERMISSIONS' => 'N',

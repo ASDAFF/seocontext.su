@@ -1176,7 +1176,7 @@ window.__socOnUCFormResponse = function(obj, data)
 						"MODERATE" : false
 					},
 					"URL" : {
-						"LINK" : (arComm["URL"].length > 0 ? arComm["URL"] :  BX.message('sonetLEPath').replace("#log_id#", arComm["LOG_ID"]) + '?commentId=' + arComm["ID"] + '#com' + (parseInt(arComm["SOURCE_ID"]) > 0 ? arComm["SOURCE_ID"] : arComm["ID"]))
+						"LINK" : ((arComm["URL"] && arComm["URL"].length > 0) ? arComm["URL"] :  BX.message('sonetLEPath').replace("#log_id#", arComm["LOG_ID"]) + '?commentId=' + arComm["ID"] + '#com' + (parseInt(arComm["SOURCE_ID"]) > 0 ? arComm["SOURCE_ID"] : arComm["ID"]))
 					},
 					"AUTHOR" : {
 						"ID" : arComment["USER_ID"],

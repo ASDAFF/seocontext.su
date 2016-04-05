@@ -389,22 +389,6 @@
 	width: 18px;
 }
 
-.feed-add-post-form-lists-link-icon
-{
-	background: url("images/lists.png");
-	display: inline-block;
-	height: 16px;
-	left: 0;
-	position: absolute;
-	top: 2px;
-	width: 16px;
-}
-
-.feed-add-post-form-link:hover .feed-add-post-form-lists-link-icon,
-.feed-add-post-form-link-active .feed-add-post-form-lists-link-icon {
-	background: url("images/lists-hover.png");
-}
-
 .feed-add-post-form-message-link-icon {
 	background-position: -40px -700px;
 }
@@ -449,9 +433,17 @@
 	background-position: -131px -726px;
 }
 
-.feed-add-post-form-link-active .feed-add-post-form-important-link-icon, .feed-add-post-form-link-active.feed-add-post-form-important-link .feed-add-post-form-link-icon, .feed-add-post-form-important:hover .menu-popup-item-icon {
+.feed-add-post-form-link-active .feed-add-post-form-important-link-icon,
+.feed-add-post-form-link-active.feed-add-post-form-important-link .feed-add-post-form-link-icon,
+.feed-add-post-form-important:hover .menu-popup-item-icon {
 	background-position: -131px -752px;
 	left: 2px;
+}
+
+.feed-add-post-form-link-active .feed-add-post-form-lists-link-icon,
+.feed-add-post-form-link-active.feed-add-post-form-lists-link .feed-add-post-form-link-icon,
+.feed-add-post-form-lists-more.feed-add-post-form-lists:hover .menu-popup-item-icon {
+	background: url("images/lists-hover.png") no-repeat;
 }
 
 .feed-add-post-form-calendar-link-icon {
@@ -499,6 +491,11 @@
 
 .feed-add-post-form-vote .menu-popup-item-icon {
 	background: url("/bitrix/components/bitrix/socialnetwork.log.ex/templates/.default/images/log/live_feed_sprite_6.png?3") no-repeat -75px -701px;
+	margin-left: 5px;
+}
+
+.feed-add-post-form-lists-more.feed-add-post-form-lists .menu-popup-item-icon {
+	background: url("images/lists.png") no-repeat;
 	margin-left: 5px;
 }
 

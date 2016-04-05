@@ -4,7 +4,10 @@ class CBackup
 	static $DOCUMENT_ROOT_SITE;
 	static $REAL_DOCUMENT_ROOT_SITE;
 
-	function CheckDumpClouds()
+	protected $strLastFile;
+	protected $LastFileSize;
+
+	public static function CheckDumpClouds()
 	{
 		$arRes = array();
 		if (IntOption('dump_do_clouds') && $arAllBucket = CBackup::GetBucketList())
@@ -18,12 +21,12 @@ class CBackup
 		return false;
 	}
 
-	function CheckDumpFiles()
+	public static function CheckDumpFiles()
 	{
 		return IntOption("dump_file_public") || IntOption("dump_file_kernel");
 	}
 
-	function GetBucketList($arFilter = array())
+	public static function GetBucketList($arFilter = array())
 	{
 		if (CModule::IncludeModule('clouds'))
 		{
@@ -44,8 +47,7 @@ class CBackup
 		return false;
 	}
 
-
-	function ignorePath($path)
+	public static function ignorePath($path)
 	{
 		if (!file_exists($path)) // in case of wrong symlinks
 			return true;
@@ -136,7 +138,7 @@ class CBackup
 		return !$dump_file_kernel;
 	}
 
-	function GetBucketFileList($BUCKET_ID, $path)
+	public static function GetBucketFileList($BUCKET_ID, $path)
 	{
 		static $CACHE;
 
@@ -150,14 +152,14 @@ class CBackup
 		return false;
 	}
 
-	function _preg_escape($str)
+	public static function _preg_escape($str)
 	{
 		$search = array('#','[',']','.','?','(',')','^','$','|','{','}');
 		$replace = array('\#','\[','\]','\.','\?','\(','\)','\^','\$','\|','\{','\}');
 		return str_replace($search, $replace, $str);
 	}
 
-	function skipMask($abs_path)
+	public static function skipMask($abs_path)
 	{
 		if (!IntOption('skip_mask'))
 			return false;
@@ -201,7 +203,7 @@ class CBackup
 		}
 	}
 
-	function GetArcName($prefix = '')
+	public static function GetArcName($prefix = '')
 	{
 		$arc_name = DOCUMENT_ROOT.BX_ROOT."/backup/".$prefix.date("Ymd_His");
 
@@ -222,7 +224,7 @@ class CBackup
 		return $arc_name;
 	}
 
-	function MakeDump($strDumpFile, &$arState)
+	public static function MakeDump($strDumpFile, &$arState)
 	{
 		global $DB;
 
@@ -431,7 +433,7 @@ class CBackup
 		return true;
 	}
 
-	function file_put_contents_ex($strDumpFile, $str)
+	public function file_put_contents_ex($strDumpFile, $str)
 	{
 		$LIMIT = 2000000000;
 		if (!$this->strLastFile)
@@ -455,7 +457,7 @@ class CBackup
 		return file_put_contents($this->strLastFile, $str, 8);
 	}
 
-	function GetTableColumns($TableName)
+	public static function GetTableColumns($TableName)
 	{
 		global $DB;
 		$arResult = array();
@@ -475,19 +477,19 @@ class CBackup
 		return $arResult;
 	}
 
-	function SkipTableData($table)
+	public static function SkipTableData($table)
 	{
 		$table = strtolower($table);
 		if (preg_match("#^b_stat#", $table) && IntOption('dump_base_skip_stat'))
 			return true;
-		elseif (preg_match("#^b_search_%#", $table) && !preg_match('^(b_search_custom_rank|b_search_phrase)$', $table) && IntOption('dump_base_skip_search'))
+		elseif (preg_match("#^b_search_#", $table) && !preg_match('#^(b_search_custom_rank|b_search_phrase)$#', $table) && IntOption('dump_base_skip_search'))
 			return true;
 		elseif($table == 'b_event_log' && IntOption('dump_base_skip_log'))
 			return true;
 		return false;
 	}
 
-	function getNextName($file)
+	public static function getNextName($file)
 	{
 		static $CACHE;
 		$c = &$CACHE[$file];
@@ -949,6 +951,7 @@ class CTar
 
 		if ($header['type']=='L') // Long header
 		{
+			$filename = '';
 			$n = ceil($header['size']/512);
 			for ($i = 0; $i < $n; $i++)
 				$filename .= $this->readBlock();
@@ -1217,7 +1220,7 @@ class CTar
 	function addFile($f)
 	{
 		$f = str_replace('\\', '/', $f);
-		$path = self::substr($f,self::strlen($this->path) + 1);
+		$path = $this->prefix.self::substr($f,self::strlen($this->path) + 1);
 		if ($path == '')
 			return true;
 		if (self::strlen($path)>512)
@@ -1388,21 +1391,21 @@ class CTar
 		return $sum;
 	}
 
-	function substr($s, $a, $b = null)
+	public static function substr($s, $a, $b = null)
 	{
 		if (function_exists('mb_orig_substr'))
 			return $b === null ? mb_orig_substr($s, $a) : mb_orig_substr($s, $a, $b);
 		return $b === null ? substr($s, $a) : substr($s, $a, $b);
 	}
 
-	function strlen($s)
+	public static function strlen($s)
 	{
 		if (function_exists('mb_orig_strlen'))
 			return mb_orig_strlen($s);
 		return strlen($s);
 	}
 
-	function strpos($s, $a)
+	public static function strpos($s, $a)
 	{
 		if (function_exists('mb_orig_strpos'))
 			return mb_orig_strpos($s, $a);

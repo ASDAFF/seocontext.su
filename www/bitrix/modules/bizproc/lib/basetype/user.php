@@ -18,17 +18,19 @@ class User extends Base
 		return FieldType::USER;
 	}
 
-	/** @var array $formats	 */
-	protected static $formats = array(
-		'printable' => 	array(
-			'callable' =>'formatValuePrintable',
-			'separator' => ', ',
-		),
-		'friendly' => array(
+	/**
+	 * Get formats list.
+	 * @return array
+	 */
+	public static function getFormats()
+	{
+		$formats = parent::getFormats();
+		$formats['friendly'] = array(
 			'callable' =>'formatValueFriendly',
 			'separator' => ', ',
-		)
-	);
+		);
+		return $formats;
+	}
 
 	/**
 	 * @param FieldType $fieldType
@@ -71,12 +73,13 @@ class User extends Base
 			case FieldType::DOUBLE:
 			case FieldType::INT:
 				$value = (string)$value;
-				if (strpos($value, 'user_'))
+				if (strpos($value, 'user_') === 0)
 					$value = substr($value, strlen('user_'));
 				$value = (int)$value;
 				break;
 			case FieldType::STRING:
 			case FieldType::TEXT:
+			case FieldType::USER:
 				$value = (string)$value;
 				break;
 			default:
@@ -84,6 +87,23 @@ class User extends Base
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Return conversion map for current type.
+	 * @return array Map.
+	 */
+	public static function getConversionMap()
+	{
+		return array(
+			array(
+				FieldType::DOUBLE,
+				FieldType::INT,
+				FieldType::STRING,
+				FieldType::TEXT,
+				FieldType::USER
+			)
+		);
 	}
 
 	/**
@@ -101,7 +121,7 @@ class User extends Base
 
 		$value = \CBPHelper::usersArrayToString($value, null, $fieldType->getDocumentType());
 		$renderResult = parent::renderControl($fieldType, $field, $value, $allowSelection, $renderMode);
-		$renderResult .= static::renderControlSelector($field);
+		$renderResult .= static::renderControlSelector($field, null, false, '', $fieldType);
 		return $renderResult;
 	}
 

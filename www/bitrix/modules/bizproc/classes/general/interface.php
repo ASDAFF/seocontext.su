@@ -5,6 +5,11 @@ interface IBPEventActivity
 	public function Unsubscribe(IBPActivityExternalEventListener $eventHandler);
 }
 
+interface IBPEventDrivenActivity
+{
+
+}
+
 interface IBPActivityEventListener
 {
 	public function OnEvent(CBPActivity $sender, $arEventParameters = array());

@@ -58,8 +58,7 @@
 		this.height = 454;
 		this.initWidth = 914;
 		this.initHeight = 454;
-		//this.minWidth = 450; TODO future 16.0.0
-		this.minWidth = 914;
+		this.minWidth = 515;
 		this.minHeight = 454;
 
 		this.timeoutDelayOfLogout = null;
@@ -74,7 +73,7 @@
 			{
 				if (e.shiftKey == true && typeof(BXIM) != 'undefined')
 				{
-					BXIM.setLocalConfig('global_msz', false);
+					BXIM.setLocalConfig('global_msz_v2', false);
 
 					BX.desktop.apiReady = false;
 					console.log('NOTICE: User use /windowReload + /clearWindowSize');
@@ -131,7 +130,10 @@
 		this.setWindowMinSize({ Width: this.minWidth, Height: this.minHeight });
 
 		if (this.ready())
+		{
 			console.log(BX.message('BXD_DEFAULT_TITLE').replace('#VERSION#', this.getApiVersion(true)));
+			BX.debugEnable(true);
+		}
 
 		if (!BX.browser.IsMac() && document.head)
 			document.head.insertBefore(BX.create("style", {attrs: {type: 'text/css'}, html: "@font-face { font-family: 'helvetica neue'; src: local('Arial'); } @font-face { font-family: 'Helvetica'; src: local('Arial'); }"}), document.head.firstChild);
@@ -269,6 +271,7 @@
 		this.addCustomEvent("BXFileStorageSyncPauseChanged", BX.delegate(this.onSyncStatusChanged, this));
 
 		BX.onCustomEvent(window, 'onDesktopInit', [this]);
+		BX.desktop.onCustomEvent("onDesktopInit", [this]);
 	}
 
 	BX.desktop.prototype.notSupported = function ()
@@ -952,18 +955,43 @@
 		return BitrixDisk? BitrixDisk.enabled: false;
 	};
 
-	BX.desktop.prototype.clipboardSelected = function (element)
+	BX.desktop.prototype.clipboardSelected = function (element, expandToWholeWord)
 	{
+		expandToWholeWord = expandToWholeWord || false;
+
 		var resultText = "";
+		var selectionStart = 0;
+		var selectionEnd = 0;
+
 		if (typeof(element) == 'object' && (element.tagName == 'TEXTAREA' || element.tagName == 'INPUT'))
 		{
-			var selectionStart = element.selectionStart;
-			var selectionEnd = element.selectionEnd;
+			selectionStart = element.selectionStart;
+			selectionEnd = element.selectionEnd;
 			resultText = element.value.substring(selectionStart, selectionEnd);
+
+			if (expandToWholeWord)
+			{
+				if (resultText && resultText.indexOf(" ") > -1)
+				{
+					resultText = "";
+				}
+				else
+				{
+					//var wordStartPosition = element.value.substr(0, selectionStart).lastIndexOf(" ")+1;
+					var wordStartPosition = element.value.substr(0, selectionStart).search(/([-'`~!@#$%^&*()_|+=?;:'",.<>\{\}\[\]\\\/\x20])(?!.*[-'`~!@#$%^&*()_|+=?;:'",.<>\{\}\[\]\\\/\x20])/)+1;
+					var wordEndPosition = element.value.substr(wordStartPosition).search(/[-'`~!@#$%^&*()_|+=?;:'",.<>\{\}\[\]\\\/\x20]/);
+					wordEndPosition = (wordEndPosition > 0? wordEndPosition: element.value.length);
+
+					resultText = element.value.substr(wordStartPosition, wordEndPosition);
+
+					selectionStart = wordStartPosition;
+					selectionEnd = wordStartPosition+wordEndPosition;
+				}
+			}
 		}
 		else
 		{
-			if (window.getSelection().toString().length > 0)
+			if (!expandToWholeWord && window.getSelection().toString().length > 0)
 			{
 				var range = window.getSelection().getRangeAt(0).cloneContents();
 				var div = document.createElement("div");
@@ -971,6 +999,7 @@
 				resultText = div.innerHTML;
 			}
 		}
+
 		if (resultText.length > 0)
 		{
 			resultText = BX.util.htmlspecialcharsback(resultText);
@@ -985,7 +1014,7 @@
 			resultText = resultText.replace(/------------------------------------------------------(.*?)------------------------------------------------------/gmi, "["+BX.message("BXD_QUOTE_BLOCK")+"]");
 			resultText = resultText.replace('<br />', '\n').replace(/<\/?[^>]+>/gi, '');
 		}
-		return resultText;
+		return {text: resultText, selectionStart: selectionStart, selectionEnd: selectionEnd};
 	}
 
 	BX.desktop.prototype.clipboardCopy = function(callback, cut)
@@ -1051,6 +1080,27 @@
 		if (!this.ready()) return false;
 
 		document.execCommand("redo");
+
+		return true;
+	}
+
+	BX.desktop.prototype.clipboardReplaceText = function (element, positionStart, positionEnd, text)
+	{
+		if (!this.ready()) return false;
+
+		element.focus();
+  		element.selectionStart = positionStart;
+  		element.selectionEnd = positionEnd;
+
+		if (positionEnd - positionStart < text.length)
+		{
+			positionEnd = positionStart+text.length;
+		}
+
+		document.execCommand("insertText", false, text);
+
+		element.selectionStart = positionEnd;
+  		element.selectionEnd = positionEnd;
 
 		return true;
 	}

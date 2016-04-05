@@ -162,7 +162,6 @@ class CTextParser
 	{
 		$text = preg_replace(array("#([?&;])PHPSESSID=([0-9a-zA-Z]{32})#is", "/\\x{00A0}/".BX_UTF_PCRE_MODIFIER), array("\\1PHPSESSID1=", " "), $text);
 
-		$this->type = ($this->type == "rss" ? "rss" : "html");
 		$this->serverName = "";
 		if($this->type == "rss")
 		{
@@ -224,7 +223,7 @@ class CTextParser
 			if ($this->allow["IMG"]=="Y")
 			{
 				$text = preg_replace(
-					"#<img[^>]+src\\s*=[\\s'\"]*(((http|https|ftp)://[.-_:a-z0-9@]+)*(\\/[-_/=:.a-z0-9@{}&?%]+)+)[\\s'\"]*[^>]*>#is".BX_UTF_PCRE_MODIFIER,
+					"#<img[^>]+src\\s*=[\\s'\"]*(((http|https|ftp)://[.\\-_:a-z0-9@]+)*(\\/[-_/=:.a-z0-9@{}&?%]+)+)[\\s'\"]*[^>]*>#is".BX_UTF_PCRE_MODIFIER,
 					"[img]\\1[/img]", $text
 				);
 			}
@@ -298,7 +297,7 @@ class CTextParser
 					$p = array('\d');
 					while (($res--) > 1) $p[] = '\d{'.($res + 1).'}';
 					$text = preg_replace(
-						array("/\<(?!\017\#(".implode(")|(", $p).")\>)/", "/(?<!\<\017\#(".implode(")|(", $p)."))\>/", "/\"/"),
+						array("/\\<(?!\017\\#(".implode(")|(", $p).")\\>)/", "/(?<!\\<\017\\#(".implode(")|(", $p)."))\\>/", "/\"/"),
 						array("&lt;", "&gt;", "&quot;"),
 						$text
 					);
@@ -571,7 +570,7 @@ class CTextParser
 				$text
 			);
 		}
-		if (!empty($this->allow["USERFIELDS"]) && is_array($this->allow["USERFIELDS"]))
+		if (is_array($this->allow["USERFIELDS"]))
 		{
 			foreach($this->allow["USERFIELDS"] as $userField)
 			{
@@ -772,15 +771,11 @@ class CTextParser
 
 	public function convertVideo($matches)
 	{
-		return $this->convert_video($matches[1], $matches[2]);
-	}
+		$params = $matches[1];
+		$path = $matches[2];
 
-	private function convert_video($params, $path)
-	{
 		if (strlen($path) <= 0)
 			return "";
-
-		AddEventHandler("main", "TextParserVideoConvert", array("CTextParser", "TextParserConvertVideo"), 1000);
 
 		$width = "";
 		$height = "";
@@ -812,13 +807,103 @@ class CTextParser
 			"PARSER_OBJECT" => $this
 		);
 
-		$video = '';
 		foreach(GetModuleEvents("main", "TextParserVideoConvert", true) as $arEvent)
-		{
-			$video = ExecuteModuleEventEx($arEvent, array(&$arFields));
-		}
+			ExecuteModuleEventEx($arEvent, array(&$arFields, &$this));
+
+		$video = $this->convert_video($arFields);
 
 		return $this->defended_tags($video, 'replace');
+	}
+
+	private  function convert_video($arParams)
+	{
+		global $APPLICATION;
+
+		if(
+			!is_array($arParams)
+			|| strlen($arParams["PATH"]) <= 0
+		)
+		{
+			return false;
+		}
+
+		ob_start();
+
+		if ($this->type == "mail")
+		{
+			?><a href="<?=$arParams["PATH"]?>"><?=$arParams["PATH"]?></a><?
+		}
+		else if ($arParams["TYPE"] == 'YOUTUBE' || $arParams["TYPE"] == 'RUTUBE' || $arParams["TYPE"] == 'VIMEO')
+		{
+			// Replace http://someurl, https://someurl by //someurl
+			$arParams["PATH"] = preg_replace("/https?:\\/\\//is", '//', $arParams["PATH"]);
+
+			if(preg_match("/^(https?:)?\\/\\/(www\\.)?(youtube\\.com|youtu\\.be|rutube\\.ru|vimeo\\.com|player\\.vimeo\\.com)\\//i", $arParams["PATH"]))
+			{
+				if ($this->bMobile)
+				{
+					?><a href="<?=$arParams["PATH"]?>"><?=$arParams["PATH"]?></a><?
+				}
+				else
+				{
+					?><iframe src="<?=$arParams["PATH"]?>" allowfullscreen="" frameborder="0" height="<?=$arParams["HEIGHT"]?>" width="<?=$arParams["WIDTH"]?>"></iframe><?
+				}
+			}
+		}
+		else
+		{
+			if ($this->bMobile)
+			{
+				?><div onclick="return BX.eventCancelBubble(event);"><?
+			}
+
+			$APPLICATION->IncludeComponent(
+				"bitrix:player", "",
+				array(
+					"PLAYER_TYPE" => "auto",
+					"USE_PLAYLIST" => "N",
+					"PATH" => $arParams["PATH"],
+					"WIDTH" => $arParams["WIDTH"],
+					"HEIGHT" => $arParams["HEIGHT"],
+					"PREVIEW" => $arParams["PREVIEW"],
+					"LOGO" => "",
+					"FULLSCREEN" => "Y",
+					"SKIN_PATH" => "/bitrix/components/bitrix/player/mediaplayer/skins",
+					"SKIN" => "bitrix.swf",
+					"CONTROLBAR" => "bottom",
+					"WMODE" => "transparent",
+					"HIDE_MENU" => "N",
+					"SHOW_CONTROLS" => "Y",
+					"SHOW_STOP" => "N",
+					"SHOW_DIGITS" => "Y",
+					"CONTROLS_BGCOLOR" => "FFFFFF",
+					"CONTROLS_COLOR" => "000000",
+					"CONTROLS_OVER_COLOR" => "000000",
+					"SCREEN_COLOR" => "000000",
+					"AUTOSTART" => "N",
+					"REPEAT" => "N",
+					"VOLUME" => "90",
+					"DISPLAY_CLICK" => "play",
+					"MUTE" => "N",
+					"HIGH_QUALITY" => "Y",
+					"ADVANCED_MODE_SETTINGS" => "N",
+					"BUFFER_LENGTH" => "10",
+					"DOWNLOAD_LINK" => "",
+					"DOWNLOAD_LINK_TARGET" => "_self"
+				),
+				null,
+				array(
+					"HIDE_ICONS" => "Y"
+				)
+			);
+
+			if ($this->bMobile)
+			{
+				?></div><?
+			}
+		}
+
+		return ob_get_clean();
 	}
 
 	function convertEmoticon($matches)
@@ -1052,17 +1137,17 @@ class CTextParser
 
 	function convert_userfields($matches)
 	{
-		static $vars = null;
-		if ($vars === null)
-		{
-			$vars = get_object_vars($this);
-		}
-
-		$vars["bMobile"] = $this->bMobile;
+		$vars = get_object_vars($this);
+		$vars["TEMPLATE"] = ($this->bMobile ? "mobile" : $this->type);
 		$vars["LAZYLOAD"] = $this->LAZYLOAD;
 
 		$userField = $this->userField;
+
 		$id = $matches[2];
+
+		foreach(GetModuleEvents("main", "TextParserUserField", true) as $arEvent)
+			ExecuteModuleEventEx($arEvent, array($id, &$userField, &$vars,  &$this));
+
 		if ($userField["USER_TYPE"]["USER_TYPE_ID"] == "disk_file" || in_array($id, $userField["VALUE"]))
 		{
 			if (defined("BX_COMP_MANAGED_CACHE"))
@@ -1244,185 +1329,6 @@ class CTextParser
 			return $str;
 	}
 
-	function TextParserConvertVideo($arParams)
-	{
-
-		global $APPLICATION;
-
-		if(
-			empty($arParams)
-			|| strlen($arParams["PATH"]) <= 0
-		)
-		{
-			return false;
-		}
-
-		if (
-			isset($arParams["PARSER_OBJECT"])
-			&& is_object($arParams["PARSER_OBJECT"])
-		)
-		{
-			$ob = $arParams["PARSER_OBJECT"];
-		}
-
-		ob_start();
-
-		if ($arParams["TYPE"] == 'YOUTUBE' || $arParams["TYPE"] == 'RUTUBE' || $arParams["TYPE"] == 'VIMEO')
-		{
-			// Replace http://someurl, https://someurl by //someurl
-			$arParams["PATH"] = preg_replace("/https?:\/\//is", '//', $arParams["PATH"]);
-
-			if(preg_match("/^(https?:)?\/\/(www\.)?(youtube\.com|youtu\.be|rutube\.ru|vimeo\.com|player\.vimeo\.com)\//i", $arParams["PATH"]))
-			{
-				if (
-					$ob
-					&& $ob->bMobile
-				)
-				{
-					?><a href="<?=$arParams["PATH"]?>"><?=$arParams["PATH"]?></a><?
-				}
-				else
-				{
-					?><iframe src="<?=$arParams["PATH"]?>" allowfullscreen="" frameborder="0" height="<?=$arParams["HEIGHT"]?>" width="<?=$arParams["WIDTH"]?>"></iframe><?
-				}
-			}
-		}
-		else
-		{
-			if (
-				$ob
-				&& $ob->bMobile
-			)
-			{
-				?><div onclick="return BX.eventCancelBubble(event);"><?
-			}
-
-			$APPLICATION->IncludeComponent(
-				"bitrix:player", "",
-				array(
-					"PLAYER_TYPE" => "auto",
-					"USE_PLAYLIST" => "N",
-					"PATH" => $arParams["PATH"],
-					"WIDTH" => $arParams["WIDTH"],
-					"HEIGHT" => $arParams["HEIGHT"],
-					"PREVIEW" => $arParams["PREVIEW"],
-					"LOGO" => "",
-					"FULLSCREEN" => "Y",
-					"SKIN_PATH" => "/bitrix/components/bitrix/player/mediaplayer/skins",
-					"SKIN" => "bitrix.swf",
-					"CONTROLBAR" => "bottom",
-					"WMODE" => "transparent",
-					"HIDE_MENU" => "N",
-					"SHOW_CONTROLS" => "Y",
-					"SHOW_STOP" => "N",
-					"SHOW_DIGITS" => "Y",
-					"CONTROLS_BGCOLOR" => "FFFFFF",
-					"CONTROLS_COLOR" => "000000",
-					"CONTROLS_OVER_COLOR" => "000000",
-					"SCREEN_COLOR" => "000000",
-					"AUTOSTART" => "N",
-					"REPEAT" => "N",
-					"VOLUME" => "90",
-					"DISPLAY_CLICK" => "play",
-					"MUTE" => "N",
-					"HIGH_QUALITY" => "Y",
-					"ADVANCED_MODE_SETTINGS" => "N",
-					"BUFFER_LENGTH" => "10",
-					"DOWNLOAD_LINK" => "",
-					"DOWNLOAD_LINK_TARGET" => "_self"
-				),
-				null,
-				array(
-					"HIDE_ICONS" => "Y"
-				)
-			);
-
-			if (
-				$ob
-				&& $ob->bMobile
-			)
-			{
-				?></div><?
-			}
-		}
-		
-/*
-		if (
-			defined("BX_MOBILE_LOG")
-			&& BX_MOBILE_LOG === true
-		)
-		{
-			?><div onclick="return BX.eventCancelBubble(event);"><?
-		}
-
-		if ($arParams["TYPE"] == 'YOUTUBE' || $arParams["TYPE"] == 'RUTUBE' || $arParams["TYPE"] == 'VIMEO')
-		{
-			// Replace http://someurl, https://someurl by //someurl
-			$arParams["PATH"] = preg_replace("/https?:\/\//is", '//', $arParams["PATH"]);
-
-			if(preg_match("/^(https?:)?\/\/(www\.)?(youtube\.com|youtu\.be|rutube\.ru|vimeo\.com|player\.vimeo\.com)\//i", $arParams["PATH"]))
-			{
-				?><iframe src="<?=$arParams["PATH"]?>" allowfullscreen="" frameborder="0" height="<?=$arParams["HEIGHT"]?>" width="<?=$arParams["WIDTH"]?>"></iframe><?
-			}
-		}
-		else
-		{
-			$APPLICATION->IncludeComponent(
-				"bitrix:player", "",
-				array(
-					"PLAYER_TYPE" => "auto",
-					"USE_PLAYLIST" => "N",
-					"PATH" => $arParams["PATH"],
-					"WIDTH" => $arParams["WIDTH"],
-					"HEIGHT" => $arParams["HEIGHT"],
-					"PREVIEW" => $arParams["PREVIEW"],
-					"LOGO" => "",
-					"FULLSCREEN" => "Y",
-					"SKIN_PATH" => "/bitrix/components/bitrix/player/mediaplayer/skins",
-					"SKIN" => "bitrix.swf",
-					"CONTROLBAR" => "bottom",
-					"WMODE" => "transparent",
-					"HIDE_MENU" => "N",
-					"SHOW_CONTROLS" => "Y",
-					"SHOW_STOP" => "N",
-					"SHOW_DIGITS" => "Y",
-					"CONTROLS_BGCOLOR" => "FFFFFF",
-					"CONTROLS_COLOR" => "000000",
-					"CONTROLS_OVER_COLOR" => "000000",
-					"SCREEN_COLOR" => "000000",
-					"AUTOSTART" => "N",
-					"REPEAT" => "N",
-					"VOLUME" => "90",
-					"DISPLAY_CLICK" => "play",
-					"MUTE" => "N",
-					"HIGH_QUALITY" => "Y",
-					"ADVANCED_MODE_SETTINGS" => "N",
-					"BUFFER_LENGTH" => "10",
-					"DOWNLOAD_LINK" => "",
-					"DOWNLOAD_LINK_TARGET" => "_self"
-				),
-				null,
-				array(
-					"HIDE_ICONS" => "Y"
-				)
-			);
-		}
-
-		if (
-			defined("BX_MOBILE_LOG")
-			&& BX_MOBILE_LOG === true
-		)
-		{
-			?></div><?
-		}
-*/
-		
-
-		$video = ob_get_contents();
-		ob_end_clean();
-		return $video;
-	}
-
 	function strip_words($string, $count)
 	{
 		$splice_pos = null;
@@ -1488,7 +1394,7 @@ class CTextParser
 		{
 			$text = preg_replace(array(
 				"/^(.+?)<cut(.*?)>/is".BX_UTF_PCRE_MODIFIER,
-				"/^(.+?)\[cut(.*?)\]/is".BX_UTF_PCRE_MODIFIER
+				"/^(.+?)\\[cut(.*?)\\]/is".BX_UTF_PCRE_MODIFIER
 			), "\\1", $text);
 		}
 		if (stripos($text, "[quote") !== false)
@@ -1518,9 +1424,9 @@ class CTextParser
 		$arPattern[] = "/\\[url\\s*=\\s*(\\S+?)\\s*\\](.*?)\\[\\/url\\]/is".BX_UTF_PCRE_MODIFIER;
 		$arReplace[] = "\\2 (\\1)";
 
-		$arPattern[] = "/\<(\/?)(code|font|color|video)(.*?)\>/is".BX_UTF_PCRE_MODIFIER;
+		$arPattern[] = "/\\<(\\/?)(code|font|color|video)(.*?)\\>/is".BX_UTF_PCRE_MODIFIER;
 		$arReplace[] = "";
-		$arPattern[] = "/\[(\/?)(b|i|u|s|list|code|quote|size|font|color|url|img|video|td|tr|table|file|document id|disk file id|user|left|right|center|justify|\\*)(.*?)\]/is".BX_UTF_PCRE_MODIFIER;
+		$arPattern[] = "/\\[(\\/?)(b|i|u|s|list|code|quote|size|font|color|url|img|video|td|tr|table|file|document id|disk file id|user|left|right|center|justify|\\*)(.*?)\\]/is".BX_UTF_PCRE_MODIFIER;
 		$arReplace[] = "";
 
 		return preg_replace($arPattern, $arReplace, $text);
@@ -1546,5 +1452,48 @@ class CTextParser
 			$final_text = $html;
 
 		return $final_text;
+	}
+
+	function convertHTMLToBB($html = "", $allow = null)
+	{
+		if (empty($html))
+		{
+			return $html;
+		}
+
+		$handler = AddEventHandler("main", "TextParserBeforeTags", Array("CTextParser", "TextParserHTMLToBBHack"));
+
+		$this->allow = array_merge(
+			is_array($allow) ? $allow : array(
+				'ANCHOR' => 'Y',
+				'BIU'    => 'Y',
+				'IMG'    => 'Y',
+				'QUOTE'  => 'Y',
+				'CODE'   => 'Y',
+				'FONT'   => 'Y',
+				'LIST'   => 'Y',
+				'SMILES' => 'Y',
+				'NL2BR'  => 'Y',
+				'VIDEO'  => 'Y',
+				'TABLE'  => 'Y',
+				'ALIGN'  => 'Y'
+			),
+			array('HTML' => 'N')
+		);
+
+		$html = $this->convertText($html);
+
+		$html = preg_replace("/\\<br\s*\\/*\\>/is".BX_UTF_PCRE_MODIFIER,"\n", $html);
+		$html = preg_replace("/&nbsp;/is".BX_UTF_PCRE_MODIFIER,"", $html);
+
+		RemoveEventHandler("main", "TextParserBeforeTags", $handler);
+
+		return $html;
+	}
+
+	public static function TextParserHTMLToBBHack(&$text, &$TextParser)
+	{
+		$TextParser->allow = array();
+		return true;
 	}
 }

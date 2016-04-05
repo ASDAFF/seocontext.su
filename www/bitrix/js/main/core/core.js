@@ -265,6 +265,13 @@ BX.clearNodeCache = function()
 BX.bitrix_sessid = function() {return BX.message("bitrix_sessid"); };
 
 /* DOM manipulation */
+/**
+ * Creates the specified HTML element
+ * @param {String} tag
+ * @param {Object} [data]
+ * @param {Document} [context]
+ * @returns {Element}
+ */
 BX.create = function(tag, data, context)
 {
 	context = context || document;
@@ -1012,7 +1019,7 @@ BX.isParentForNode = function(whichNode, forNode)
 	}
 
 	return false;
-}
+};
 
 BX.clone = function(obj, bCopyObj)
 {
@@ -1045,7 +1052,7 @@ BX.clone = function(obj, bCopyObj)
 			_obj =  {};
 			if (obj.constructor)
 			{
-				if (obj.constructor === Date)
+				if (BX.type.isDate(obj))
 					_obj = new Date(obj);
 				else
 					_obj = new obj.constructor();
@@ -1069,6 +1076,8 @@ BX.clone = function(obj, bCopyObj)
 	return _obj;
 };
 
+// access private. use BX.mergeEx instead.
+// todo: refactor BX.merge, make it work through BX.mergeEx
 BX.merge = function(){
 	var arg = Array.prototype.slice.call(arguments);
 
@@ -1105,6 +1114,38 @@ BX.merge = function(){
 
 				}else
 					result[k] = arg[i][k];
+			}
+		}
+	}
+
+	return result;
+};
+
+BX.mergeEx = function()
+{
+	var arg = Array.prototype.slice.call(arguments);
+	if(arg.length < 2)
+	{
+		return {};
+	}
+
+	var result = arg.shift();
+	for (var i = 0; i < arg.length; i++)
+	{
+		for (var k in arg[i])
+		{
+			if (typeof arg[i] == "undefined" || arg[i] == null || !arg[i].hasOwnProperty(k))
+			{
+				continue;
+			}
+
+			if (BX.type.isPlainObject(arg[i][k]) && BX.type.isPlainObject(result[k]))
+			{
+				BX.mergeEx(result[k], arg[i][k]);
+			}
+			else
+			{
+				result[k] = BX.type.isPlainObject(arg[i][k]) ? BX.clone(arg[i][k]) : arg[i][k];
 			}
 		}
 	}
@@ -1152,7 +1193,14 @@ BX.bind = function(el, evname, func)
 	}
 	else
 	{
-		el["on" + evname] = func;
+		try
+		{
+			el["on" + evname] = func;
+		}
+		catch(e)
+		{
+			BX.debug(e)
+		}
 	}
 
 	eventsList[eventsList.length] = {'element': el, 'event': evname, 'fn': func};
@@ -1705,6 +1753,10 @@ BX.parseJSON = function(data, context)
 		} catch(e) {
 			BX.onCustomEvent(context, 'onParseJSONFailure', [data, context])
 		}
+	}
+	else if(BX.type.isPlainObject(data))
+	{
+		return data;
 	}
 
 	return result;
@@ -2542,7 +2594,8 @@ BX.util = {
 		return hash;
 	},
 
-	getRandomString: function (length) {
+	getRandomString: function (length)
+	{
 		var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
 		var charQty = chars.length;
 
@@ -3926,10 +3979,15 @@ BX.getNumMonth = function(month)
 	return month;
 };
 
-BX.parseDate = function(str, bUTC)
+BX.parseDate = function(str, bUTC, formatDate, formatDatetime)
 {
 	if (BX.type.isNotEmptyString(str))
 	{
+		if (!formatDate)
+			formatDate = BX.message('FORMAT_DATE');
+		if (!formatDatetime)
+			formatDatetime = BX.message('FORMAT_DATETIME');
+
 		var regMonths = '';
 		for (i = 1; i <= 12; i++)
 		{
@@ -3938,7 +3996,7 @@ BX.parseDate = function(str, bUTC)
 
 		var expr = new RegExp('([0-9]+|[a-z]+' + regMonths + ')', 'ig');
 		var aDate = str.match(expr),
-			aFormat = BX.message('FORMAT_DATE').match(/(DD|MI|MMMM|MM|M|YYYY)/ig),
+			aFormat = formatDate.match(/(DD|MI|MMMM|MM|M|YYYY)/ig),
 			i, cnt,
 			aDateArgs=[], aFormatArgs=[],
 			aResult={};
@@ -3948,7 +4006,7 @@ BX.parseDate = function(str, bUTC)
 
 		if(aDate.length > aFormat.length)
 		{
-			aFormat = BX.message('FORMAT_DATETIME').match(/(DD|MI|MMMM|MM|M|YYYY|HH|H|SS|TT|T|GG|G)/ig);
+			aFormat = formatDatetime.match(/(DD|MI|MMMM|MM|M|YYYY|HH|H|SS|TT|T|GG|G)/ig);
 		}
 
 		for(i = 0, cnt = aDate.length; i < cnt; i++)

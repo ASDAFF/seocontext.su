@@ -47,6 +47,7 @@ $MESS["STOREAS_ITEMS_storeassist_1c_small_firm"] = "Работа интерне�
 
 $MESS["STOREAS_STEPS_MAIN_BLOCK_4"] = "Настройка платежных систем и служб доставок ";
 $MESS["STOREAS_ITEMS_sale_pay_system"] = "Платежные системы";
+$MESS["STOREAS_ITEMS_sale_delivery_service_list"] = "Службы доставки";
 $MESS["STOREAS_ITEMS_sale_delivery"] = "Службы доставки";
 
 $MESS["STOREAS_STEPS_MAIN_BLOCK_5"] = "Основные SEO настройки интернет-магазина";
@@ -83,7 +84,7 @@ $MESS["STOREAS_ITEMS_sale_account_admin"] = "Счет покупателя";
 $MESS["STOREAS_ITEMS_sale_basket"] = "Брошенные корзины покупателей ";
 
 $MESS["STOREAS_STEPS_WORK_BLOCK_5"] = "Персонализация";
-$MESS["STOREAS_ITEMS_personalization"] = "Персонализация";
+$MESS["STOREAS_ITEMS_sale_personalization"] = "Персонализация";
 
 $MESS["STOREAS_STEPS_WORK_BLOCK_6"] = "Техническая поддержка ваших клиентов";
 $MESS["STOREAS_ITEMS_blog_comment"] = "Обработка комментариев, блокировка, удаление";

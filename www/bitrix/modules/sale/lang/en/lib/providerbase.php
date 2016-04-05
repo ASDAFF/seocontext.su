@@ -8,4 +8,5 @@ $MESS["SALE_PROVIDER_STORE_DATA_BARCODE_NOT_FOUND"] = "Barcode for \"#PRODUCT_NA
 $MESS["SALE_PROVIDER_SHIPMENT_QUANTITY_NOT_ENOUGH"] = "Quantity of \"#PRODUCT_NAME#\" to reserve exceeds that in the catalog";
 $MESS["SALE_PROVIDER_SHIPMENT_SHIPPED_LESS_QUANTITY"] = "Quantity of \"#PRODUCT_NAME#\" to ship is less than the total quantity";
 $MESS["SALE_PROVIDER_SHIPMENT_SHIPPED_MORE_QUANTITY"] = "Quantity of \"#PRODUCT_NAME#\" to ship is more than the total quantity";
+$MESS["SALE_PROVIDER_BASKET_ITEM_WRONG_AVAILABLE_QUANTITY"] = "Insufficient stock of \"#PRODUCT_NAME#\"";
 ?>

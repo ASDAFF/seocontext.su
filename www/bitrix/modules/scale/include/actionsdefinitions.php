@@ -221,15 +221,21 @@ $actionsDefinitions = array(
 	"SET_EMAIL_SETTINGS" => array(
 		"START_COMMAND_TEMPLATE" => "sudo -u root /opt/webdir/bin/bx-sites -o json -a email".
 			" --smtphost=##USER_PARAMS:SMTP_HOST##".
+			" --smtpport=##USER_PARAMS:SMTP_PORT##".
 			" --smtpuser='##USER_PARAMS:SMTP_USER##'".
-			" --password=##USER_PARAMS:USER_PASSWORD##".
 			" --email='##USER_PARAMS:EMAIL##'".
-			" ##USER_PARAMS:SMTPTLS##",
+			" --site='##USER_PARAMS:SITE_NAME_CONF##'".
+			" ##USER_PARAMS:SMTPTLS##".
+			" --password=##USER_PARAMS:USER_PASSWORD## ",
 		"NAME" => Loc::getMessage("SCALE_ADEF_SET_EMAIL"),
 		"PAGE_REFRESH" => "Y",
 		"USER_PARAMS" => array(
 			"SITE_NAME" => array(
 				"NAME" => Loc::getMessage("SCALE_ADEF_SET_EMAIL_SITE"),
+				"TYPE" => "TEXT"
+			),
+			"SITE_NAME_CONF" => array(
+				"NAME" => Loc::getMessage("SCALE_ADEF_SET_EMAIL_SITE_NAME_CONF"),
 				"TYPE" => "TEXT"
 			),
 			"SMTP_HOST" => array(
@@ -326,6 +332,8 @@ $actionsDefinitions = array(
 			" -a create".
 			" -s ##USER_PARAMS:SITE_NAME##".
 			" -t link".
+			" --kernel_site ##CODE_PARAMS:KERNEL_SITE##".
+			" --kernel_root ##CODE_PARAMS:KERNEL_ROOT##".
 /*			" -d ##USER_PARAMS:DB_NAME##".
 			" -u ##USER_PARAMS:DB_USERNAME##".
 			" -p ##USER_PARAMS:DB_USERPASS##".*/
@@ -355,6 +363,10 @@ $actionsDefinitions = array(
 				"NAME" => Loc::getMessage("SCALE_ADEF_SITE_ADD_SITE_PATH"),
 				"TYPE" => "STRING"
 			)
+		),
+		"CODE_PARAMS" => array(
+			"KERNEL_ROOT" => 'return \Bitrix\Scale\SitesData::getKernelRoot();',
+			"KERNEL_SITE" => 'return \Bitrix\Scale\SitesData::getKernelSite();',
 		)
 	),
 

@@ -10,20 +10,7 @@ if ($PREVIEW_HEIGHT <= 0)
 
 $arParams["PRICE_VAT_INCLUDE"] = $arParams["PRICE_VAT_INCLUDE"] !== "N";
 
-$arCatalogs = array();
-if (CModule::IncludeModule("catalog"))
-{
-	$rsCatalog = CCatalog::GetList(array(
-		"sort" => "asc",
-	));
-	while ($ar = $rsCatalog->Fetch())
-	{
-		if ($ar["PRODUCT_IBLOCK_ID"])
-			$arCatalogs[$ar["PRODUCT_IBLOCK_ID"]] = 1;
-		else
-			$arCatalogs[$ar["IBLOCK_ID"]] = 1;
-	}
-}
+$arCatalogs = false;
 
 $arResult["ELEMENTS"] = array();
 $arResult["SEARCH"] = array();
@@ -36,11 +23,31 @@ foreach($arResult["CATEGORIES"] as $category_id => $arCategory)
 			$arResult["SEARCH"][] = &$arResult["CATEGORIES"][$category_id]["ITEMS"][$i];
 			if (
 				$arItem["MODULE_ID"] == "iblock"
-				&& array_key_exists($arItem["PARAM2"], $arCatalogs)
 				&& substr($arItem["ITEM_ID"], 0, 1) !== "S"
 			)
 			{
-				$arResult["ELEMENTS"][$arItem["ITEM_ID"]] = $arItem["ITEM_ID"];
+				if ($arCatalogs === false)
+				{
+					$arCatalogs = array();
+					if (CModule::IncludeModule("catalog"))
+					{
+						$rsCatalog = CCatalog::GetList(array(
+							"sort" => "asc",
+						));
+						while ($ar = $rsCatalog->Fetch())
+						{
+							if ($ar["PRODUCT_IBLOCK_ID"])
+								$arCatalogs[$ar["PRODUCT_IBLOCK_ID"]] = 1;
+							else
+								$arCatalogs[$ar["IBLOCK_ID"]] = 1;
+						}
+					}
+				}
+
+				if (array_key_exists($arItem["PARAM2"], $arCatalogs))
+				{
+					$arResult["ELEMENTS"][$arItem["ITEM_ID"]] = $arItem["ITEM_ID"];
+				}
 			}
 		}
 	}

@@ -32,8 +32,9 @@ class File extends Base
 		$iterator = \CFile::getByID($value);
 		if ($file = $iterator->fetch())
 		{
-			return '[url=/bitrix/tools/bizproc_show_file.php?f='.urlencode($file['FILE_NAME'])
-			.'&i='.$value.'&h='.md5($file['SUBDIR']).']'.htmlspecialcharsbx($file['ORIGINAL_NAME']).'[/url]';
+			return '[url=/bitrix/tools/bizproc_show_file.php?f='.urlencode($file['FILE_NAME']).'&hash='
+				.md5($file['FILE_NAME'])
+				.'&i='.$value.'&h='.md5($file['SUBDIR']).']'.htmlspecialcharsbx($file['ORIGINAL_NAME']).'[/url]';
 		}
 		return '';
 	}
@@ -103,7 +104,7 @@ class File extends Base
 				if (!array_key_exists('MODULE_ID', $value) || strlen($value['MODULE_ID']) <= 0)
 					$value['MODULE_ID'] = 'bizproc';
 
-				$value = \CFile::saveFile($value, 'bizproc_wf', true, true);
+				$value = \CFile::saveFile($value, 'bizproc_wf', true);
 				if (!$value)
 				{
 					$value = null;

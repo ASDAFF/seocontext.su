@@ -14,3 +14,5 @@ $MESS["BPRA_PD_TIME_H"] = "часов";
 $MESS["BPRA_PD_TIME_M"] = "минут";
 $MESS["BPRA_PD_TIME_S"] = "секунд";
 $MESS["BPRA_PD_ERROR_EMPTY_PROPERTY"] = "Не заполнено обязательное поле: #NAME#";
+$MESS["BPRA_PD_TIMEOUT_LIMIT"] = "Минимальный период ожидания";
+$MESS["BPRA_NOT_FOUND_ERROR"] = "Действие приложения не установлено.";

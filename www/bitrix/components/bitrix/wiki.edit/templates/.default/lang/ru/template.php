@@ -1,7 +1,5 @@
 <?
 $MESS["WIKI_TAGS"] = "Теги";
-$MESS["WIKI_DELETE_CONFIRM"] = "Вы уверены что хотите удалить?";
-$MESS["WIKI_DELETE_PAGE"] = "Вы уверены, что хотите полностью удалить страницу и историю ее изменений?";
 $MESS["WIKI_PAGE_TEXT"] = "Текст страницы";
 $MESS["WIKI_NAME"] = "Заголовок страницы";
 $MESS["WIKI_PUBLISH"] = "Опубликовать";
@@ -45,7 +43,6 @@ $MESS["WIKI_CATEGORY_NAME"] = "Название";
 $MESS["WIKI_CATEGORY_SELECT"] = "Выберите категорию";
 $MESS["WIKI_BUTTON_INSERT"] = "Вставить";
 $MESS["WIKI_BUTTON_CANCEL"] = "Отмена";
-$MESS["WIKI_BUTTON_DELETE"] = "Удалить";
 $MESS["WIKI_TEXT_ENTER_URL"] = "Введите Wiki ссылку на страницу";
 $MESS["WIKI_TEXT_ENTER_URL_NAME"] = "Введите название страницы";
 $MESS["WIKI_TEXT_ENTER_URL_EXTERNAL"] = "Введите полный адрес (URL)";
@@ -55,10 +52,6 @@ $MESS["WIKI_ERROR_NO_URL"] = "Вы должны ввести адрес (URL)";
 $MESS["WIKI_ERROR_NO_TITLE"] = "Вы должны ввести название";
 $MESS["FILEMAN_MODULE_NOT_INSTALLED"] = "Модуль управления структурой не установлен.";
 $MESS["WIKI_BUTTON_INSERT_CODE"] = "Оформление текста в виде кода";
-$MESS["WIKI_DIALOG_RENAME_PAGE_NAME"] = "Новое название";
-$MESS["WIKI_DIALOG_RENAME_TITLE"] = "Переименование";
-$MESS["WIKI_DIALOG_RENAME_BUT_RENAME"] = "Переименовать";
-$MESS["WIKI_DIALOG_RENAME_ERROR"] = "Переименовать не удалось.";
 $MESS["WIKI_POST_TO_FEED_CB"] = "Опубликовать в живой ленте";
 $MESS["WIKI_POST_TO_FEED_CB_TITLE"] = "Если флажок установлен, то после нажатия клавиш 'Опубликовать' или 'Применить' информация об обновлении или создании статьи будет опубликована в ленте новостей группы";
 $MESS["WIKI_ADD_MODIFY_COMMENT_LINK"] = "Добавить комментарий к изменению";

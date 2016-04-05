@@ -7,8 +7,8 @@ class CMedialib
 		$cacheTime = 360000,
 		$cachePath = "medialib/";
 
-	function Init(){}
-	function GetOperations($collectionId, $menu = false)
+	public static function Init(){}
+	public static function GetOperations($collectionId, $menu = false)
 	{
 		global $USER;
 		static $oCollections;
@@ -41,7 +41,7 @@ class CMedialib
 		return $arOp[$key];
 	}
 
-	function CanDoOperation($operation, $collectionId=0, $userId = false, $menu = false)
+	public static function CanDoOperation($operation, $collectionId=0, $userId = false, $menu = false)
 	{
 		if ($GLOBALS["USER"]->IsAdmin())
 			return true;
@@ -50,7 +50,7 @@ class CMedialib
 		return in_array($operation, $arOp);
 	}
 
-	function GetAccessPermissionsArray($collectionId = 0, $oCollections = false)
+	public static function GetAccessPermissionsArray($collectionId = 0, $oCollections = false)
 	{
 		static $arAllTasks;
 		if (is_array($arAllTasks[$collectionId]))
@@ -93,7 +93,7 @@ class CMedialib
 		return $resTask;
 	}
 
-	function _GetAccessPermissions($arCols = array())
+	public static function _GetAccessPermissions($arCols = array())
 	{
 		global $DB;
 
@@ -121,12 +121,12 @@ class CMedialib
 		return $arResult;
 	}
 
-	function getMaximumFileUploadSize()
+	public static function getMaximumFileUploadSize()
 	{
 		return min(CUtil::Unformat(ini_get('post_max_size')), CUtil::Unformat(ini_get('upload_max_filesize')));
 	}
 
-	function ShowDialogScript($arConfig = array())
+	public static function ShowDialogScript($arConfig = array())
 	{
 		global $USER;
 
@@ -259,7 +259,7 @@ class CMedialib
 		}
 	}
 
-	static function AttachJSScripts()
+	public static function AttachJSScripts()
 	{
 		if(!defined("BX_B_MEDIALIB_SCRIPT_LOADED"))
 		{
@@ -270,7 +270,7 @@ BX.loadScript("/bitrix/js/main/file_dialog.js?v=<?=@filemtime($_SERVER['DOCUMENT
 		}
 	}
 
-	function AppendLangMessages()
+	public static function AppendLangMessages()
 	{
 ?>
 if (typeof ML_MESS === "undefined")
@@ -325,7 +325,7 @@ if (typeof ML_MESS === "undefined")
 <?
 	}
 
-	function AppendLangMessagesEx()
+	public static function AppendLangMessagesEx()
 	{
 ?>
 ML_MESS.Edit = '<?= GetMessageJS('ML_EDIT')?>';
@@ -348,7 +348,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 <?
 	}
 
-	function Start($Params)
+	public static function Start($Params)
 	{
 		$Params['bReadOnly'] = false;
 		CMedialib::BuildDialog($Params);
@@ -366,7 +366,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildDialog($Params)
+	public static function BuildDialog($Params)
 	{
 		?>
 		#ML_MAIN_DIALOG_BEGIN#
@@ -436,7 +436,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildAddCollectionDialogAdmin($Params)
+	public static function BuildAddCollectionDialogAdmin($Params)
 	{
 		?>
 		<div id="mlsd_coll" class="mlsd_admin">
@@ -451,7 +451,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildAddCollectionDialog($Params)
+	public static function BuildAddCollectionDialog($Params)
 	{
 		?>
 		<div id="mlsd_coll" class="mlsd"><table class="mlsd-frame"><tr>
@@ -476,7 +476,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildAddItemDialogAdmin($Params)
+	public static function BuildAddItemDialogAdmin($Params)
 	{
 		?>
 		<div id="mlsd_item" class="mlsd_admin">
@@ -548,7 +548,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		);
 	}
 
-	function BuildAddItemDialog($Params)
+	public static function BuildAddItemDialog($Params)
 	{
 		?>
 		<div id="mlsd_item" class="mlsd"><table class="mlsd-frame"><tr>
@@ -581,7 +581,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		);
 	}
 
-	function ShowUploadForm($Params)
+	public static function ShowUploadForm($Params)
 	{
 		?>
 <HTML>
@@ -660,7 +660,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 <?
 	}
 
-	function BuildConfirmDialog($Params)
+	public static function BuildConfirmDialog($Params)
 	{
 		?>
 		<div id="ml_colfirm_dialog" class="mlsd mlsd-confirm">
@@ -672,7 +672,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildViewItemDialog($Params)
+	public static function BuildViewItemDialog($Params)
 	{
 		?>
 		<div id="mlsd_view_item" class="mlsd"><table class="mlsd-frame"><tr>
@@ -714,7 +714,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function BuildChangeType($Params)
+	public static function BuildChangeType($Params)
 	{
 		?>
 		<div id="mlsd_change_type" class="mlsd"><table class="mlsd-frame"><tr>
@@ -742,7 +742,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function ShowJS()
+	public static function ShowJS()
 	{
 		?>
 		BX.loadCSS("/bitrix/js/fileman/medialib/medialib.css");
@@ -763,7 +763,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function GetCollections(&$exParams)
+	public static function GetCollections(&$exParams)
 	{
 		$bCountPermissions = isset($exParams['bCountPermissions']) && $exParams['bCountPermissions'] === true;
 		$exParams['arCountPerm'] = array('new_col' => 0, 'edit' => 0, 'del' => 0, 'new_item' => 0, 'edit_item' => 0, 'del_item' => 0, 'access' => 0);
@@ -822,7 +822,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return $arResCol;
 	}
 
-	function DelCollection($id, $arIds = array())
+	public static function DelCollection($id, $arIds = array())
 	{
 		if (!CMedialib::CanDoOperation('medialib_del_collection', $id))
 			return false;
@@ -836,7 +836,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return CMedialibCollection::Delete($id);
 	}
 
-	function EditCollection($Params)
+	public static function EditCollection($Params)
 	{
 		if ($Params['id'] && !CMedialib::CanDoOperation('medialib_edit_collection', $Params['id']) ||
 			!$Params['id'] && !CMedialib::CanDoOperation('medialib_new_collection', $Params['parent']))
@@ -856,7 +856,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		));
 	}
 
-	function EditItem($Params)
+	public static function EditItem($Params)
 	{
 		$bOpName = $Params['id'] ? 'medialib_edit_item' : 'medialib_new_item';
 		$arCols_ = explode(',', $Params['item_collections']);
@@ -918,7 +918,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		}
 	}
 
-	function GetCollectionTree($Params = array())
+	public static function GetCollectionTree($Params = array())
 	{
 		$arColTree = array();
 		$arColTemp = array();
@@ -967,7 +967,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return array('arColTree' => $arColTree, 'Collections' => $Collections);
 	}
 
-	function _buildCollection($Col, $ind, &$arColTree, &$Collections, $Params = array())
+	public static function _buildCollection($Col, $ind, &$arColTree, &$Collections, $Params = array())
 	{
 		if ($Params['CHECK_ACCESS'] === true && !CMedialib::CanDoOperation('medialib_view_collection', $Col['ID']))
 			return true;
@@ -983,7 +983,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return true;
 	}
 
-	function _findChildInColTree(&$arr, $id, $colId)
+	public static function _findChildInColTree(&$arr, $id, $colId)
 	{
 		for ($i = 0, $l = count($arr); $i < $l; $i++)
 		{
@@ -1001,7 +1001,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return false;
 	}
 
-	function _BuildCollectionsSelectOptions($Collections = false, $arColTree = false, $level = 0, $selected = false)
+	public static function _BuildCollectionsSelectOptions($Collections = false, $arColTree = false, $level = 0, $selected = false)
 	{
 		if ($Collections === false && $arColTree === false)
 		{
@@ -1027,7 +1027,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return $str;
 	}
 
-	function GetItems($Params)
+	public static function GetItems($Params)
 	{
 		$arCollections = array();
 		if (!CMedialib::CanDoOperation('medialib_view_collection', $Params['collectionId']))
@@ -1069,17 +1069,17 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function DelItem($id, $bCurrent = false, $colId = false)
+	public static function DelItem($id, $bCurrent = false, $colId = false)
 	{
 		return CMedialibItem::Delete($id, $bCurrent, $colId);
 	}
 
-	function DeleteThumbnails()
+	public static function DeleteThumbnails()
 	{
 		CFileman::DeleteEx(BX_PERSONAL_ROOT."/tmp/medialibrary");
 	}
 
-	function GetItemCollectionList($Params)
+	public static function GetItemCollectionList($Params)
 	{
 		if(!CMedialib::CanDoOperation('medialib_view_collection', 0))
 			return false;
@@ -1095,13 +1095,13 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		<?
 	}
 
-	function SaveUserSettings($Params)
+	public static function SaveUserSettings($Params)
 	{
 		if ($GLOBALS["USER"]->IsAuthorized())
 			CUserOptions::SetOption("fileman", "medialib_user_set", intVal($Params['width']).','.intVal($Params['height']).','.intVal($Params['coll_id']));
 	}
 
-	function SaveAccessPermissions($colId, $arTaskPerm)
+	public static function SaveAccessPermissions($colId, $arTaskPerm)
 	{
 		global $DB;
 		$DB->Query("DELETE FROM b_group_collection_task WHERE COLLECTION_ID=".intVal($colId), false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
@@ -1114,7 +1114,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		}
 	}
 
-	function MultiActionDelete($Params = array())
+	public static function MultiActionDelete($Params = array())
 	{
 		global $DB;
 
@@ -1158,7 +1158,7 @@ ML_MESS.Save = '<?= GetMessageJS('ML_SAVE')?>';
 		return true;
 	}
 
-	function ShowBrowseButton($Params = array())
+	public static function ShowBrowseButton($Params = array())
 	{
 		$value = isset($Params['value']) ? $Params['value'] : '...';
 		$buttonId = isset($Params['button_id']) ? $Params['button_id'] : '';
@@ -1245,7 +1245,7 @@ if (!window.<?= $cid?>_onclick)
 		}
 	}
 
-	function GetUsableSize($size = 0)
+	public static function GetUsableSize($size = 0)
 	{
 		$size = intVal($size);
 		if ($size < 1024)
@@ -1262,12 +1262,12 @@ if (!window.<?= $cid?>_onclick)
 		return $size;
 	}
 
-	function GetUsableDate($date = '')
+	public static function GetUsableDate($date = '')
 	{
 		return ConvertDateTime($date, "DD.MM.YYYY HH:MI");
 	}
 
-	function GetMediaExtentions($bStr = true)
+	public static function GetMediaExtentions($bStr = true)
 	{
 		$strExt = COption::GetOptionString('fileman', "ml_media_available_ext", CMedialib::GetDefaultMediaExtentions());
 
@@ -1291,12 +1291,12 @@ if (!window.<?= $cid?>_onclick)
 		return $arExt;
 	}
 
-	function GetDefaultMediaExtentions()
+	public static function GetDefaultMediaExtentions()
 	{
 		return 'jpg,jpeg,gif,png,flv,mp4,wmv,wma,mp3,ppt';
 	}
 
-	function CheckFileExtention($strPath = '', $arExt = false)
+	public static function CheckFileExtention($strPath = '', $arExt = false)
 	{
 		if (!$arExt)
 			$arExt = CMedialib::GetMediaExtentions(false);
@@ -1304,7 +1304,7 @@ if (!window.<?= $cid?>_onclick)
 		return in_array($ext, $arExt);
 	}
 
-	function Escape($str, $bHtmlSpCh = true)
+	public static function Escape($str, $bHtmlSpCh = true)
 	{
 		return CUtil::JSEscape($str);
 
@@ -1323,7 +1323,7 @@ if (!window.<?= $cid?>_onclick)
 		return $str;
 	}
 
-	function SearchItems($Params)
+	public static function SearchItems($Params)
 	{
 		if (!CModule::IncludeModule("search"))
 			return;
@@ -1411,7 +1411,7 @@ window.MLSearchResult = [
 			"HEIGHT" => yyy // information for hint over icon
 		),
 	*/
-	function InputFile(
+	public static function InputFile(
 		$strInputName,
 		$strImageID = "",
 		$showInfo = false,
@@ -1438,7 +1438,7 @@ window.MLSearchResult = [
 		);
 	}
 
-	function GetTypeById($id, $arMLTypes = false)
+	public static function GetTypeById($id, $arMLTypes = false)
 	{
 		if ($arMLTypes === false)
 			$arMLTypes = CMedialib::GetTypes();
@@ -1450,7 +1450,7 @@ window.MLSearchResult = [
 		return false;
 	}
 
-	function GetTypes($arConfigTypes = array(), $bGetEmpties = false)
+	public static function GetTypes($arConfigTypes = array(), $bGetEmpties = false)
 	{
 		global $DB;
 
@@ -1534,7 +1534,7 @@ window.MLSearchResult = [
 		return $result;
 	}
 
-	function SetTypes($arTypes = array())
+	public static function SetTypes($arTypes = array())
 	{
 		global $DB;
 
@@ -1555,7 +1555,7 @@ window.MLSearchResult = [
 			if ($arFields['NEW']) // Add
 			{
 				unset($arFields['NEW']);
-				CDatabase::Add("b_medialib_type", $arFields, array("DESCRIPTION"));
+				$DB->Add("b_medialib_type", $arFields, array("DESCRIPTION"));
 			}
 			else // Update
 			{
@@ -1583,7 +1583,7 @@ window.MLSearchResult = [
 		self::ClearCache(array("types"));
 	}
 
-	function DelTypes($arIds = array())
+	public static function DelTypes($arIds = array())
 	{
 		if (count($arIds) == 0)
 			return;
@@ -1600,7 +1600,7 @@ window.MLSearchResult = [
 		return $res;
 	}
 
-	function GetItemViewHTML($itemId)
+	public static function GetItemViewHTML($itemId)
 	{
 		$arItem = CMedialibItem::GetList(array('id' => $itemId));
 		if (is_array($arItem) && count($arItem) > 0)
@@ -1719,7 +1719,7 @@ window.bx_req_res = {
 <?
 	}
 
-	function ChangeColType($Params)
+	public static function ChangeColType($Params)
 	{
 		if (
 			CMedialib::CanDoOperation('medialib_edit_collection', $Params['col']) &&
@@ -1745,7 +1745,7 @@ window.bx_req_res = {
 		}
 	}
 
-	function CompareTypesEx($typeMix, $arType)
+	public static function CompareTypesEx($typeMix, $arType)
 	{
 		if ($typeMix == $arType['id'] || (!$typeMix && $arType['code'] == 'image' && $arType['system']))
 			return true;
@@ -1772,7 +1772,7 @@ window.bx_req_res = {
 
 class CMedialibCollection
 {
-	function GetList($Params = array())
+	public static function GetList($Params = array())
 	{
 		global $DB, $USER;
 		$arFilter = $Params['arFilter'];
@@ -1843,7 +1843,7 @@ class CMedialibCollection
 		return $arResult;
 	}
 
-	function CheckFields($arFields)
+	public static function CheckFields($arFields)
 	{
 		if (!isset($arFields['NAME']) || strlen($arFields['NAME']) <= 0)
 			return false;
@@ -1862,7 +1862,7 @@ class CMedialibCollection
 		return true;
 	}
 
-	function Edit($Params)
+	public static function Edit($Params)
 	{
 		global $DB;
 		$arFields = $Params['arFields'];
@@ -1880,7 +1880,7 @@ class CMedialibCollection
 		if ($bNew) // Add
 		{
 			unset($arFields['ID']);
-			$ID = CDatabase::Add("b_medialib_collection", $arFields, array("DESCRIPTION"));
+			$ID = $DB->Add("b_medialib_collection", $arFields, array("DESCRIPTION"));
 		}
 		else // Update
 		{
@@ -1900,7 +1900,7 @@ class CMedialibCollection
 		return $ID;
 	}
 
-	function Delete($ID, $bDelEmpty = true)
+	public static function Delete($ID, $bDelEmpty = true)
 	{
 		global $DB;
 		$ID = intval($ID);
@@ -1917,12 +1917,12 @@ class CMedialibCollection
 		return $z;
 	}
 
-	function GetErrorMess()
+	public static function GetErrorMess()
 	{
 		return "<br>Class: CMedialibCollection<br>File: ".__FILE__;
 	}
 
-	function IsViewable($oCol, $arCol=false)
+	public static function IsViewable($oCol, $arCol=false)
 	{
 		if(!$arCol)
 			$arCol = CMedialibCollection::GetList(array('arFilter' => array('ACTIVE' => 'Y')));
@@ -1955,7 +1955,7 @@ class CMedialibCollection
 		return true;
 	}
 
-	function ChangeType($Params)
+	public static function ChangeType($Params)
 	{
 		global $DB;
 		$arFields = array(
@@ -1992,7 +1992,7 @@ class CMedialibCollection
 
 class CMedialibItem
 {
-	function CheckFields($arFields)
+	public static function CheckFields($arFields)
 	{
 		if (!isset($arFields['NAME']) || strlen($arFields['NAME']) <= 0)
 			return false;
@@ -2000,7 +2000,7 @@ class CMedialibItem
 		return true;
 	}
 
-	function GetList($Params)
+	public static function GetList($Params)
 	{
 		global $DB;
 
@@ -2056,7 +2056,7 @@ class CMedialibItem
 	}
 
 	// Add or edit ITEM
-	function Edit($Params)
+	public static function Edit($Params)
 	{
 		global $DB;
 		$source_id = false;
@@ -2152,7 +2152,7 @@ class CMedialibItem
 			$arFields['SOURCE_ID'] = $source_id;
 			$arFields['~DATE_CREATE'] = $arFields['~DATE_UPDATE'];
 			$arFields['ITEM_TYPE'] = '';
-			$ID = CDatabase::Add("b_medialib_item", $arFields, array("DESCRIPTION","SEARCHABLE_CONTENT"));
+			$ID = $DB->Add("b_medialib_item", $arFields, array("DESCRIPTION","SEARCHABLE_CONTENT"));
 		}
 		else // Update
 		{
@@ -2204,7 +2204,7 @@ class CMedialibItem
 		return $arFields;
 	}
 
-	function GenerateThumbnail(&$arFile, $Params = array())
+	public static function GenerateThumbnail(&$arFile, $Params = array())
 	{
 		$rootPath = isset($Params['rootPath']) ? $Params['rootPath'] : CSite::GetSiteDocRoot(false);
 		if (CFile::IsImage($arFile['FILE_NAME']))
@@ -2218,7 +2218,7 @@ class CMedialibItem
 			$arFile['TYPE'] = 'file';
 	}
 
-	function GetItemCollections($Params)
+	public static function GetItemCollections($Params)
 	{
 		global $DB;
 		$strSql = 'SELECT MCI.COLLECTION_ID
@@ -2232,7 +2232,7 @@ class CMedialibItem
 		return $arResult;
 	}
 
-	function Delete($ID, $bCurrent, $colId)
+	public static function Delete($ID, $bCurrent, $colId)
 	{
 		global $DB;
 		if ($bCurrent) // Del from one collection
@@ -2259,7 +2259,7 @@ class CMedialibItem
 		return $z;
 	}
 
-	function DeleteEmpty()
+	public static function DeleteEmpty()
 	{
 		global $DB;
 
@@ -2283,17 +2283,17 @@ class CMedialibItem
 			$DB->Query("DELETE FROM b_medialib_item WHERE ID in (".$strItems.")", false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 	}
 
-	function GetThumbPath($arImage)
+	public static function GetThumbPath($arImage)
 	{
 		return BX_PERSONAL_ROOT."/tmp/".$arImage['SUBDIR'].'/'.$arImage['FILE_NAME'];
 	}
 
-	function GetFullPath($arImage, $upload_dir = false)
+	public static function GetFullPath($arImage, $upload_dir = false)
 	{
 		return CFile::GetFileSRC($arImage, $upload_dir);
 	}
 
-	function GetSourceId($id)
+	public static function GetSourceId($id)
 	{
 		global $DB;
 		$strSql = 'SELECT SOURCE_ID
@@ -2306,7 +2306,7 @@ class CMedialibItem
 		return false;
 	}
 
-	function Search($arQuery, $arTypes = array())
+	public static function Search($arQuery, $arTypes = array())
 	{
 		global $DB;
 		$err_mess = CMedialibCollection::GetErrorMess()."<br>Function: CMedialibItem::Search<br>Line: ";
@@ -2374,7 +2374,7 @@ class CMedialibItem
 // Deprecated and unused class. Placed here to prevent fatal errors in customized forms
 class CMedialibTabControl
 {
-	function ShowScript()
+	public static function ShowScript()
 	{
 	}
 }

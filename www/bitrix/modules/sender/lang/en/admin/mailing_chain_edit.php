@@ -65,4 +65,9 @@ $MESS["sender_chain_edit_btn_send2_desc"] = "Send to remaining recipients";
 $MESS["sender_chain_edit_pers_help"] = "Use fields to personalize newsletter messages.<br>When sending a message to a recipient, the fields will be replaced with appropriate text.<br>For example, you can have a message to contain the recipient's first and last names, a current date or the link to a currently featured product.";
 $MESS["sender_chain_edit_error_select_template"] = "No template selected.";
 $MESS["sender_chain_edit_field_attachment"] = "Attachments";
+$MESS["sender_chain_edit_field_priority"] = "Priority:";
+$MESS["sender_chain_edit_field_priority_1"] = "High";
+$MESS["sender_chain_edit_field_priority_3"] = "Normal";
+$MESS["sender_chain_edit_field_priority_5"] = "Low";
+$MESS["sender_chain_edit_field_linkparams"] = "Add parameters to all links:";
 ?>

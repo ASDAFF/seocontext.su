@@ -19,8 +19,33 @@ if ($_POST['signature']=="" || $_POST['operation_xml']=="")
 $insig = $_POST['signature'];
 $resp = base64_decode($_POST['operation_xml']);
 
-$order_id = str_replace("ORDER_", "", liqpay_parseTag($resp, "order_id"));
-$paymentId = str_replace("PAYMENT_", "", liqpay_parseTag($resp, "payment_id"));
+$entityId = str_replace("PAYMENT_", "", liqpay_parseTag($resp, "order_id"));
+
+list($orderId, $paymentId) = \Bitrix\Sale\PaySystem\Manager::getIdsByPayment($entityId);
+
+if ($orderId > 0)
+{
+	/** @var \Bitrix\Sale\Order $order */
+	$order = \Bitrix\Sale\Order::load($orderId);
+	if ($order)
+	{
+		/** @var \Bitrix\Sale\PaymentCollection $paymentCollection */
+		$paymentCollection = $order->getPaymentCollection();
+		if ($paymentCollection && $paymentId > 0)
+		{
+			/** @var \Bitrix\Sale\Payment $payment */
+			$payment = $paymentCollection->getItemById($paymentId);
+			if ($payment)
+			{
+				$service = \Bitrix\Sale\PaySystem\Manager::getObjectById($payment->getPaymentSystemId());
+				if ($service)
+					$service->processRequest($request);
+			}
+		}
+	}
+}
+
+return;
 $status = liqpay_parseTag($resp, "status");
 $response_description = liqpay_parseTag($resp, "response_description");
 $transaction_id = liqpay_parseTag($resp, "transaction_id");

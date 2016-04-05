@@ -138,7 +138,9 @@
 			)?>
 		},
 		'itemsSelected' : '{}',
-		'destSort' : <?=CUtil::PhpToJSObject($arResult["DEST_SORT"])?>
+		'destSort' : <?=CUtil::PhpToJSObject($arResult["DEST_SORT"])?>,
+		'useClientDatabase' : <?=(!isset($arResult["bPublicPage"]) || !$arResult["bPublicPage"] ? 'true' : 'false'); ?>,
+		'allowAddUser': <?=($arResult["ALLOW_EMAIL_INVITATION"] ? 'true' : 'false'); ?>
 	});
 	BX.bind(BX('feed-add-post-destination-input-post'), 'keyup', BX.delegate(BX.SocNetLogDestination.BXfpSearch, {
 		formName: BXSocNetLogDestinationFormNamePost,

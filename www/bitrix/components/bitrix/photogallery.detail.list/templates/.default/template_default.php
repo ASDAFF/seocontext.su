@@ -1,6 +1,5 @@
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-$file = trim(preg_replace("'[\\\\/]+'", "/", (dirname(__FILE__)."/lang/".LANGUAGE_ID."/template_default.php")));
-__IncludeLang($file);
+\Bitrix\Main\Localization\Loc::loadMessages(__FILE__);
 if (!function_exists("__photo_template_default"))
 {
 	function __photo_template_default($arItem, $arParams = array())
@@ -12,7 +11,7 @@ if (!function_exists("__photo_template_default"))
 				$text = GetMessage("P_COMMENTS");
 				$count = intVal($count);
 				$iCount = intVal($count%100);
-				
+
 				if (!(10 < $iCount && $iCount < 20))
 				{
 					$count = intVal($count % 10);
@@ -21,11 +20,11 @@ if (!function_exists("__photo_template_default"))
 					elseif ($count > 1 && $count < 5)
 						$text = GetMessage("P_COMMENTS_2");
 				}
-				
+
 				return $text;
 			}
 		}
-		
+
 		if (!function_exists("__photo_template_default_shows_ending"))
 		{
 			function __photo_template_default_shows_ending($count)
@@ -33,7 +32,7 @@ if (!function_exists("__photo_template_default"))
 				$text = GetMessage("P_SHOWS");
 				$count = intVal($count);
 				$iCount = intVal($count%100);
-				
+
 				if (!(10 < $iCount && $iCount < 20))
 				{
 					$count = intVal($count % 10);
@@ -42,21 +41,21 @@ if (!function_exists("__photo_template_default"))
 					elseif ($count > 1 && $count < 5)
 						$text = GetMessage("P_SHOWS_2");
 				}
-				
+
 				return $text;
 			}
 		}
 		static $bFirstOnPage = true;
 		$arParams = (is_array($arParams) ? $arParams : array());
 		$arParams["mode"] = ($arParams["mode"] == "edit" ? "edit" : "read");
-		
+
 //		$arParams["view"] = ($arParams["view"] == "square" ? "square" : "default");
 //		$arParams["percent"] = intval(intval($arParams["percent"]) > 0 ? $arParams["percent"] : 70);
-		
+
 		$arParams["MAX_HEIGHT"] = intval($arParams["MAX_HEIGHT"]);
 		$arParams["MAX_WIDTH"] = intval($arParams["MAX_WIDTH"]);
 		$bActiveElement = ($arItem["ACTIVE"] != "Y" ? false : true);
-		
+
 		if (is_array($arItem["PICTURE"]))
 		{
 			$coeff = max($arItem["PICTURE"]["WIDTH"]/$arParams["MAX_WIDTH"], $arItem["PICTURE"]["HEIGHT"]/$arParams["MAX_HEIGHT"]);
@@ -69,12 +68,12 @@ if (!function_exists("__photo_template_default"))
 				"border=\"0\" vspace=\"0\" hspace=\"0\" alt=\"".$arItem["TITLE"]."\" title=\"".$arItem["TITLE"]."\" ".
 				"width=\"".$arItem["PICTURE"]["WIDTH"]."\" height=\"".$arItem["PICTURE"]["HEIGHT"]."\" />";
 		}
-		else 
+		else
 		{
 			$sImage = "<div style='width:".$arParams["MAX_WIDTH"]."px; height:".$arParams["MAX_HEIGHT"]."px;' title='".$arItem["TITLE"]."'></div>";
 			$arItem["PICTURE"] = array("WIDTH" => $arParams["MAX_WIDTH"], "HEIGHT" => $arParams["MAX_HEIGHT"]);
 		}
-			
+
 ?>
 <table border="0" cellpadding="0" class="photo-photo-item photo-photo-item-default <?=($arParams["mode"] == "edit" ? " photo-photo-item-edit" : "")?><?
 	?><?=(!$bActiveElement ? " photo-photo-item-notapproved" : "")?><?
@@ -98,7 +97,7 @@ if (!function_exists("__photo_template_default"))
 		{
 					?><?=$sImage?><?
 		}
-		else 
+		else
 		{
 					?><a href="<?=$arItem["URL"]?>" id="photo_<?=$arItem["ID"]?>" style="display:block; width: <?=$arItem["PICTURE"]["WIDTH"]?>px; height:  <?=$arItem["PICTURE"]["HEIGHT"]?>px;"<?
 					if (!empty($arItem["EVENTS"])):
@@ -123,9 +122,9 @@ if (!function_exists("__photo_template_default"))
 <?
 		if ($arItem["COMMENTS"] > 0):
 			$sText = $arItem["COMMENTS"]." ".__photo_template_default_comments_ending($arItem["COMMENTS"]);
-			if ($arParams["SHOW_ANCHOR"] != "Y"): 
+			if ($arParams["SHOW_ANCHOR"] != "Y"):
 				?><?=$sText?><?
-			else: 
+			else:
 				?><a href="<?=$arItem["URL"]?>"><?=$sText?></a><?
 			endif;
 		endif;
@@ -142,9 +141,9 @@ if (!function_exists("__photo_template_default"))
 <?
 		if ($arItem["SHOW_COUNTER"] > 0):
 			$sText = $arItem["SHOW_COUNTER"]." ".__photo_template_default_shows_ending($arItem["SHOW_COUNTER"]);
-			if ($arParams["SHOW_ANCHOR"] != "Y"): 
+			if ($arParams["SHOW_ANCHOR"] != "Y"):
 				?><?=$sText?><?
-			else: 
+			else:
 				?><a href="<?=$arItem["URL"]?>"><?=$sText?></a><?
 			endif;
 		endif;
@@ -159,7 +158,7 @@ if (!function_exists("__photo_template_default"))
 		<td class="photo-photo-info">
 			<div class="photo-photo-comments">
 <?
-			$DISPLAY_VALUE = doubleval($arItem["PROPERTIES"]["rating"]["VALUE"]); 
+			$DISPLAY_VALUE = doubleval($arItem["PROPERTIES"]["rating"]["VALUE"]);
 			if($arParams["DISPLAY_AS_RATING"] == "vote_avg")
 			{
 				if($arItem["PROPERTIES"]["vote_count"]["VALUE"])
@@ -172,10 +171,10 @@ if (!function_exists("__photo_template_default"))
 				$sText = GetMessage("P_RATING").": ".$DISPLAY_VALUE;
 				$sTitle = "";
 				if ($arParams["DISPLAY_AS_RATING"] == "vote_avg")
-					$sTitle = $sText . ", ".GetMessage("P_VOTES").": ".$arItem["PROPERTIES"]["vote_count"]["VALUE"]; 
-				if ($arParams["SHOW_ANCHOR"] != "Y"): 
+					$sTitle = $sText . ", ".GetMessage("P_VOTES").": ".$arItem["PROPERTIES"]["vote_count"]["VALUE"];
+				if ($arParams["SHOW_ANCHOR"] != "Y"):
 					?><span <?=(!empty($sTitle) ? ' title="'.$sTitle.'"' : '')?>><?=$sText?></span><?
-				else: 
+				else:
 					?><a href="<?=$arItem["URL"]?>"<?=(!empty($sTitle) ? ' title="'.$sTitle.'"' : '')?>><?=$sText?></a><?
 				endif;
 			}

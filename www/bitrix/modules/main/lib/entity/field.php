@@ -493,7 +493,12 @@ abstract class Field
 
 	public function getLangCode()
 	{
-		return $this->getEntity()->getLangCode().'_'.$this->getName().'_FIELD';
+		$entity = $this->getEntity();
+		if($entity !== null)
+		{
+			return $entity->getLangCode().'_'.$this->getName().'_FIELD';
+		}
+		return null;
 	}
 
 	public function serialize($value)

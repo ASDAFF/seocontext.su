@@ -234,13 +234,15 @@ class CWebService
 	function GetDefaultEndpoint()
 	{
 		global $APPLICATION;
-		return "http://".$_SERVER["HTTP_HOST"].
+		return ($APPLICATION->IsHTTPS() ? "https" : "https")."://".$_SERVER["HTTP_HOST"].
 				$APPLICATION->GetCurPage();
 	}
 
 	function GetDefaultTargetNS()
 	{
-		return "http://".$_SERVER["HTTP_HOST"]."/";
+		global $APPLICATION;
+
+		return ($APPLICATION->IsHTTPS() ? "https" : "https")."://".$_SERVER["HTTP_HOST"]."/";
 	}
 
 	function &GetWebServiceDeclaration($className)

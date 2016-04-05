@@ -3,7 +3,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 
 class CBPDelayActivity
 	extends CBPActivity
-	implements IBPEventActivity, IBPActivityExternalEventListener
+	implements IBPEventActivity, IBPActivityExternalEventListener, IBPEventDrivenActivity
 {
 	private $subscriptionId = 0;
 	private $isInEventActivityMode = false;
@@ -44,12 +44,13 @@ class CBPDelayActivity
 
 		if ($this->TimeoutDuration != null)
 		{
-			$timeoutDuration = $this->CalculateTimeoutDuration();
+			$timeoutDuration = max($this->CalculateTimeoutDuration(), CBPSchedulerService::getDelayMinLimit());
 			$this->WriteToTrackingService(str_replace("#PERIOD#", CBPHelper::FormatTimePeriod($timeoutDuration), GetMessage("BPDA_TRACK")));
 		}
 		elseif ($this->TimeoutTime != null)
 		{
-			$this->WriteToTrackingService(str_replace("#PERIOD#", ConvertTimeStamp($this->TimeoutTimeCurrent, "FULL"), GetMessage("BPDA_TRACK1")));
+			$timestamp = max($this->TimeoutTimeCurrent, time() + CBPSchedulerService::getDelayMinLimit());
+			$this->WriteToTrackingService(str_replace("#PERIOD#", ConvertTimeStamp($timestamp, "FULL"), GetMessage("BPDA_TRACK1")));
 		}
 		else
 		{
@@ -244,6 +245,12 @@ class CBPDelayActivity
 
 		if ($arCurrentValues["time_type_selector"] == "time")
 		{
+			if (CBPDocument::IsExpression($arCurrentValues["delay_date"]))
+			{
+				$arCurrentValues["delay_date_x"] = $arCurrentValues["delay_date"];
+				$arCurrentValues["delay_date"] = '';
+			}
+
 			if ((strlen($arCurrentValues["delay_date"]) > 0)
 				&& ($d = MakeTimeStamp($arCurrentValues["delay_date"])))
 			{

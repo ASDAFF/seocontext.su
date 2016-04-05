@@ -1,6 +1,7 @@
 <?
 define("STOP_STATISTICS", true);
 define("PUBLIC_AJAX_MODE", true);
+define('BX_SECURITY_SESSION_READONLY', true);
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 
 if(!$USER->IsAuthorized() || !check_bitrix_sessid())

@@ -21,25 +21,15 @@ $GLOBALS["FORUM_TOPICS_PER_PAGE"] = intVal(COption::GetOptionString("forum", "TO
 $GLOBALS["FORUM_MESSAGES_PER_PAGE"] = intVal(COption::GetOptionString("forum", "MESSAGES_PER_PAGE", "10"));
 
 $arNameStatuses = @unserialize(COption::GetOptionString("forum", "statuses_name"));
+$arNameStatuses = is_array($arNameStatuses) ? $arNameStatuses : array();
+$arNameStatuses[LANGUAGE_ID] = is_array($arNameStatuses[LANGUAGE_ID]) ? $arNameStatuses[LANGUAGE_ID] : array();
 $name = array("guest" => "Guest", "user" => "User", "moderator" => "Moderator", "editor" => "Editor", "administrator" => "Administrator");
 foreach ($name as $k => $v):
-	$name[$k] = (!empty($arMess["F_".strToUpper($k)]) ? $arMess["F_".strToUpper($k)] : $name[$k]);
+	$name[$k] = trim(!empty($arMess["F_".strToUpper($k)]) ? $arMess["F_".strToUpper($k)] : $name[$k]);
+	$arNameStatuses[LANGUAGE_ID][$k] = htmlspecialcharsEx(empty($arNameStatuses[LANGUAGE_ID][$k]) ? $name[$k] : $arNameStatuses[LANGUAGE_ID][$k]);
 endforeach;
-if (!is_array($arNameStatuses) || empty($arNameStatuses)):
-	if (!is_array($arNameStatuses[LANGUAGE_ID])):
-		$arNameStatuses[LANGUAGE_ID] = $name;
-	else:
-		foreach ($name as $k => $v):
-			$n = trim($arNameStatuses[LANGUAGE_ID][$k]);
-			$arNameStatuses[LANGUAGE_ID][$k] = (empty($n) ? $v : $n);
-		endforeach;
-	endif;
-endif;
 
-foreach ($arNameStatuses[LANGUAGE_ID] as $k => $v)
-	$arNameStatuses[LANGUAGE_ID][$k] = htmlspecialcharsEx($v);
 $GLOBALS["FORUM_STATUS_NAME"] = $arNameStatuses[LANGUAGE_ID];
-
 $GLOBALS["SHOW_FORUM_DEBUG_INFO"] = false;
 $GLOBALS["FORUM_CACHE"] = array(
 	"FORUM" => array(),
@@ -945,13 +935,12 @@ function ForumOpenCloseTopic($topic, $TYPE, &$strErrorMessage, &$strOKMessage, $
 				else
 				{
 					$arTopic["SORT"] = $arFields["SORT"];
-					$res = serialize($res);
 					if ($TYPE=="OPEN"):
 						$arOk[] = GetMessage("OCTOP_SUCCESS_OPEN")." (TID=".intVal($res["ID"]).")";
-						CForumEventLog::Log("topic", "open", $ID, $res);
+						CForumEventLog::Log("topic", "open", $ID, serialize($res));
 					else:
 						$arOk[] = GetMessage("OCTOP_SUCCESS_CLOSE")." (TID=".intVal($res["ID"]).")";
-						CForumEventLog::Log("topic", "close", $ID, $res);
+						CForumEventLog::Log("topic", "close", $ID, serialize($res));
 					endif;
 				}
 			}while ($res = $db_res->Fetch());

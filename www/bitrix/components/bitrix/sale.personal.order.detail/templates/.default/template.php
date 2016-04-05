@@ -345,7 +345,23 @@
 							<td><?=GetMessage('SPOD_ORDER_TRACKING_NUMBER')?>:</td>
 							<td><?=$shipment["TRACKING_NUMBER"]?></td>
 						</tr>
+
+						<?if(isset($shipment["TRACKING_STATUS"])):?>
+							<tr>
+								<td><?=GetMessage('SPOD_ORDER_TRACKING_STATUS')?>:</td>
+								<td><?=$shipment["TRACKING_STATUS"]?></td>
+							</tr>
+						<?endif?>
+
+						<?if(!empty($shipment["TRACKING_DESCRIPTION"])):?>
+							<tr>
+								<td><?=GetMessage('SPOD_ORDER_TRACKING_DESCRIPTION')?>:</td>
+								<td><?=$shipment["TRACKING_DESCRIPTION"]?></td>
+							</tr>
+						<?endif?>
+
 					<?endif?>
+
 
 					<tr>
 						<td><?=GetMessage('SPOD_ORDER_SHIPMENT_BASKET')?>:</td>
@@ -499,14 +515,6 @@
 						<td class="custom_t2"><?=$tax["VALUE_MONEY_FORMATED"]?></td>
 					</tr>	
 				<?endforeach?>
-
-				<? ///// TAX SUM ?>
-				<?if(floatval($arResult["TAX_VALUE"])):?>
-					<tr>
-						<td class="custom_t1"><?=GetMessage('SPOD_TAX')?>:</td>
-						<td class="custom_t2"><?=$arResult["TAX_VALUE_FORMATED"]?></td>
-					</tr>
-				<?endif?>
 
 				<? ///// DISCOUNT ?>
 				<?if(floatval($arResult["DISCOUNT_VALUE"])):?>

@@ -24,7 +24,7 @@ if($arID = $lAdmin->GroupAction())
 		switch($_REQUEST['action'])
 		{
 		case "delete":
-			CClusterWebnode::Delete($ID);
+			CClusterWebNode::Delete($ID);
 			break;
 		}
 	}
@@ -77,7 +77,7 @@ $arHeaders = array(
 
 $lAdmin->AddHeaders($arHeaders);
 
-$cData = new CClusterWebnode;
+$cData = new CClusterWebNode;
 $rsData = $cData->GetList(
 	array(//Order
 		"ID" => "ASC",
@@ -95,7 +95,7 @@ while($arRes = $rsData->Fetch()):
 	$uptime = false;
 	$RestartTime = "";
 	$CurrentTime = "";
-	$arStatus = CClusterWEBNode::GetStatus($arRes["HOST"], $arRes["PORT"], $arRes["STATUS_URL"]);
+	$arStatus = CClusterWebNode::GetStatus($arRes["HOST"], $arRes["PORT"], $arRes["STATUS_URL"]);
 
 	if(is_array($arStatus))
 	{
@@ -103,9 +103,9 @@ while($arRes = $rsData->Fetch()):
 		foreach($arStatus as $key=>$value)
 		{
 			if($key == 'Restart Time')
-				$RestartTime = CClusterWEBNode::ParseDateTime($value);
+				$RestartTime = CClusterWebNode::ParseDateTime($value);
 			elseif($key == 'Current Time')
-				$CurrentTime = CClusterWEBNode::ParseDateTime($value);
+				$CurrentTime = CClusterWebNode::ParseDateTime($value);
 			else
 				$html .= '
 				<tr>
@@ -119,6 +119,7 @@ while($arRes = $rsData->Fetch()):
 	else
 	{
 		$html = GetMessage("CLU_WEBNODE_STATUS_ERROR");
+		$html .= "<br>[".CClusterWebNode::$errno."] ".htmlspecialcharsEx(CClusterWebNode::$errstr);
 	}
 	$row->AddViewField("STATUS", $html);
 
@@ -126,9 +127,9 @@ while($arRes = $rsData->Fetch()):
 		$row->AddViewField("ID", '<a href="cluster_webnode_edit.php?lang='.LANGUAGE_ID.'&group_id='.$group_id.'&ID='.$arRes["ID"].'">'.$arRes["ID"].'</a>');
 
 	if(is_array($arStatus))
-		$htmlFLAG = '<div class="lamp-green"></div>';
+		$htmlFLAG = '<span class="adm-lamp adm-lamp-in-list adm-lamp-green"></span>';
 	else
-		$htmlFLAG = '<div class="lamp-red"></div>';
+		$htmlFLAG = '<span class="adm-lamp adm-lamp-in-list adm-lamp-red"></span>';
 
 	if($RestartTime && $CurrentTime)
 	{

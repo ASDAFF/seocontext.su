@@ -5,10 +5,11 @@ IncludeModuleLangFile(__FILE__);
 
 class CAllCurrencyRates
 {
-	function CheckFields($ACTION, &$arFields, $ID = 0)
+	protected static $currentCache = array();
+
+	public static function CheckFields($ACTION, &$arFields, $ID = 0)
 	{
-		global $APPLICATION;
-		global $DB;
+		global $APPLICATION, $DB;
 
 		$arMsg = array();
 
@@ -18,41 +19,29 @@ class CAllCurrencyRates
 			unset($arFields['ID']);
 
 		if ('UPDATE' == $ACTION && 0 >= intval($ID))
-		{
 			$arMsg[] = array('id' => 'ID','text' => GetMessage('BT_MOD_CURR_ERR_RATE_ID_BAD'));
-		}
 
 		if (!isset($arFields["CURRENCY"]))
-		{
 			$arMsg[] = array('id' => 'CURRENCY','text' => GetMessage('BT_MOD_CURR_ERR_RATE_CURRENCY_ABSENT'));
-		}
 		else
-		{
 			$arFields["CURRENCY"] = substr($arFields["CURRENCY"],0,3);
-		}
 
 		if (empty($arFields['DATE_RATE']))
-		{
 			$arMsg[] = array('id' => 'DATE_RATE','text' => GetMessage('BT_MOD_CURR_ERR_RATE_DATE_ABSENT'));
-		}
 		elseif (!$DB->IsDate($arFields['DATE_RATE']))
-		{
 			$arMsg[] = array('id' => 'DATE_RATE','text' => GetMessage('BT_MOD_CURR_ERR_RATE_DATE_FORMAT_BAD'));
-		}
 
 		if (is_set($arFields, 'RATE_CNT') || 'ADD' == $ACTION)
 		{
 			if (!isset($arFields['RATE_CNT']))
 			{
-				$arMsg[] = array('id' => 'RATE_CNT','text' => GetMessage('BT_MOD_CURR_ERR_RATE_RATE_CNT_ABSENT'));
-			}
-			elseif (0 >= intval($arFields['RATE_CNT']))
-			{
-				$arMsg[] = array('id' => 'RATE_CNT','text' => GetMessage('BT_MOD_CURR_ERR_RATE_RATE_CNT_BAD'));
+				$arMsg[] = array('id' => 'RATE_CNT', 'text' => GetMessage('BT_MOD_CURR_ERR_RATE_RATE_CNT_ABSENT'));
 			}
 			else
 			{
-				$arFields['RATE_CNT'] = intval($arFields['RATE_CNT']);
+				$arFields['RATE_CNT'] = (int)$arFields['RATE_CNT'];
+				if ($arFields['RATE_CNT'] <= 0)
+					$arMsg[] = array('id' => 'RATE_CNT', 'text' => GetMessage('BT_MOD_CURR_ERR_RATE_RATE_CNT_BAD'));
 			}
 		}
 		if (is_set($arFields['RATE']) || 'ADD' == $ACTION)
@@ -63,8 +52,8 @@ class CAllCurrencyRates
 			}
 			else
 			{
-				$arFields['RATE'] = doubleval($arFields['RATE']);
-				if (!(0 < $arFields['RATE']))
+				$arFields['RATE'] = (float)$arFields['RATE'];
+				if (!($arFields['RATE'] > 0))
 				{
 					$arMsg[] = array('id' => 'RATE','text' => GetMessage('BT_MOD_CURR_ERR_RATE_RATE_BAD'));
 				}
@@ -81,10 +70,11 @@ class CAllCurrencyRates
 		return true;
 	}
 
-	function Add($arFields)
+	public static function Add($arFields)
 	{
 		global $DB;
 		global $APPLICATION;
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		$arMsg = array();
@@ -111,24 +101,30 @@ class CAllCurrencyRates
 		{
 			$stackCacheManager->Clear("currency_rate");
 
+			$isMsSql = strtolower($DB->type) == 'mssql';
+			if ($isMsSql)
+				CTimeZone::Disable();
 			$ID = $DB->Add("b_catalog_currency_rate", $arFields);
+			if ($isMsSql)
+				CTimeZone::Enable();
+			unset($isMsSql);
 
-			CCurrency::updateCurrencyBaseRate($arFields['CURRENCY']);
+			Currency\CurrencyManager::updateBaseRates($arFields['CURRENCY']);
 			Currency\CurrencyManager::clearTagCache($arFields['CURRENCY']);
+			self::$currentCache = array();
 
 			foreach (GetModuleEvents("currency", "OnCurrencyRateAdd", true) as $arEvent)
-			{
 				ExecuteModuleEventEx($arEvent, array($ID, $arFields));
-			}
 
 			return $ID;
 		}
 	}
 
-	function Update($ID, $arFields)
+	public static function Update($ID, $arFields)
 	{
 		global $DB;
 		global $APPLICATION;
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		$ID = (int)$ID;
@@ -156,29 +152,36 @@ class CAllCurrencyRates
 		}
 		else
 		{
+			$isMsSql = strtolower($DB->type) == 'mssql';
+			if ($isMsSql)
+				CTimeZone::Disable();
 			$strUpdate = $DB->PrepareUpdate("b_catalog_currency_rate", $arFields);
+			if ($isMsSql)
+				CTimeZone::Enable();
+			unset($isMsql);
+
 			if (!empty($strUpdate))
 			{
 				$strSql = "UPDATE b_catalog_currency_rate SET ".$strUpdate." WHERE ID = ".$ID;
 				$DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 
 				$stackCacheManager->Clear("currency_rate");
-				CCurrency::updateCurrencyBaseRate($arFields['CURRENCY']);
+				Currency\CurrencyManager::updateBaseRates($arFields['CURRENCY']);
 				Currency\CurrencyManager::clearTagCache($arFields['CURRENCY']);
+				self::$currentCache = array();
 			}
 			foreach (GetModuleEvents("currency", "OnCurrencyRateUpdate", true) as $arEvent)
-			{
 				ExecuteModuleEventEx($arEvent, array($ID, $arFields));
-			}
 		}
 		return true;
 	}
 
-	function Delete($ID)
+	public static function Delete($ID)
 	{
 		global $DB;
-		global $stackCacheManager;
 		global $APPLICATION;
+		/** @global CStackCacheManager $stackCacheManager */
+		global $stackCacheManager;
 
 		$ID = (int)$ID;
 
@@ -204,17 +207,17 @@ class CAllCurrencyRates
 
 		$strSql = "DELETE FROM b_catalog_currency_rate WHERE ID = ".$ID;
 		$DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
-		CCurrency::updateCurrencyBaseRate($arFields['CURRENCY']);
+		Currency\CurrencyManager::updateBaseRates($arFields['CURRENCY']);
 		Currency\CurrencyManager::clearTagCache($arFields['CURRENCY']);
+		self::$currentCache = array();
 
 		foreach(GetModuleEvents("currency", "OnCurrencyRateDelete", true) as $arEvent)
-		{
 			ExecuteModuleEventEx($arEvent, array($ID));
-		}
+
 		return true;
 	}
 
-	function GetByID($ID)
+	public static function GetByID($ID)
 	{
 		global $DB;
 
@@ -225,13 +228,12 @@ class CAllCurrencyRates
 		$db_res = $DB->Query($strSql, false, "File: ".__FILE__."<br>Line: ".__LINE__);
 
 		if ($res = $db_res->Fetch())
-		{
 			return $res;
-		}
+
 		return false;
 	}
 
-	function GetList(&$by, &$order, $arFilter=array())
+	public static function GetList(&$by, &$order, $arFilter=array())
 	{
 		global $DB;
 
@@ -246,7 +248,8 @@ class CAllCurrencyRates
 		for ($i=0, $intCount = count($filter_keys); $i < $intCount; $i++)
 		{
 			$val = (string)$DB->ForSql($arFilter[$filter_keys[$i]]);
-			if ($val === '') continue;
+			if ($val === '')
+				continue;
 
 			$key = $filter_keys[$i];
 			if ($key[0]=="!")
@@ -301,14 +304,42 @@ class CAllCurrencyRates
 		return $res;
 	}
 
-	function GetConvertFactorEx($curFrom, $curTo, $valDate = "")
+	public static function ConvertCurrency($valSum, $curFrom, $curTo, $valDate = "")
 	{
+		return (float)$valSum * static::GetConvertFactorEx($curFrom, $curTo, $valDate);
+	}
+
+	/**
+	 * @deprecated deprecated since currency 16.0.0
+	 * @see CCurrencyRates::GetConvertFactorEx
+	 *
+	 * @param float|int $curFrom
+	 * @param float|int $curTo
+	 * @param string $valDate
+	 * @return float|int
+	 */
+	public static function GetConvertFactor($curFrom, $curTo, $valDate = "")
+	{
+		return static::GetConvertFactorEx($curFrom, $curTo, $valDate);
+	}
+
+	/**
+	 * @param float|int $curFrom
+	 * @param float|int $curTo
+	 * @param string $valDate
+	 * @return float|int
+	 */
+	public static function GetConvertFactorEx($curFrom, $curTo, $valDate = "")
+	{
+		/** @global CStackCacheManager $stackCacheManager */
 		global $stackCacheManager;
 
 		$curFrom = (string)$curFrom;
 		$curTo = (string)$curTo;
 		if($curFrom === '' || $curTo === '')
 			return 0;
+		if ($curFrom == $curTo)
+			return 1;
 
 		$valDate = (string)$valDate;
 		if ($valDate === '')
@@ -327,7 +358,7 @@ class CAllCurrencyRates
 
 		if (defined("CURRENCY_SKIP_CACHE") && CURRENCY_SKIP_CACHE)
 		{
-			if ($res = $this->_get_last_rates($valDate, $curFrom))
+			if ($res = static::_get_last_rates($valDate, $curFrom))
 			{
 				$curFromRate = (float)$res["RATE"];
 				$curFromRateCnt = (int)$res["RATE_CNT"];
@@ -338,7 +369,7 @@ class CAllCurrencyRates
 				}
 			}
 
-			if ($res = $this->_get_last_rates($valDate, $curTo))
+			if ($res = static::_get_last_rates($valDate, $curTo))
 			{
 				$curToRate = (float)$res["RATE"];
 				$curToRateCnt = (int)$res["RATE_CNT"];
@@ -355,58 +386,65 @@ class CAllCurrencyRates
 			if (defined("CURRENCY_CACHE_TIME"))
 				$cacheTime = (int)CURRENCY_CACHE_TIME;
 
-			$strCacheKey = "C_R_".$valDate."_".$curFrom."_".$curTo;
+			$cacheKey = 'C_R_'.$valDate.'_'.$curFrom.'_'.$curTo;
 
 			$stackCacheManager->SetLength("currency_rate", 10);
 			$stackCacheManager->SetTTL("currency_rate", $cacheTime);
-			if ($stackCacheManager->Exist("currency_rate", $strCacheKey))
+			if ($stackCacheManager->Exist("currency_rate", $cacheKey))
 			{
-				$arResult = $stackCacheManager->Get("currency_rate", $strCacheKey);
-
-				$curFromRate = $arResult["curFromRate"];
-				$curFromRateCnt = $arResult["curFromRateCnt"];
-				$curToRate = $arResult["curToRate"];
-				$curToRateCnt = $arResult["curToRateCnt"];
+				$arResult = $stackCacheManager->Get("currency_rate", $cacheKey);
 			}
 			else
 			{
-				if ($res = $this->_get_last_rates($valDate, $curFrom))
+				if (!isset(self::$currentCache[$cacheKey]))
 				{
-					$curFromRate = (float)$res["RATE"];
-					$curFromRateCnt = (int)$res["RATE_CNT"];
-					if ($curFromRate <= 0)
+					if ($res = static::_get_last_rates($valDate, $curFrom))
 					{
-						$curFromRate = (float)$res["AMOUNT"];
-						$curFromRateCnt = (int)$res["AMOUNT_CNT"];
+						$curFromRate = (float)$res["RATE"];
+						$curFromRateCnt = (int)$res["RATE_CNT"];
+						if ($curFromRate <= 0)
+						{
+							$curFromRate = (float)$res["AMOUNT"];
+							$curFromRateCnt = (int)$res["AMOUNT_CNT"];
+						}
 					}
-				}
 
-				if ($res = $this->_get_last_rates($valDate, $curTo))
-				{
-					$curToRate = (float)$res["RATE"];
-					$curToRateCnt = (int)$res["RATE_CNT"];
-					if ($curToRate <= 0)
+					if ($res = static::_get_last_rates($valDate, $curTo))
 					{
-						$curToRate = (float)$res["AMOUNT"];
-						$curToRateCnt = (int)$res["AMOUNT_CNT"];
+						$curToRate = (float)$res["RATE"];
+						$curToRateCnt = (int)$res["RATE_CNT"];
+						if ($curToRate <= 0)
+						{
+							$curToRate = (float)$res["AMOUNT"];
+							$curToRateCnt = (int)$res["AMOUNT_CNT"];
+						}
 					}
+
+					self::$currentCache[$cacheKey] = array(
+						"curFromRate" => $curFromRate,
+						"curFromRateCnt" => $curFromRateCnt,
+						"curToRate" => $curToRate,
+						"curToRateCnt" => $curToRateCnt
+					);
+
+					$stackCacheManager->Set("currency_rate", $cacheKey, self::$currentCache[$cacheKey]);
 				}
-
-				$arResult = array(
-					"curFromRate" => $curFromRate,
-					"curFromRateCnt" => $curFromRateCnt,
-					"curToRate" => $curToRate,
-					"curToRateCnt" => $curToRateCnt
-				);
-
-				$stackCacheManager->Set("currency_rate", $strCacheKey, $arResult);
+				$arResult = self::$currentCache[$cacheKey];
 			}
+			$curFromRate = $arResult["curFromRate"];
+			$curFromRateCnt = $arResult["curFromRateCnt"];
+			$curToRate = $arResult["curToRate"];
+			$curToRateCnt = $arResult["curToRateCnt"];
 		}
 
-		if($curFromRate == 0 || $curToRateCnt == 0 || $curToRate == 0 || $curFromRateCnt == 0)
+		if ($curFromRate == 0 || $curToRateCnt == 0 || $curToRate == 0 || $curFromRateCnt == 0)
 			return 0;
 
 		return $curFromRate*$curToRateCnt/$curToRate/$curFromRateCnt;
 	}
+
+	public static function _get_last_rates($valDate, $cur)
+	{
+		return false;
+	}
 }
-?>

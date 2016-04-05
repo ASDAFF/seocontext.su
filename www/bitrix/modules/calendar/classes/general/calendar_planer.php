@@ -5,7 +5,7 @@ class CCalendarPlanner
 	{
 		global $APPLICATION;
 		$id = $Params['id'];
-		//$bWideDate = strpos(FORMAT_DATETIME, 'MMMM') !== false;
+		$timezoneList = CCalendar::GetTimezoneList();
 		$addWidthStyle = IsAmPmMode() ? ' ampm-width' : '';
 ?>
 <div id="bx-planner-popup<?=$id?>" class="bxc-planner bxec-popup">
@@ -14,19 +14,49 @@ class CCalendarPlanner
 			<div style="width: 700px; height: 1px;"></div>
 
 			<div class="bxec-plan-from-to">
-				<span class="bxec-date">
-					<label class="bxec-date-label" for="<?=$id?>planner-from"><?=GetMessage('EC_EDEV_FROM_DATE_TIME')?></label>
-					<input id="<?=$id?>planner-from" type="text" class="calendar-inp calendar-inp-cal"/>
-				</span>
-				<span class="bxec-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => $id.'planner_from_time', 'inputTitle' => GetMessage('EC_EDEV_TIME_FROM'), 'showIcon' => false));?></span>
-				<span class="bxec-mdash">&mdash;</span>
-				<span class="bxec-date">
-					<label class="bxec-date-label" for="<?=$id?>planner-to"><?=GetMessage('EC_EDEV_TO_DATE_TIME')?></label>
-					<input id="<?=$id?>planner-to" type="text" class="calendar-inp calendar-inp-cal"/>
-				</span>
-				<span class="bxec-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => $id.'planner_to_time', 'inputTitle' => GetMessage('EC_EDEV_TIME_TO'), 'showIcon' => false));?></span>
+				<span style="display: inline-block;">
+					<span class="bxec-date">
+						<label class="bxec-date-label" for="<?=$id?>planner-from"><?=GetMessage('EC_EDEV_FROM_DATE_TIME')?></label>
+						<input id="<?=$id?>planner-from" type="text" class="calendar-inp calendar-inp-cal"/>
+					</span>
+					<span class="bxec-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => $id.'planner_from_time', 'inputTitle' => GetMessage('EC_EDEV_TIME_FROM'), 'showIcon' => false));?></span>
+					<span class="bxec-mdash">&mdash;</span>
+					<span class="bxec-date">
+						<label class="bxec-date-label" for="<?=$id?>planner-to"><?=GetMessage('EC_EDEV_TO_DATE_TIME')?></label>
+						<input id="<?=$id?>planner-to" type="text" class="calendar-inp calendar-inp-cal"/>
+					</span>
+					<span class="bxec-time<?=$addWidthStyle?>"><?CClock::Show(array('inputId' => $id.'planner_to_time', 'inputTitle' => GetMessage('EC_EDEV_TIME_TO'), 'showIcon' => false));?></span>
 
-				<div style="display:none;"><?$APPLICATION->IncludeComponent("bitrix:main.calendar",	"",Array("FORM_NAME" => "","INPUT_NAME" => "","INPUT_VALUE" => "","SHOW_TIME" => "N","HIDE_TIMEBAR" => "Y","SHOW_INPUT" => "N"),false, array("HIDE_ICONS" => "Y"));?></div>
+					<div style="display:none;"><?$APPLICATION->IncludeComponent("bitrix:main.calendar",	"",Array("FORM_NAME" => "","INPUT_NAME" => "","INPUT_VALUE" => "","SHOW_TIME" => "N","HIDE_TIMEBAR" => "Y","SHOW_INPUT" => "N"),false, array("HIDE_ICONS" => "Y"));?></div>
+
+
+					<div id="planner-tz-cont-outer<?=$id?>" class="bxec-timezone-outer-wrap bxec-tz-wrap">
+						<span class="bxec-timezone-link bxec-tz-wrap" id="planner-tz-switch<?=$id?>">
+							<span class="bxec-tz-open"><?= GetMessage('EC_EVENT_TZ_BUT_OPEN')?></span>
+							<span class="bxec-tz-close"><?= GetMessage('EC_EVENT_TZ_BUT_CLOSE')?></span>
+						</span>
+						<div id="planner-tz-cont<?=$id?>" class="bxec-timezone-hidden-wrap bxec-tz-wrap">
+							<div id="planner-tz-inner-cont<?=$id?>" class="bxec-timezone-hidden">
+								<div class="bxec-timezone-hidden-item">
+									<select id="planner-tz-from<?=$id?>" class="calendar-select calendar-tz-select" name="tz_from">
+										<option value=""> - </option>
+										<?foreach($timezoneList as $tz):?>
+											<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+										<?endforeach;?>
+									</select>
+									<span class="bxec-mdash">&mdash;</span>
+									<select id="planner-tz-to<?=$id?>" class="calendar-select calendar-tz-select" name="tz_to">
+										<option value=""> - </option>
+										<?foreach($timezoneList as $tz):?>
+											<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+										<?endforeach;?>
+									</select>
+									<span id="planner-tz-tip<?=$id?>" class="bxec-popup-tip-btn"></span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</span>
 
 				<span class="bxec-val-cnt" style="padding-right: 24px;">
 					<label class="bxec-val-cnt-label" for="<?=$id?>_pl_dur"><?=GetMessage('EC_EVENT_DURATION')?></label>
@@ -44,6 +74,19 @@ class CCalendarPlanner
 					<label class="bxec-val-cnt-label" for="<?=$id?>_planner_location2"><?=GetMessage('EC_LOCATION')?></label>
 					<input class="calendar-inp calendar-inp-time" style="width: 180px;" id="<?=$id?>_planner_location2" type="text" value="<?= GetMessage('EC_PL_SEL_MEET_ROOM')?>" />
 				</span>
+			</div>
+
+			<div id="planner-tz-def-wrap<?=$id?>" class="bxec-popup-timezone bxec-tz-wrap" style="display: none;">
+					<span class="bxec-field-label-edev">
+						<label><?= GetMessage('EC_EVENT_ASK_TZ')?></label>
+					</span>
+				<select id="planner-tz-def<?=$id?>" class="calendar-select calendar-tz-select" name="default_tz" style="width: 280px;">
+					<option value=""> - </option>
+					<?foreach($timezoneList as $tz):?>
+						<option value="<?= $tz['timezone_id']?>"><?= htmlspecialcharsEx($tz['title'])?></option>
+					<?endforeach;?>
+				</select>
+				<span id="planner-tz-def-tip<?=$id?>" class="bxec-popup-tip-btn"></span>
 			</div>
 			<div class="bxec-plan-field-dest">
 				<?self::__ShowAttendeesDestinationHtml($Params)?>
@@ -124,7 +167,9 @@ class CCalendarPlanner
 			'UserEmail' => 'EC_USER_EMAIL',
 			'UserAccessibility' => 'EC_ACCESSIBILITY',
 			'Importance' => 'EC_IMPORTANCE',
-			'FromHR' => 'EC_FROM_HR'
+			'FromHR' => 'EC_FROM_HR',
+			'eventTzHint' => 'EC_EVENT_TZ_HINT',
+			'eventTzDefHint' => 'EC_EVENT_TZ_DEF_HINT'
 		);
 ?>
 var BXPL_MESS = {0:0<?foreach($arLangMess as $m1 => $m2){echo ', '.$m1." : '".addslashes(GetMessage($m2))."'";}?>};

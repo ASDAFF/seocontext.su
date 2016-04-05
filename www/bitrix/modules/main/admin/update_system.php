@@ -4,7 +4,7 @@
 //**    MODIFICATION OF THIS FILE WILL ENTAIL SITE FAILURE            **/
 //**********************************************************************/
 if (!defined("UPDATE_SYSTEM_VERSION"))
-	define("UPDATE_SYSTEM_VERSION", "15.5.1");
+	define("UPDATE_SYSTEM_VERSION", "16.0.10");
 
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_admin_before.php");
 define("HELP_FILE", "marketplace/sysupdate.php");
@@ -219,6 +219,17 @@ if ($arUpdateList)
 			else
 				$systemMessage .= GetMessage("SUP_RESERVED_KEY_HINT");
 		}
+	}
+}
+
+if ($DB->TableExists('b_sale_order') || $DB->TableExists('B_SALE_ORDER'))
+{
+	if (COption::GetOptionString("main", "~sale_converted_15", "N") != "Y")
+	{
+		if (isset($arClientModules["sale"])
+			&& (CUpdateClient::CompareVersions($arClientModules["sale"], "15.0.0") > 0)
+			&& (CUpdateClient::CompareVersions($arClientModules["sale"], "16.0.0") < 0))
+			$systemMessage .= GetMessage("SUP_SALE_1500_HINT", array("#ADDR#" => "/bitrix/admin/sale_converter.php?lang=".LANG));
 	}
 }
 
@@ -2698,7 +2709,7 @@ $tabControl->End();
 <?= GetMessage("SUP_SUG_NOTES1") ?>
 <?echo EndNote(); ?>
 
-<form id="check_key_info_form" action="http://<?= GetMessage("SUP_SUA_DOMAIN") ?>/support/key_info.php" method="post" target="_blank">
+<form id="check_key_info_form" action="<?=GetMessage("SUP_SUA_DOMAIN")?>" method="post" target="_blank">
 <input type="hidden" name="license_key" value="<?= md5(CUpdateClient::GetLicenseKey()) ?>">
 </form>
 

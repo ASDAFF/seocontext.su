@@ -192,6 +192,9 @@ class currency extends CModule
 			case 'tc':
 			case 'sc':
 			case 'in':
+			case 'kz':
+			case 'br':
+			case 'by':
 				$currencySetID = $languageID;
 				break;
 			case 'ru':
@@ -203,6 +206,18 @@ class currency extends CModule
 					));
 					if ($existLanguage = $languageIterator->fetch())
 						$currencySetID = $existLanguage['ID'];
+					unset($existLanguage, $languageIterator);
+
+					if ($currencySetID == '')
+					{
+						$languageIterator = LanguageTable::getList(array(
+							'select' => array('ID'),
+							'filter' => array('=ID' => 'by', '=ACTIVE' => 'Y')
+						));
+						if ($existLanguage = $languageIterator->fetch())
+							$currencySetID = $existLanguage['ID'];
+						unset($existLanguage, $languageIterator);
+					}
 
 					if ($currencySetID == '')
 					{
@@ -212,8 +227,8 @@ class currency extends CModule
 						));
 						if ($existLanguage = $languageIterator->fetch())
 							$currencySetID = $existLanguage['ID'];
+						unset($existLanguage, $languageIterator);
 					}
-					unset($existLanguage, $languageIterator);
 				}
 				if ($currencySetID == '')
 					$currencySetID = $languageID;
@@ -225,12 +240,20 @@ class currency extends CModule
 		$datetimeEntity = new Main\DB\SqlExpression(Main\Application::getConnection()->getSqlHelper()->getCurrentDateTimeFunction());
 		switch ($currencySetID)
 		{
+			case 'by':
+				$addCurrency = array(
+					array('CURRENCY' => 'BYR', 'NUMCODE' => '974', 'AMOUNT' => 1, 'AMOUNT_CNT' => 1, 'SORT' => 100, 'BASE' => 'Y', 'CURRENT_BASE_RATE' => 1),
+					array('CURRENCY' => 'RUB', 'NUMCODE' => '643', 'AMOUNT' => 283.7, 'AMOUNT_CNT' => 1, 'SORT' => 200, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 283.7),
+					array('CURRENCY' => 'USD', 'NUMCODE' => '840', 'AMOUNT' => 21683, 'AMOUNT_CNT' => 1, 'SORT' => 300, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 21683),
+					array('CURRENCY' => 'EUR', 'NUMCODE' => '978', 'AMOUNT' => 24091, 'AMOUNT_CNT' => 1, 'SORT' => 400, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 24091)
+				);
+				break;
 			case 'kz':
 				$addCurrency = array(
 					array('CURRENCY' => 'KZT', 'NUMCODE' => '398', 'AMOUNT' => 1, 'AMOUNT_CNT' => 1, 'SORT' => 100, 'BASE' => 'Y', 'CURRENT_BASE_RATE' => 1),
-					array('CURRENCY' => 'RUB', 'NUMCODE' => '643', 'AMOUNT' => 4.40, 'AMOUNT_CNT' => 1, 'SORT' => 200, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 4.40),
-					array('CURRENCY' => 'USD', 'NUMCODE' => '840', 'AMOUNT' => 283.17, 'AMOUNT_CNT' => 1, 'SORT' => 300, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 283.17),
-					array('CURRENCY' => 'EUR', 'NUMCODE' => '978', 'AMOUNT' => 310.78, 'AMOUNT_CNT' => 1, 'SORT' => 400, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 310.78)
+					array('CURRENCY' => 'RUB', 'NUMCODE' => '643', 'AMOUNT' => 4.67, 'AMOUNT_CNT' => 1, 'SORT' => 200, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 4.67),
+					array('CURRENCY' => 'USD', 'NUMCODE' => '840', 'AMOUNT' => 350.58, 'AMOUNT_CNT' => 1, 'SORT' => 300, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 350.58),
+					array('CURRENCY' => 'EUR', 'NUMCODE' => '978', 'AMOUNT' => 390.37, 'AMOUNT_CNT' => 1, 'SORT' => 400, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 390.37)
 				);
 				break;
 			case 'ua':
@@ -251,7 +274,6 @@ class currency extends CModule
 				);
 				break;
 			case 'de':
-			case 'la':
 				$addCurrency = array(
 					array('CURRENCY' => 'EUR', 'NUMCODE' => '978', 'AMOUNT' => 1, 'AMOUNT_CNT' => 1, 'SORT' => 100, 'BASE' => 'Y', 'CURRENT_BASE_RATE' => 1),
 					array('CURRENCY' => 'USD', 'NUMCODE' => '840', 'AMOUNT' => 0.91, 'AMOUNT_CNT' => 1, 'SORT' => 200, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 0.91),
@@ -290,6 +312,7 @@ class currency extends CModule
 				break;
 			default:
 			case 'en':
+			case 'la':
 				$addCurrency = array(
 					array('CURRENCY' => 'USD', 'NUMCODE' => '840', 'AMOUNT' => 1, 'AMOUNT_CNT' => 1, 'SORT' => 100, 'BASE' => 'Y', 'CURRENT_BASE_RATE' => 1),
 					array('CURRENCY' => 'EUR', 'NUMCODE' => '978', 'AMOUNT' => 1.10, 'AMOUNT_CNT' => 1, 'SORT' => 200, 'BASE' => 'N', 'CURRENT_BASE_RATE' => 1.10),
@@ -347,7 +370,7 @@ class currency extends CModule
 			if (!$bitrix24)
 			{
 				$checkDate = Main\Type\DateTime::createFromTimestamp(strtotime('tomorrow 00:01:00'));;
-				CAgent::AddAgent('\Bitrix\Currency\CurrencyTable::currencyBaseRateAgent();', 'currency', 'Y', 86400, '', 'Y', $checkDate->toString(), 100, false, true);
+				CAgent::AddAgent('\Bitrix\Currency\CurrencyManager::currencyBaseRateAgent();', 'currency', 'Y', 86400, '', 'Y', $checkDate->toString(), 100, false, true);
 				unset($checkDate);
 			}
 			\Bitrix\Currency\CurrencyManager::clearCurrencyCache();

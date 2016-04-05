@@ -157,7 +157,7 @@ class Entity
 				$result = "Y";
 			else if ($this->forum["ACTIVE"] != "Y")
 				$result = "A";
-			else if (\CForumUser::IsLocked($this->getUser()->getID()))
+			else if (\CForumUser::IsLocked($this->getUser()->getId()))
 				$result = \CForumNew::GetPermissionUserDefault($this->forum["ID"]);
 			else
 				$result = \CForumNew::GetUserPermission($this->forum["ID"], $GLOBALS["USER"]->GetUserGroupArray());
@@ -176,7 +176,6 @@ class Entity
 
 	public function getUser()
 	{
-		global $USER;
-		return $USER;
+		return $this->caller->getUser();
 	}
 }

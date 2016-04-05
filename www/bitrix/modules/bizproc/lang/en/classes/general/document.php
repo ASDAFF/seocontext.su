@@ -14,4 +14,7 @@ $MESS["BPCGDOC_YES"] = "Yes";
 $MESS["BPCGDOC_ERROR_DELEGATE"] = "The task \"#NAME#\" cannot be delegated because the selected employee is already assigned to the task.";
 $MESS["BPCGDOC_ERROR_ACTION"] = "Task \"#NAME#\": #ERROR#";
 $MESS["BPCGDOC_ERROR_TASK_IS_NOT_INLINE"] = "The task \"#NAME#\" cannot be run this way.";
+$MESS["BPCGDOC_WI_LOCKED_NOTICE_TITLE"] = "Portal assistant";
+$MESS["BPCGDOC_WI_LOCKED_NOTICE_MESSAGE"] = "Some of the workflows you have started (#CNT#) errored out or completed incorrectly.
+[URL=#PATH#]View these workflows[/URL].";
 ?>

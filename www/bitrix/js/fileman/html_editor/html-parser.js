@@ -994,10 +994,10 @@
 				var fontSizeMap = {
 					1: '9px',
 					2: '13px',
-					3: '9px',
-					4: '9px',
-					5: '9px',
-					6: '9px',
+					3: '16px',
+					4: '18px',
+					5: '24px',
+					6: '32px',
 					7: '48px'
 				};
 				if (fontSizeMap[value])

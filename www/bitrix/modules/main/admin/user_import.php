@@ -156,32 +156,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && $tabStep > 2 && check_bitrix_sessid(
 		if ($arLdap = $dbLdap->Fetch())
 		{
 			// this is a test connection, thus any parameters other than related to establishing a connection, have no effect here
-			$ldp = CLDAP::Connect(
-				array(
-					"SERVER"		=>	$arLdap['SERVER'],
-					"PORT"			=>	$arLdap['PORT'],
-					"ADMIN_LOGIN"	=>	$arLdap['ADMIN_LOGIN'],
-					"ADMIN_PASSWORD"=>	$arLdap['ADMIN_PASSWORD'],
-					"BASE_DN"		=>	$arLdap['BASE_DN'],
-					"GROUP_FILTER"	=>	$arLdap['GROUP_FILTER'],
-					"GROUP_ID_ATTR"	=>	$arLdap['GROUP_ID_ATTR'],
-					"USER_GROUP_ACCESSORY"	=>	$arFields['USER_GROUP_ACCESSORY'],
-					"USER_FILTER"	=>	$arLdap['USER_FILTER'],
-					"GROUP_NAME_ATTR"=>	$arLdap['GROUP_NAME_ATTR'],
-					"CONVERT_UTF8"	=>	$arLdap['CONVERT_UTF8'],
-					"MAX_PAGE_SIZE"	=>	$arLdap['MAX_PAGE_SIZE']
-				)
+			$ldap = new CLDAP();
+			$ldap->arFields = array(
+				"SERVER" => $arLdap['SERVER'],
+				"PORT" => $arLdap['PORT'],
+				"ADMIN_LOGIN" => $arLdap['ADMIN_LOGIN'],
+				"ADMIN_PASSWORD" => $arLdap['ADMIN_PASSWORD'],
+				"BASE_DN" => $arLdap['BASE_DN'],
+				"GROUP_FILTER" => $arLdap['GROUP_FILTER'],
+				"GROUP_ID_ATTR" => $arLdap['GROUP_ID_ATTR'],
+				"USER_GROUP_ACCESSORY" => $arLdap['USER_GROUP_ACCESSORY'],
+				"USER_FILTER" => $arLdap['USER_FILTER'],
+				"GROUP_NAME_ATTR" => $arLdap['GROUP_NAME_ATTR'],
+				"CONVERT_UTF8" => $arLdap['CONVERT_UTF8'],
+				"MAX_PAGE_SIZE" => $arLdap['MAX_PAGE_SIZE'],
 			);
-
-			if(!$ldp)
-				$strError = GetMessage("USER_IMPORT_LDAP_SERVER_CONN_ERROR");
-			elseif(!$ldp->BindAdmin())
+			if($ldap->Connect())
 			{
-				$strError = GetMessage("USER_IMPORT_LDAP_SERVER_AUTH_ERROR");
+				$ldp = $ldap;
+
+				if(!$ldp->BindAdmin())
+				{
+					$strError = GetMessage("USER_IMPORT_LDAP_SERVER_AUTH_ERROR");
+				}
 				$ldp->Disconnect();
 			}
 			else
-				$ldp->Disconnect();
+			{
+				$strError = GetMessage("USER_IMPORT_LDAP_SERVER_CONN_ERROR");
+			}
 		}
 		else
 			$strError = GetMessage("USER_IMPORT_LDAP_SERVER_NOT_FOUND");

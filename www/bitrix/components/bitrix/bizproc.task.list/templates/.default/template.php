@@ -31,10 +31,12 @@ else
 								<td>
 									<a href="<?=$APPLICATION->GetCurPage().($uid!='*'?'?type='.$uid:'')?>" hidefocus="true" class="bp-context-button <?=!empty($dt['ACTIVE'])?'active':''?>">
 										<span class="bp-context-button-text"><?=htmlspecialcharsbx($dt['NAME'])?></span>
-										<?if (!empty($arResult["COUNTERS"][$dt['COUNTER_KEY']]['*'])):?>
-										<span class="bp-context-button-notice"><?=$arResult["COUNTERS"][$dt['COUNTER_KEY']]['*']?></span>
-										<?elseif (!empty($arResult["COUNTERS"][$dt['COUNTER_KEY']])):?>
-										<span class="bp-context-button-notice"><?=$arResult["COUNTERS"][$dt['COUNTER_KEY']]?></span>
+										<?if (empty($dt['FILTER']) && !empty($arResult["COUNTERS"]['*'])):?>
+										<span class="bp-context-button-notice"><?=$arResult["COUNTERS"]['*']?></span>
+										<?elseif (!empty($dt['FILTER']['ENTITY']) && !empty($arResult["COUNTERS"][$dt['FILTER']['MODULE_ID']][$dt['FILTER']['ENTITY']])):?>
+										<span class="bp-context-button-notice"><?=$arResult["COUNTERS"][$dt['FILTER']['MODULE_ID']][$dt['FILTER']['ENTITY']]?></span>
+										<?elseif (empty($dt['FILTER']['ENTITY']) && !empty($arResult["COUNTERS"][$dt['FILTER']['MODULE_ID']]['*'])):?>
+										<span class="bp-context-button-notice"><?=$arResult["COUNTERS"][$dt['FILTER']['MODULE_ID']]['*']?></span>
 										<?endif?>
 									</a>
 								</td>

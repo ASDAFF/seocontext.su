@@ -150,12 +150,12 @@ if ($USER->IsAuthorized() && check_bitrix_sessid() && isset($_REQUEST['IBLOCK_ID
 
 	function addTableDescriptionCell($intPropID, $arPropInfo)
 	{
-		return '<input type="text" name="PROPERTY_DIRECTORY_VALUES['.$intPropID.'][UF_DESCRIPTION]" id="PROPERTY_VALUES_DESCRIPTION_'.$intPropID.'" value="'.htmlspecialcharsbx($arPropInfo['UF_DESCRIPTION']).'" style="width:90%">';
+		return '<input type="text" name="PROPERTY_DIRECTORY_VALUES['.$intPropID.'][UF_DESCRIPTION]" id="PROPERTY_VALUES_DESCRIPTION_'.$intPropID.'" value="'.(is_string($arPropInfo['UF_DESCRIPTION']) ? htmlspecialcharsbx($arPropInfo['UF_DESCRIPTION']) : '').'" style="width:90%">';
 	}
 
 	function addTableFullDescriptionCell($intPropID, $arPropInfo)
 	{
-		return '<input type="text" name="PROPERTY_DIRECTORY_VALUES['.$intPropID.'][UF_FULL_DESCRIPTION]" id="PROPERTY_VALUES_FULL_DESCRIPTION_'.$intPropID.'" value="'.htmlspecialcharsbx($arPropInfo['UF_FULL_DESCRIPTION']).'" style="width:90%">';
+		return '<input type="text" name="PROPERTY_DIRECTORY_VALUES['.$intPropID.'][UF_FULL_DESCRIPTION]" id="PROPERTY_VALUES_FULL_DESCRIPTION_'.$intPropID.'" value="'.(is_string($arPropInfo['UF_FULL_DESCRIPTION']) ? htmlspecialcharsbx($arPropInfo['UF_FULL_DESCRIPTION']) : '').'" style="width:90%">';
 	}
 
 	function addTableDelField($intPropID)

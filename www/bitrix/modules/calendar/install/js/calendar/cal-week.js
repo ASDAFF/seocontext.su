@@ -84,8 +84,10 @@ JCEC.prototype.FillWeekDaysTitle = function(P)
 		link = BX.create('A', {props: {className: 'bxec-day-link', href: 'javascript:void(0)', title: EC_MESS.GoToDay}, html: innerHtml});
 		BX.cleanNode(c1);
 
+		// Cell width
+		c1.style.width = (Tab.arDayColWidth[i - 1] - 2) + 'px';
 		c1.appendChild(this.CreateStrut(Tab.arDayColWidth[i - 1] - 2));
-		c1.appendChild(BX.create("BR"));
+
 		c1.appendChild(link);
 		link.onmousedown = function(e){return BX.PreventDefault(e);};
 		link.onclick = function(e)
@@ -147,10 +149,11 @@ JCEC.prototype.BuildTimelineGrid = function(oTab, arDays)
 {
 	var
 		tbl = BX.create('TABLE', {props: {className: 'bxec-wdv-timeline-tbl'}}),
-		adCN = '',
+		adCN = '', adCN2 = '',
 		_this = this,
 		tabId = oTab.id,
-		i, r1, r2, c, cj1, cj2, ghostDiv, oDay, cn
+		i, j, r1, r2, c, cj1, cj2, oDay,
+		bHol1, bHol2,
 		arTF = this.arConfig.workTime[0].split('.'),
 		arTT = this.arConfig.workTime[1].split('.'),
 		fromHour = bxIntEx(arTF[0]),
@@ -186,7 +189,10 @@ JCEC.prototype.BuildTimelineGrid = function(oTab, arDays)
 			cj1 = r1.insertCell(-1);
 
 			if (i == 0)
+			{
+				cj1.style.width = (oTab.arDayColWidth[j] - 2) + 'px';
 				cj1.appendChild(this.CreateStrut(oTab.arDayColWidth[j] - 2));
+			}
 
 			cj2 = r2.insertCell(-1);
 
@@ -233,7 +239,19 @@ JCEC.prototype.BuildTimelineGrid = function(oTab, arDays)
 
 	oTab.pTimelineTable = tbl;
 	oTab.pTimelineCont.appendChild(tbl);
-	setTimeout(function() {oTab.pTimelineCont.scrollTop = 40 * bxInt(fromHour);}, 0); // Scroll to the start of the work time
+	setTimeout(function()
+	{
+		// Scroll to the start of the work time
+		oTab.pTimelineCont.scrollTop = 40 * bxInt(fromHour);
+
+		if (oTab.id == 'week')
+		{
+			var d = 3;
+			if (BX.browser.IsChrome() || BX.browser.IsSafari())
+				d = 6;
+			tbl.style.width = (oTab.pBodyCont.offsetWidth - d)+ 'px';
+		}
+	}, 0);
 
 	if (oTab.curDay)
 		setTimeout(function(){_this.ShowCurTimePointer(tabId);}, 100);

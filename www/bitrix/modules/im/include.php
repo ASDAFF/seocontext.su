@@ -1,8 +1,8 @@
 <?
 IncludeModuleLangFile(__FILE__);
 
-define("IM_REVISION", 61);
-define("IM_MOBILE_REVISION", 3);
+define("IM_REVISION", 68);
+define("IM_MOBILE_REVISION", 5);
 
 define("IM_MESSAGE_SYSTEM", "S");
 define("IM_MESSAGE_PRIVATE", "P");
@@ -57,7 +57,9 @@ CModule::AddAutoloadClasses(
 		"CIMContactList" => "classes/".$DBType."/im_contact_list.php",
 		"CIMChat" => "classes/general/im_chat.php",
 		"CIMMessage" => "classes/general/im_message.php",
+		"CIMMessageLink" => "classes/general/im_message_param.php",
 		"CIMMessageParam" => "classes/general/im_message_param.php",
+		"CIMMessageParamAttach" => "classes/general/im_message_param.php",
 		"CIMHistory" => "classes/general/im_history.php",
 		"CIMEvent" => "classes/general/im_event.php",
 		"CIMCall" => "classes/general/im_call.php",
@@ -75,14 +77,17 @@ CModule::AddAutoloadClasses(
 
 CJSCore::RegisterExt('im_common', array(
 	'js' => '/bitrix/js/im/common.js',
+	'css' => '/bitrix/js/im/css/common.css',
 	'lang' => '/bitrix/modules/im/lang/'.LANGUAGE_ID.'/js_common.php',
 	'rel' => array('ls', 'ajax', 'date')
 ));
 
 $jsCoreRel = array('im_common', 'popup', 'fx', 'json');
+$jsCoreRelMobile = array('im_common', 'uploader');
 if (IsModuleInstalled('voximplant'))
 {
 	$jsCoreRel[] = 'voximplant';
+	$jsCoreRelMobile[] = 'mobile_voximplant';
 }
 if (IsModuleInstalled('disk'))
 {
@@ -107,7 +112,7 @@ CJSCore::RegisterExt('im', array(
 CJSCore::RegisterExt('im_mobile', array(
 	'js' => '/bitrix/js/im/mobile.js',
 	'lang' => '/bitrix/modules/im/lang/'.LANGUAGE_ID.'/js_mobile.php',
-	'rel' => array('im_common', 'uploader')
+	'rel' => $jsCoreRelMobile
 ));
 
 CJSCore::RegisterExt('im_desktop', array(

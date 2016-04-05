@@ -107,4 +107,5 @@ $MESS["YANDEX_ERR_SKU_SETTINGS_ABSENT"] = "Отсутствуют настрой
 $MESS["YANDEX_ROOT_DIRECTORY"] = "Основной раздел каталога";
 $MESS["CET_ERROR_IBLOCK_PERM"] = "Недостаточно прав для работы с инфоблоком ##IBLOCK_ID#";
 $MESS["CES_ERROR_BAD_EXPORT_FILENAME"] = "Имя файла экспорта содержит запрещенные символы";
+$MESS["YANDEX_BASE_CURRENCY"] = "Валюта, в которую конвертировать цены товаров";
 ?>

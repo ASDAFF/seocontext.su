@@ -67,10 +67,27 @@ class FinderDestTable extends Entity\DataManager
 		);
 	}
 
+	/**
+	 * Adds or updates data about using destinations by a user
+	 *
+	 * @param $data
+     */
 	public static function merge($data)
 	{
 		static $connection = false;
 		static $helper = false;
+
+		$userId = (
+			isset($data['USER_ID'])
+			&& intval($data['USER_ID']) > 0
+				? intval($data['USER_ID'])
+				: (is_object($GLOBALS['USER']) ? $GLOBALS['USER']->getId() : 0)
+		);
+
+		if ($userId <= 0)
+		{
+			return;
+		}
 
 		if (!$connection)
 		{
@@ -78,16 +95,10 @@ class FinderDestTable extends Entity\DataManager
 			$helper = $connection->getSqlHelper();
 		}
 
-		$userId = (
-			isset($data['USER_ID'])
-			&& intval($data['USER_ID']) > 0
-				? intval($data['USER_ID'])
-				: $GLOBALS['USER']->getId()
-		);
-
 		if (is_array($data['CODE']))
 		{
 			$dataModified = $data;
+
 			foreach ($data['CODE'] as $code)
 			{
 				$dataModified['CODE'] = $code;
@@ -270,4 +281,43 @@ class FinderDestTable extends Entity\DataManager
 			}
 		}
 	}
+
+	public static function getMailUserId($code)
+	{
+		$userId = array();
+		$result = array();
+
+		if (!is_array($code))
+		{
+			$code = array($code);
+		}
+
+		foreach($code as $val)
+		{
+			if (preg_match('/^U(\d+)$/', $val, $matches))
+			{
+				$userId[] = $matches[1];
+			}
+		}
+
+		if (!empty($userId))
+		{
+			$res = \Bitrix\Main\UserTable::getList(array(
+				'order' => array(),
+				'filter' => array(
+					"ID" => $userId,
+					"=EXTERNAL_AUTH_ID" => 'email'
+				),
+				'select' => array("ID")
+			));
+
+			while ($user = $res->fetch())
+			{
+				$result[] = $user["ID"];
+			}
+		}
+
+		return $result;
+	}
+
 }

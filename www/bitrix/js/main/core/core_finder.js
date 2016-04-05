@@ -485,7 +485,6 @@ BX.Finder.findEntityByName = function(obDestination, obSearch, oParams, oResult)
 	var keysFiltered = Object.keys(obDestination.obClientDbDataSearchIndex).filter(function(key) {
 		return (key.indexOf(obSearch.searchString) === 0);
 	});
-
 	if (
 		keysFiltered.length <= 0
 		&& BX.message('LANGUAGE_ID') == 'ru'
@@ -514,18 +513,33 @@ BX.Finder.onFinderAjaxSuccess = function(data, obDestination)
 		for (var key in data.USERS)
 		{
 			oUser = data.USERS[key];
+
 			if (
 				typeof obDestination.obClientDbData.users == 'undefined'
 				|| typeof obDestination.obClientDbData.users[oUser.id] == 'undefined'
 				|| obDestination.obClientDbData.users[oUser.id].checksum != oUser.checksum
 			)
 			{
-				BX.indexedDB.updateValue(obDestination.obClientDb, 'users', oUser);
-
 				if (typeof obDestination.obClientDbData.users == 'undefined')
 				{
 					obDestination.obClientDbData.users = [];
 				}
+
+				BX.indexedDB.updateValue(obDestination.obClientDb, 'users', oUser, key, {
+					error: function(event, key) {
+						if (
+							typeof event != 'undefined'
+							&& typeof event.srcElement != 'undefined'
+							&& typeof event.srcElement.error != 'undefined'
+							&& typeof event.srcElement.error.name != 'undefined'
+							&& event.srcElement.error.name == 'ConstraintError'
+						)
+						{
+							BX.indexedDB.deleteValueByIndex(obDestination.obClientDb, 'users', 'id', key, {});
+						}
+					}
+				});
+
 				obDestination.obClientDbData.users[oUser.id] = oUser;
 				BX.Finder.addSearchIndex(obDestination, oUser);
 			}

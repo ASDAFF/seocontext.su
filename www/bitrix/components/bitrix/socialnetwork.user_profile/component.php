@@ -313,11 +313,24 @@ else
 	}
 	else
 	{
+		$arContext = array();
 		if (
-			CModule::IncludeModule('extranet') 
-			&& !CExtranet::IsProfileViewable($arResult["User"]) 
-			&& $arResult["User"]["ID"] != $USER->GetID()
+			isset($_GET["entityType"])
+			&& strlen($_GET["entityType"]) > 0
 		)
+		{
+			$arContext["ENTITY_TYPE"] = $_GET["entityType"];
+		}
+
+		if (
+			isset($_GET["entityId"])
+			&& intval($_GET["entityId"]) > 0
+		)
+		{
+			$arContext["ENTITY_ID"] = intval($_GET["entityId"]);
+		}
+
+		if (!CSocNetUser::CanProfileView($USER->GetID(), $arResult["User"], SITE_ID, $arContext))
 		{
 			return false;
 		}
@@ -471,7 +484,27 @@ else
 			);
 			$mailbox = $dbMailbox->fetch();
 			if (strpos($mailbox['LOGIN'], '@') !== false)
+			{
 				$arResult['User']['MAILBOX'] = $mailbox['LOGIN'];
+			}
+
+			if (
+				$arParams['ID'] == IntVal($USER->GetID())
+				&& method_exists('Bitrix\Mail\User','getForwardTo')
+			)
+			{
+				$arResult['User']['EMAIL_FORWARD_TO'] = array();
+
+				$res = Bitrix\Mail\User::getForwardTo(SITE_ID, $arParams['ID'], 'BLOG_POST');
+				if (is_array($res))
+				{
+					list($emailForwardTo) = $res;
+					if ($emailForwardTo)
+					{
+						$arResult['User']['EMAIL_FORWARD_TO']['BLOG_POST'] = $emailForwardTo;
+					}
+				}
+			}
 		}
 		if ($arResult["User"]['PERSONAL_BIRTHDAY'] <> '')
 		{

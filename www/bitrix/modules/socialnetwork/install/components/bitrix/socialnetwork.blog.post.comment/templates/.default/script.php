@@ -31,12 +31,18 @@ $formParams = Array(
 		"InsertUnorderedList",
 		"MentionUser", "SmileList", "Source"),
 	"BUTTONS" => Array(
-		((in_array("UF_BLOG_COMMENT_FILE", $arParams["COMMENT_PROPERTY"]) || in_array("UF_BLOG_COMMENT_DOC", $arParams["COMMENT_PROPERTY"])) ? "UploadFile" : ""),
-		((!$arResult["NoCommentUrl"]) ? 'CreateLink' : ''),
-		(($arResult["allowVideo"] == "Y") ? "InputVideo" : ""),
+		(
+			in_array("UF_BLOG_COMMENT_FILE", $arParams["COMMENT_PROPERTY"])
+			|| in_array("UF_BLOG_COMMENT_DOC", $arParams["COMMENT_PROPERTY"])
+				? "UploadFile"
+				: ""
+		),
+		(!$arResult["NoCommentUrl"] ? 'CreateLink' : ''),
+		($arResult["allowVideo"] == "Y" ? "InputVideo" : ""),
 		//(($arResult["allowImageUpload"] == "Y") ? 'UploadImage' : ''),
 		"Quote",
-		"MentionUser"/*, "BlogTag"*/
+		(!$arParams["bPublicPage"] ? "MentionUser" : "")
+		/*, "BlogTag"*/
 	),
 	"TEXT" => Array(
 		"NAME" => "comment",
@@ -46,6 +52,7 @@ $formParams = Array(
 	"DESTINATION" => Array(
 		"VALUE" => $arResult["FEED_DESTINATION"],
 		"SHOW" => "N",
+		"USE_CLIENT_DATABASE" => ($arParams["bPublicPage"] ? "N" : "Y")
 	),
 	"UPLOAD_FILE" => !empty($arResult["COMMENT_PROPERTIES"]["DATA"]["UF_BLOG_COMMENT_FILE"]) ? false :
 		$arResult["COMMENT_PROPERTIES"]["DATA"]["UF_BLOG_COMMENT_DOC"],
@@ -68,6 +75,20 @@ $formParams = Array(
 		"height" => 80
 	),
 	"IS_BLOG" => true,
+	"PROPERTIES" => array(
+		array_merge(
+			(
+				isset($arResult["COMMENT_PROPERTIES"])
+				&& isset($arResult["COMMENT_PROPERTIES"]["DATA"])
+				&& isset($arResult["COMMENT_PROPERTIES"]["DATA"]["UF_BLOG_COMM_URL_PRV"])
+				&& is_array($arResult["COMMENT_PROPERTIES"]["DATA"]["UF_BLOG_COMM_URL_PRV"])
+					? $arResult["COMMENT_PROPERTIES"]["DATA"]["UF_BLOG_COMM_URL_PRV"]
+					: array()
+			),
+			array('ELEMENT_ID' => 'url_preview_'.$rand)
+		)
+	),
+	"DISABLE_LOCAL_EDIT" => $arParams["bPublicPage"]
 );
 //===WebDav===
 if(!array_key_exists("USER", $GLOBALS) || !$GLOBALS["USER"]->IsAuthorized())
@@ -176,7 +197,11 @@ BX.ready(function(){
 
 	window["SBPC"] = {
 		form : BX('<?=$formParams["FORM_ID"]?>'),
-		actionUrl : '/bitrix/urlrewrite.php?SEF_APPLICATION_CUR_PAGE_URL=<?=str_replace("%23", "#", urlencode($arResult["urlToPost"]))?>',
+		actionUrl : '<?=(
+			$arParams["SEF"] == "Y"
+				? '/bitrix/urlrewrite.php?SEF_APPLICATION_CUR_PAGE_URL='.str_replace("%23", "#", urlencode($arResult["urlToPost"]))
+				: CUtil::JSEscape($arResult["urlToPost"])
+		)?>',
 		editorId : '<?=$formParams["LHE"]["id"]?>',
 
 		jsMPFName : 'PlEditor<?=$formParams["FORM_ID"]?>'

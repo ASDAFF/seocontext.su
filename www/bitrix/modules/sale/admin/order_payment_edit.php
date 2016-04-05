@@ -109,6 +109,9 @@ else
 		$payment = $saleOrder->getPaymentCollection()->getItemById($paymentId);
 	else
 		$payment = $saleOrder->getPaymentCollection()->createItem();
+
+	if (!$payment)
+		LocalRedirect("/bitrix/admin/sale_order_payment.php?lang=".$lang.GetFilterParams("filter_", false));
 }
 
 $companyParams = array(

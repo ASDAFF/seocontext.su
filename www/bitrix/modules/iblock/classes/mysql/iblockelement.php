@@ -244,11 +244,14 @@ class CIBlockElement extends CAllIBlockElement
 		SHOW_HISTORY="N" - add history items to list
 			SHOW_NEW="N" - if not add history items, then add new, but not published elements
 		*/
-		global $DB, $USER, $APPLICATION;
+		global $DB, $USER;
 		$MAX_LOCK = intval(COption::GetOptionString("workflow","MAX_LOCK_TIME","60"));
 		$uid = is_object($USER)? intval($USER->GetID()): 0;
 
-		$arIblockElementFields = Array(
+		$formatActiveDates = CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "-") != "-";
+		$shortFormatActiveDates = CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "SHORT");
+
+		$arIblockElementFields = array(
 				"ID"=>"BE.ID",
 				"TIMESTAMP_X"=>$DB->DateToCharFunction("BE.TIMESTAMP_X"),
 				"TIMESTAMP_X_UNIX"=>'UNIX_TIMESTAMP(BE.TIMESTAMP_X)',
@@ -260,30 +263,30 @@ class CIBlockElement extends CAllIBlockElement
 				"IBLOCK_SECTION_ID"=>"BE.IBLOCK_SECTION_ID",
 				"ACTIVE"=>"BE.ACTIVE",
 				"ACTIVE_FROM"=>(
-						CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "-")!="-"
+						$formatActiveDates
 						?
-							$DB->DateToCharFunction("BE.ACTIVE_FROM", CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "SHORT"))
+							$DB->DateToCharFunction("BE.ACTIVE_FROM", $shortFormatActiveDates)
 						:
 							"IF(EXTRACT(HOUR_SECOND FROM BE.ACTIVE_FROM)>0, ".$DB->DateToCharFunction("BE.ACTIVE_FROM", "FULL").", ".$DB->DateToCharFunction("BE.ACTIVE_FROM", "SHORT").")"
 						),
 				"ACTIVE_TO"=>(
-						CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "-")!="-"
+						$formatActiveDates
 						?
-							$DB->DateToCharFunction("BE.ACTIVE_TO", CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "SHORT"))
+							$DB->DateToCharFunction("BE.ACTIVE_TO", $shortFormatActiveDates)
 						:
 							"IF(EXTRACT(HOUR_SECOND FROM BE.ACTIVE_TO)>0, ".$DB->DateToCharFunction("BE.ACTIVE_TO", "FULL").", ".$DB->DateToCharFunction("BE.ACTIVE_TO", "SHORT").")"
 						),
 				"DATE_ACTIVE_FROM"=>(
-						CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "-")!="-"
+						$formatActiveDates
 						?
-							$DB->DateToCharFunction("BE.ACTIVE_FROM", CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "SHORT"))
+							$DB->DateToCharFunction("BE.ACTIVE_FROM", $shortFormatActiveDates)
 						:
 							"IF(EXTRACT(HOUR_SECOND FROM BE.ACTIVE_FROM)>0, ".$DB->DateToCharFunction("BE.ACTIVE_FROM", "FULL").", ".$DB->DateToCharFunction("BE.ACTIVE_FROM", "SHORT").")"
 						),
 				"DATE_ACTIVE_TO"=>(
-						CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "-")!="-"
+						$formatActiveDates
 						?
-							$DB->DateToCharFunction("BE.ACTIVE_TO", CPageOption::GetOptionString("iblock", "FORMAT_ACTIVE_DATES", "SHORT"))
+							$DB->DateToCharFunction("BE.ACTIVE_TO", $shortFormatActiveDates)
 						:
 							"IF(EXTRACT(HOUR_SECOND FROM BE.ACTIVE_TO)>0, ".$DB->DateToCharFunction("BE.ACTIVE_TO", "FULL").", ".$DB->DateToCharFunction("BE.ACTIVE_TO", "SHORT").")"
 						),
@@ -327,6 +330,8 @@ class CIBlockElement extends CAllIBlockElement
 				"CREATED_DATE"=>$DB->DateFormatToDB("YYYY.MM.DD", "BE.DATE_CREATE"),
 				"BP_PUBLISHED"=>"if(BE.WF_STATUS_ID = 1, 'Y', 'N')",
 			);
+		unset($shortFormatActiveDates);
+		unset($formatActiveDates);
 
 		$bDistinct = false;
 
@@ -800,6 +805,8 @@ class CIBlockElement extends CAllIBlockElement
 		$bWorkFlow = $bWorkFlow && is_array($arIBlock) && ($arIBlock["WORKFLOW"] != "N") && CModule::IncludeModule("workflow");
 
 		$ar_wf_element = $ar_element;
+
+		self::$elementIblock[$ID] = $arIBlock["ID"];
 
 		$LAST_ID = 0;
 		if($bWorkFlow)
@@ -1465,6 +1472,8 @@ class CIBlockElement extends CAllIBlockElement
 					CFile::SaveForDB($arFields, "DETAIL_PICTURE", "iblock");
 			}
 
+			$newFields = $arFields;
+			$newFields["ID"] = $ID;
 			$IBLOCK_SECTION_ID = $arFields["IBLOCK_SECTION_ID"];
 			unset($arFields["IBLOCK_ID"], $arFields["WF_NEW"], $arFields["IBLOCK_SECTION_ID"]);
 
@@ -1473,7 +1482,12 @@ class CIBlockElement extends CAllIBlockElement
 			{
 				$bTimeStampNA = true;
 				unset($arFields["TIMESTAMP_X"]);
+				unset($newFields["TIMESTAMP_X"]);
 			}
+
+			foreach (GetModuleEvents("iblock", "OnIBlockElementUpdate", true) as $arEvent)
+				ExecuteModuleEventEx($arEvent, array($newFields, $ar_wf_element));
+			unset($newFields);
 
 			$strUpdate = $DB->PrepareUpdate("b_iblock_element", $arFields, "iblock");
 
@@ -1613,8 +1627,8 @@ class CIBlockElement extends CAllIBlockElement
 		global $DB;
 		global $BX_IBLOCK_PROP_CACHE;
 
-		$ELEMENT_ID = intVal($ELEMENT_ID);
-		$IBLOCK_ID = intval($IBLOCK_ID);
+		$ELEMENT_ID = (int)$ELEMENT_ID;
+		$IBLOCK_ID = (int)$IBLOCK_ID;
 
 		if (!is_array($PROPERTY_VALUES))
 			$PROPERTY_VALUES = array($PROPERTY_VALUES);
@@ -1630,9 +1644,9 @@ class CIBlockElement extends CAllIBlockElement
 			$arFilter["ACTIVE"] = "Y";
 			$uniq_flt .= "|ACTIVE:".$arFilter["ACTIVE"];
 		}
-		elseif(intval($PROPERTY_CODE) > 0)
+		elseif((int)$PROPERTY_CODE > 0)
 		{
-			$arFilter["ID"] = intval($PROPERTY_CODE);
+			$arFilter["ID"] = (int)$PROPERTY_CODE;
 			$uniq_flt .= "|ID:".$arFilter["ID"];
 		}
 		else
@@ -1650,9 +1664,9 @@ class CIBlockElement extends CAllIBlockElement
 
 			$db_prop = CIBlockProperty::GetList(array(), $arFilter);
 			while($prop = $db_prop->Fetch())
-			{
-				$BX_IBLOCK_PROP_CACHE[$IBLOCK_ID][$uniq_flt][] = $prop;
-			}
+				$BX_IBLOCK_PROP_CACHE[$IBLOCK_ID][$uniq_flt][$prop["ID"]] = $prop;
+			unset($prop);
+			unset($db_prop);
 		}
 
 		$ar_prop = &$BX_IBLOCK_PROP_CACHE[$IBLOCK_ID][$uniq_flt];
@@ -1678,6 +1692,8 @@ class CIBlockElement extends CAllIBlockElement
 
 				$arDBProps[$property_id][$ar["ID"]] = $ar;
 			}
+			unset($ar);
+			unset($rs);
 
 			$rs = $DB->Query("
 				select *
@@ -1706,7 +1722,11 @@ class CIBlockElement extends CAllIBlockElement
 						);
 					}
 				}
+				if (isset($property))
+					unset($property);
 			}
+			unset($ar);
+			unset($rs);
 		}
 		else
 		{
@@ -1724,7 +1744,14 @@ class CIBlockElement extends CAllIBlockElement
 
 				$arDBProps[$property_id][$ar["ID"]] = $ar;
 			}
+			unset($ar);
+			unset($rs);
 		}
+
+		foreach (GetModuleEvents("iblock", "OnIBlockElementSetPropertyValues", true) as $arEvent)
+			ExecuteModuleEventEx($arEvent, array($ELEMENT_ID, $IBLOCK_ID, $PROPERTY_VALUES, $PROPERTY_CODE, $ar_prop, $arDBProps));
+		if (isset($arEvent))
+			unset($arEvent);
 
 		$arFilesToDelete = array();
 		$arV2ClearCache = array();
@@ -2518,7 +2545,7 @@ class CIBlockElement extends CAllIBlockElement
 	///////////////////////////////////////////////////////////////////
 	protected function UpdateList($arFields, $arFilter = array())
 	{
-		global $DB, $USER, $USER_FIELD_MANAGER;
+		global $DB;
 
 		$strUpdate = $DB->PrepareUpdate("b_iblock_element", $arFields, "iblock", false, "BE");
 		if ($strUpdate == "")
@@ -2536,4 +2563,3 @@ class CIBlockElement extends CAllIBlockElement
 		return $DB->Query($strSql, false, "FILE: ".__FILE__."<br> LINE: ".__LINE__);
 	}
 }
-?>

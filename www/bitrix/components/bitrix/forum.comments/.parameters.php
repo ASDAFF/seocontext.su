@@ -148,7 +148,8 @@ $arComponentParameters = Array(
 
 $arEditorSettings = array("ALLOW_HTML", "ALLOW_ANCHOR", "ALLOW_BIU", 
 	"ALLOW_IMG", "ALLOW_VIDEO", "ALLOW_LIST", "ALLOW_QUOTE", "ALLOW_CODE", 
-	"ALLOW_TABLE", "ALLOW_FONT", "ALLOW_SMILES", "ALLOW_NL2BR", "ALLOW_ALIGN");
+	"ALLOW_TABLE", "ALLOW_FONT", "ALLOW_SMILES", "ALLOW_NL2BR", "ALLOW_ALIGN",
+	"ALLOW_MENTION");
 foreach ($arEditorSettings as $settingName)
 {
 	$hidden = "N";
@@ -170,12 +171,12 @@ GetMessage("ALLOW_IMG_TITLE");
 GetMessage("ALLOW_VIDEO_TITLE");
 GetMessage("ALLOW_LIST_TITLE");
 GetMessage("ALLOW_QUOTE_TITLE");
-GetMessage("ALLOW_QUOTE_TITLE");
 GetMessage("ALLOW_CODE_TITLE");
 GetMessage("ALLOW_TABLE_TITLE");
 GetMessage("ALLOW_FONT_TITLE");
 GetMessage("ALLOW_SMILES_TITLE");
 GetMessage("ALLOW_NL2BR_TITLE");
 GetMessage("ALLOW_ALIGN_TITLE");
+GetMessage("ALLOW_MENTION_TITLE");
 */
 ?>

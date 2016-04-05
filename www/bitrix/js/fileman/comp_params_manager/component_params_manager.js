@@ -703,9 +703,17 @@
 				});
 			pSelect.onchange = BX.proxy(this.OnChageParams, this);
 
+			if (param.VALUES['-'])
+			{
+				key = '-';
+				val = param.VALUES[key].toString();
+				opt = new Option(val, key, false, false);
+				pSelect.options.add(opt);
+			}
+
 			for(key in param.VALUES)
 			{
-				if (param.VALUES.hasOwnProperty(key))
+				if (param.VALUES.hasOwnProperty(key) && key !== '-')
 				{
 					val = param.VALUES[key].toString();
 					opt = new Option(val, key, false, false);
@@ -1464,6 +1472,9 @@
 					}
 				}
 			}
+
+			if (result.COMPONENT_TEMPLATE)
+				delete(result.COMPONENT_TEMPLATE);
 
 			return result;
 		},

@@ -148,11 +148,13 @@ class CurrencyTable extends Main\Entity\DataManager
 	}
 
 	/**
+	 * @deprecated deprecated since currency 16.0.0
+	 * @see \Bitrix\Currency\CurrencyManager::currencyBaseRateAgent();
+	 *
 	 * @return string
 	 */
 	public static function currencyBaseRateAgent()
 	{
-		\CCurrency::updateAllCurrencyBaseRate();
-		return '\Bitrix\Currency\CurrencyTable::currencyBaseRateAgent();';
+		return CurrencyManager::currencyBaseRateAgent();
 	}
 }

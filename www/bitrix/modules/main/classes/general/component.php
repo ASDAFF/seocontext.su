@@ -327,8 +327,8 @@ class CBitrixComponent
 	 */
 	final public function setTemplateCachedData($templateCachedData)
 	{
-		if ($this->__bInited)
-			CBitrixComponentTemplate::ApplyCachedData($templateCachedData);
+		if ($this->__bInited && $this->__template)
+			$this->__template->ApplyCachedData($templateCachedData);
 	}
 	/**
 	 * Function includes class of the component by component name bitrix:component.base
@@ -1037,7 +1037,8 @@ class CBitrixComponent
 		if ($this->__cachePath === false)
 			$this->__cachePath = $CACHE_MANAGER->getCompCachePath($this->__relativePath);
 
-		CPHPCache::clean($this->__cacheID, $this->__cachePath);
+		$cache = new CPHPCache();
+		$cache->clean($this->__cacheID, $this->__cachePath);
 	}
 	/**
 	 * Function clears entire component cache.

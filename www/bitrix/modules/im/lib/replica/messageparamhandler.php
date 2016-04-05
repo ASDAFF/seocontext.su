@@ -33,11 +33,80 @@ class MessageParamHandler extends \Bitrix\Replica\Client\BaseHandler
 		{
 			return "b_user.ID";
 		}
- 		if ($record["PARAM_NAME"] === "FILE_ID" && $record["PARAM_VALUE"])
- 		{
- 			return "b_file.ID";
- 		}
+		elseif ($record["PARAM_NAME"] === "URL_ID" && $record["PARAM_VALUE"])
+		{
+			return "b_urlpreview_metadata.ID";
+		}
 		return false;
+	}
+
+	/**
+	 * Called before record transformed for log writing.
+	 *
+	 * @param array &$record Database record.
+	 *
+	 * @return void
+	 */
+	public function beforeLogFormat(array &$record)
+	{
+		global $USER;
+		if ($record["PARAM_NAME"] !== "FILE_ID" || $record["PARAM_VALUE"] <= 0)
+		{
+			return;
+		}
+
+		if (!\Bitrix\Main\Loader::includeModule('disk'))
+		{
+			AddMessage2Log('MessageParamHandler::beforeLogFormat: failed to load disk module.');
+			return;
+		}
+
+		if (!is_object($USER) || $USER->GetID() < 0)
+		{
+			AddMessage2Log('MessageParamHandler::beforeLogFormat: no user provided.');
+			return;
+		}
+
+		/** @var \Bitrix\Disk\File $file */
+		$fileId = $record["PARAM_VALUE"];
+		$userId = $USER->GetID();
+		$file = \Bitrix\Disk\File::loadById($fileId);
+		if (!$file)
+		{
+			AddMessage2Log('MessageParamHandler::beforeLogFormat: file ('.$fileId.') not found for user ('.$userId.').');
+			return;
+		}
+
+		$externalLink = $file->addExternalLink(array(
+			'CREATED_BY' => $userId,
+			'TYPE' => \Bitrix\Disk\Internals\ExternalLinkTable::TYPE_MANUAL,
+		));
+		if (!$externalLink)
+		{
+			AddMessage2Log('MessageParamHandler::beforeLogFormat: failed to get external link for file ('.$fileId.').');
+			AddMessage2Log($file->getErrors());
+			return;
+		}
+
+		$url = \Bitrix\Disk\Driver::getInstance()->getUrlManager()->getUrlExternalLink(array(
+			'hash' => $externalLink->getHash(),
+			'action' => 'default',
+		), true);
+		$fileName =  $file->getName();
+		$fileSize = $file->getSize();
+
+		$attach = new \CIMMessageParamAttach(null, \CIMMessageParamAttach::CHAT);
+		$attach->AddFiles(array(
+			array(
+				"NAME" => $fileName,
+				"LINK" => $url,
+				"SIZE" => $fileSize,
+			)
+		));
+
+		$record["PARAM_NAME"] = 'ATTACH';
+		$record["PARAM_VALUE"] = 1;
+		$record["PARAM_JSON"] = $attach->GetJSON();
 	}
 
 	/**
@@ -135,6 +204,14 @@ class MessageParamHandler extends \Bitrix\Replica\Client\BaseHandler
 					'params' => $arPullMessage
 				));
 			}
+		}
+		else if ($newRecord['PARAM_NAME'] == 'ATTACH')
+		{
+			\CIMMessageParam::SendPull($id);
+		}
+		else if ($newRecord['PARAM_NAME'] == 'URL_ID')
+		{
+			\CIMMessageParam::SendPull($id);
 		}
 	}
 }

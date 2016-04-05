@@ -229,7 +229,27 @@
 				dropZone = new BX.DD.dropFiles(node);
 				if (dropZone && dropZone.supported() && BX.ajax.FormData.isSupported()) {
 					dropZone.f = {
-						dropFiles : BX.delegate(this.onChange, this),
+						dropFiles : BX.delegate(function(files, e) {
+							if (e && e["dataTransfer"] && e["dataTransfer"]["items"] && e["dataTransfer"]["items"].length > 0)
+							{
+								var dt = e["dataTransfer"], ii, entry, fileCopy = [], replace = false;
+								for (ii = 0; ii < dt["items"].length; ii++)
+								{
+									if (dt["items"][ii]["webkitGetAsEntry"] && dt["items"][ii]["getAsFile"])
+									{
+										replace = true;
+										entry = dt["items"][ii]["webkitGetAsEntry"]();
+										if (entry && entry.isFile)
+										{
+											fileCopy.push(dt["items"][ii]["getAsFile"]());
+										}
+									}
+								}
+								if (replace)
+									files = fileCopy;
+							}
+							this.onChange(files);
+						}, this),
 						dragEnter : function(e) {
 							var isFileTransfer = false;
 							if (e && e["dataTransfer"] && e["dataTransfer"]["types"])
@@ -259,8 +279,9 @@
 			}
 			return dropZone;
 		},
-		onAttach : function(files, nodes)
+		onAttach : function(files, nodes, check)
 		{
+			check = (check !== false);
 			if (typeof files !== "undefined" && files.length > 0)
 			{
 				if (!this.params["doWeHaveStorage"])
@@ -297,15 +318,18 @@
 					type = (BX.type.isNotEmptyString(f['type']) ? f['type'] : '').toLowerCase();
 
 					if (
+						check &&
 						(
-							this.limits["uploadFile"] == "image/*" &&
 							(
-								(BX.type.isNotEmptyString(type) && type.indexOf("image/") !== 0) ||
-								(!BX.type.isNotEmptyString(type) && this.params["imageExt"].indexOf(ext) < 0)
+								this.limits["uploadFile"] == "image/*" &&
+								(
+									(BX.type.isNotEmptyString(type) && type.indexOf("image/") !== 0) ||
+									(!BX.type.isNotEmptyString(type) && this.params["imageExt"].indexOf(ext) < 0)
+								)
+							) ||
+							(
+								this.limits["uploadFileExt"].length > 0 && this.limits["uploadFileExt"].indexOf(ext) < 0
 							)
-						) ||
-						(
-							this.limits["uploadFileExt"].length > 0 && this.limits["uploadFileExt"].indexOf(ext) < 0
 						)
 					)
 					{

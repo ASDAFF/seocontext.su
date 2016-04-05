@@ -302,7 +302,7 @@ if(!empty($arBlog) && $arBlog["ACTIVE"] == "Y" && $arGroup["SITE_ID"] == SITE_ID
 						$APPLICATION->AddHeadScript("/bitrix/components/bitrix/player/wmvplayer/wmvscript.js");
 						$APPLICATION->AddHeadScript("/bitrix/components/bitrix/player/wmvplayer/silverlight.js");
 						$APPLICATION->AddHeadScript("/bitrix/components/bitrix/player/wmvplayer/wmvplayer.js");
-						$APPLICATION->AddHeadScript("/bitrix/components/bitrix/player/mediaplayer/flvscript.j");
+						$APPLICATION->AddHeadScript("/bitrix/components/bitrix/player/mediaplayer/flvscript.js");
 
 						$Vars = $cache->GetVars();
 						foreach($Vars["arResult"] as $k=>$v)

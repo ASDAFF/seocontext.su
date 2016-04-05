@@ -26,6 +26,7 @@ $MESS["ALLOW_QUOTE_TITLE"] = "позволить цитирование";
 $MESS["ALLOW_CODE_TITLE"] = "позволить коды";
 $MESS["ALLOW_FONT_TITLE"] = "позволить шрифты";
 $MESS["ALLOW_ALIGN_TITLE"] = "позволить выравнивание";
+$MESS["ALLOW_MENTION_TITLE"] = "позволить упоминание пользователя";
 $MESS["F_ENTITY_TYPE"] = "Тип сущности";
 $MESS["F_ENTITY_ID"] = "Числовой ID сущности";
 $MESS["F_ENTITY_XML_ID"] = "Буквенно-числовой ID сущности (XML ID)";

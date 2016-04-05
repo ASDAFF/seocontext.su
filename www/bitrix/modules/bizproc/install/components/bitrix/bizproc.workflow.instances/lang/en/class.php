@@ -1,7 +1,6 @@
 <?
 $MESS["BPWI_PAGE_TITLE"] = "Running workflows";
 $MESS["BPWI_MODIFIED"] = "Modified on";
-$MESS["BPWI_IS_LOCKED"] = "Locked";
 $MESS["BPWI_OWNED_UNTIL"] = "Locked until";
 $MESS["BPWI_WS_STARTED"] = "Started on";
 $MESS["BPWI_WS_STARTED_BY"] = "Started by";
@@ -22,4 +21,11 @@ $MESS["BPWI_DELETE_LABEL"] = "Delete";
 $MESS["BPWI_DELETE_CONFIRM"] = "Are you sure you want to delete the process and all associated data?";
 $MESS["BPWI_OPEN_DOCUMENT"] = "Document (in a new window)";
 $MESS["BPWI_NO_DOCUMENT"] = "The document was not found.";
+$MESS["BPWI_IS_LOCKED"] = "Hung";
+$MESS["BPWI_WS_MODULE_ID"] = "Module";
+$MESS["BPWI_DOCUMENT_NAME"] = "Document";
+$MESS["BPWI_MODULE_CRM"] = "CRM";
+$MESS["BPWI_MODULE_IBLOCK"] = "Lists";
+$MESS["BPWI_MODULE_DISK"] = "Drive";
+$MESS["BPWI_MODULE_LISTS"] = "Workflows";
 ?>

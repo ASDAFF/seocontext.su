@@ -3,6 +3,22 @@
 /** @var string $strWarning */
 /** @var int $IBLOCK_ID */
 /** @var int $ID */
+
+/** @global string $SUBCAT_BASE_WEIGHT */
+/** @global string $SUBCAT_BASE_WIDTH */
+/** @global string $SUBCAT_BASE_LENGTH */
+/** @global string $SUBCAT_BASE_HEIGHT */
+/** @global string $SUBCAT_MEASURE */
+/** @global string $SUBCAT_BASE_QUANTITY */
+/** @global string $SUBCAT_PRICE_TYPE */
+/** @global string $SUBCAT_RECUR_SCHEME_TYPE */
+/** @global string $SUBCAT_RECUR_SCHEME_LENGTH */
+/** @global string $SUBCAT_TRIAL_PRICE_ID */
+/** @global string $SUBCAT_WITHOUT_ORDER */
+/** @global string $SUBCAT_MEASURE_RATIO */
+/** @global string $SUBCAT_BASE_QUANTITY_RESERVED */
+/** @global array $arCatalogBaseGroup */
+
 if ($USER->CanDoOperation('catalog_price'))
 {
 	$IBLOCK_ID = (int)$IBLOCK_ID;
@@ -78,16 +94,7 @@ if ($USER->CanDoOperation('catalog_price'))
 				$useStore = $_POST['SUBUSE_STORE'];
 				if(!$useStore || $useStore == '')
 					$useStore = 'D';
-				if ('Y' == $useStore || ('D' == $useStore && 'Y' == $availCanBuyZero))
-				{
-					$negativeAmount = $useStore;
-				}
-				else
-				{
-					$negativeAmount = $_POST['SUBNEGATIVE_AMOUNT'];
-					if(!$negativeAmount || $negativeAmount == '')
-						$negativeAmount = 'D';
-				}
+
 				$barcodeMultiply = $_POST["SUBCAT_BARCODE_MULTIPLY"];
 				if(!$barcodeMultiply || $barcodeMultiply == '')
 					$barcodeMultiply = 'N';
@@ -179,7 +186,6 @@ if ($USER->CanDoOperation('catalog_price'))
 					"VAT_ID" => $SUBCAT_VAT_ID,
 					"VAT_INCLUDED" => $SUBCAT_VAT_INCLUDED,
 					"CAN_BUY_ZERO" => $useStore,
-					"NEGATIVE_AMOUNT_TRACE" => $negativeAmount,
 					"PRICE_TYPE" => false,
 					"RECUR_SCHEME_TYPE" => false,
 					"RECUR_SCHEME_LENGTH" => false,
@@ -187,6 +193,7 @@ if ($USER->CanDoOperation('catalog_price'))
 					"WITHOUT_ORDER" => false,
 					"BARCODE_MULTI" => $barcodeMultiply,
 					"MEASURE" => $SUBCAT_MEASURE,
+					"TYPE" => \Bitrix\Catalog\ProductTable::TYPE_OFFER
 				);
 				if ($USER->CanDoOperation('catalog_purchas_info') && !$bUseStoreControl)
 				{

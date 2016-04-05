@@ -1,10 +1,12 @@
 <?php
 if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 
+$converter = CBXPunycode::GetConverter();
+
 $arParamsDetail = array(
-					"INSCRIPTION_FOR_EMPTY" => GetMessage("BCLMMD_NO_DATA"),
-					"TITLE" => GetMessage("BCLMMD_TITLE"),
-					);
+	"INSCRIPTION_FOR_EMPTY" => GetMessage("BCLMMD_NO_DATA"),
+	"TITLE" => GetMessage("BCLMMD_TITLE"),
+);
 
 $arSection = array(
 	"TITLE" => htmlspecialcharsbx($arResult["DOMAIN_DECODED"])
@@ -56,7 +58,7 @@ var bcmm = new __BitrixCloudMobMon(listParams);
 								name: "<?=GetMessage("BCLMMD_DELETE")?>",
 								action: function() {
 														app.confirm({
-																title: "<?=CUtil::JSEscape($arResult["DOMAIN"])?>",
+																title: "<?=CUtil::JSEscape($converter->Decode($arResult["DOMAIN"]))?>",
 																text: "<?=GetMessage("BCLMMD_DELETE_CONFIRM")?>",
 																buttons: ["<?=GetMessage("BCLMMD_BUTT_CANCEL")?>","<?=GetMessage("BCLMMD_BUTT_OK")?>"],
 																callback: function(buttIdx){

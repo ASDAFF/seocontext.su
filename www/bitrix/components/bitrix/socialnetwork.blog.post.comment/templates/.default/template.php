@@ -75,7 +75,7 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 		"OK_MESSAGE" => $arResult["MESSAGE"],
 		"RESULT" => ($arResult["ajax_comment"] ?: $_GET["commentId"]),
 		"PUSH&PULL" => $arResult["PUSH&PULL"],
-		"VIEW_URL" => str_replace(array("##comment_id#", "#comment_id#"), array("", "#ID#"), $arResult["commentUrl"]),
+		"VIEW_URL" => ($arParams["bPublicPage"] ? "" : str_replace(array("##comment_id#", "#comment_id#"), array("", "#ID#"), $arResult["commentUrl"])),
 		"EDIT_URL" => "__blogEditComment('#ID#', '".$arParams["ID"]."');",
 		"MODERATE_URL" => str_replace(
 			array("#source_post_id#", "#post_id#", "#comment_id#", "&".bitrix_sessid_get(), "hide_comment_id="),
@@ -87,7 +87,7 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 			array($arParams["ID"], $arParams["ID"], "#ID#", ""),
 			$arResult["urlToDelete"]
 		),
-		"AUTHOR_URL" => $arParams["PATH_TO_USER"],
+		"AUTHOR_URL" => ($arParams["bPublicPage"] ? "javascript:void(0);" : $arParams["PATH_TO_USER"]),
 
 		"AVATAR_SIZE" => $arParams["AVATAR_SIZE_COMMENT"],
 		"NAME_TEMPLATE" => $arParams["NAME_TEMPLATE"],
@@ -102,7 +102,12 @@ $arResult["OUTPUT_LIST"] = $APPLICATION->IncludeComponent(
 		"SHOW_POST_FORM" => ($arResult["CanUserComment"] ? "Y" : "N"),
 
 		"IMAGE_SIZE" => $arParams["IMAGE_SIZE"],
-		"mfi" => $arParams["mfi"]
+		"mfi" => $arParams["mfi"],
+		"AUTHOR_URL_PARAMS" => array(
+			"entityType" => 'LOG_ENTRY',
+			"entityId" => $arParams["LOG_ID"]
+		),
+		"bPublicPage" => (isset($arParams["bPublicPage"]) && $arParams["bPublicPage"])
 	),
 	$this->__component
 );

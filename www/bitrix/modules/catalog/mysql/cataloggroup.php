@@ -1,5 +1,4 @@
 <?
-/** global array $CATALOG_BASE_GROUP */
 require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/catalog/general/cataloggroup.php");
 
 class CCatalogGroup extends CAllCatalogGroup
@@ -54,6 +53,7 @@ class CCatalogGroup extends CAllCatalogGroup
 			self::$arBaseGroupCache = array();
 			if (defined('CATALOG_GLOBAL_VARS') && 'Y' == CATALOG_GLOBAL_VARS)
 			{
+				/** @global array $CATALOG_BASE_GROUP */
 				global $CATALOG_BASE_GROUP;
 				$CATALOG_BASE_GROUP = self::$arBaseGroupCache;
 			}
@@ -146,6 +146,7 @@ class CCatalogGroup extends CAllCatalogGroup
 				self::$arBaseGroupCache = array();
 				if (defined('CATALOG_GLOBAL_VARS') && 'Y' == CATALOG_GLOBAL_VARS)
 				{
+					/** @global array $CATALOG_BASE_GROUP */
 					global $CATALOG_BASE_GROUP;
 					$CATALOG_BASE_GROUP = self::$arBaseGroupCache;
 				}
@@ -499,7 +500,7 @@ class CCatalogGroup extends CAllCatalogGroup
 			"BUY" => array("FIELD" => "CGG.BUY", "TYPE" => "char")
 		);
 
-		$arSqls = CCatalog::PrepareSql($arFields, array(), $arFilter, false, false);
+		$arSqls = CCatalog::PrepareSql($arFields, array(), $arFilter, false, array());
 
 		$arSqls["SELECT"] = str_replace("%%_DISTINCT_%%", "", $arSqls["SELECT"]);
 
@@ -528,7 +529,7 @@ class CCatalogGroup extends CAllCatalogGroup
 			"NAME" => array("FIELD" => "CGL.NAME", "TYPE" => "string")
 		);
 
-		$arSqls = CCatalog::PrepareSql($arFields, array(), $arFilter, false, false);
+		$arSqls = CCatalog::PrepareSql($arFields, array(), $arFilter, false, array());
 
 		$arSqls["SELECT"] = str_replace("%%_DISTINCT_%%", "", $arSqls["SELECT"]);
 
@@ -545,4 +546,3 @@ class CCatalogGroup extends CAllCatalogGroup
 		return $dbRes;
 	}
 }
-?>

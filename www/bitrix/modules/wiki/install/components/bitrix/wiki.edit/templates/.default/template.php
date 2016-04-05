@@ -1,5 +1,35 @@
-<? if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED!==true) die();
+<?
+if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED!==true) die();
+?>
+<script>
+	BX.message({
+		'FILE_NAME': '<?=GetMessageJS('FILE_NAME')?>',
+		'CATEGORY_NAME': '<?=GetMessageJS('CATEGORY_NAME')?>',
+		'WIKI_INSERT_IMAGE': '<?=GetMessageJS('WIKI_INSERT_IMAGE')?>',
+		'WIKI_BUTTON_INSERT': '<?=GetMessageJS('WIKI_BUTTON_INSERT')?>',
+		'WIKI_INSERT_CATEGORY': '<?=GetMessageJS('WIKI_INSERT_CATEGORY')?>',
+		'WIKI_INSERT_HYPERLINK': '<?=GetMessageJS('WIKI_INSERT_HYPERLINK')?>',
+		'WIKI_INSERT_EXTERANL_HYPERLINK': '<?=GetMessageJS('WIKI_INSERT_EXTERANL_HYPERLINK')?>',
+		'WIKI_IMAGE_UPLOAD': '<?=GetMessageJS('WIKI_IMAGE_UPLOAD')?>',
+		'WIKI_SAVE': '<?=GetMessageJS('WIKI_SAVE')?>'
+	});
 
+	window.wikiMainEditor = new BXWikiEditor({
+		elementId: 'wiki-editor',
+		wikiTextHtmlInit: <?=($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] == 'html' && $arResult['ALLOW_HTML'] == 'Y' ? 'true' : 'false')?>,
+		editUrl: "<?=$arResult['PATH_TO_POST_EDIT']?>",
+		editorId: 'pLEditorWiki',
+		charset: '<?=LANG_CHARSET?>',
+		maxImageWidth: <?=COption::GetOptionInt("wiki", "image_max_width", 600)?>
+	});
+	<?
+	foreach($arResult['IMAGES'] as $aImg)
+	{
+		?>wikiMainEditor.arWikiImg[<?=$aImg['ID']?>] = '<?=CUtil::JSEscape($aImg['ORIGINAL_NAME'])?>';<?
+	}
+	?>
+</script>
+<?
 if(strlen($arResult['ERROR_MESSAGE'])>0 && $arResult['WIKI_oper'] != 'delete'):
 	?>
 	<div class="wiki-errors">
@@ -19,7 +49,6 @@ if(strlen($arResult['FATAL_MESSAGE'])>0):
 	<?
 else:
 	include($_SERVER['DOCUMENT_ROOT'].$templateFolder.'/dialogs_content.php');
-	include($_SERVER['DOCUMENT_ROOT'].$templateFolder.'/script.php');
 	?>
 	<div id="wiki-post">
 		<div id="wiki-post-content">
@@ -56,76 +85,68 @@ else:
 
 				<div class="wiki-post-header"><?=GetMessage('WIKI_PAGE_TEXT')?><font color="#ff0000">*</font></div>
 
-				<div class="wiki-post-area">
+				<div class="wiki-post-area" id="wiki-editor">
 					<div class="wiki-post-textarea">
-					<?
-					if($arResult['ALLOW_HTML'] == 'Y'):
-					?>
-						<input type="radio" id="wki-text-text" name="POST_MESSAGE_TYPE" value="text"<?if($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] != 'html') echo " checked";?> onclick="showEditField('text', 'Y', 'Y')"/> <label for="wki-text-text"><?=GetMessage('WIKI_TEXT_TEXT')?></label> <input type="radio" id="wki-text-html" name="POST_MESSAGE_TYPE" value="html"<?if($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] == 'html') echo " checked";?> onclick="showEditField('html', 'Y', 'Y')"/> <label for="wki-text-html"><?=GetMessage('WIKI_TEXT_HTML')?></label>
-						<input type="hidden" name="editor_loaded" id="editor_loaded" value="N"/>
-						<div id="edit-post-html" style="display:none;"></div>
-					<?
-					endif;
-					?>
-					<div id="edit-post-text"  style="display:none;">
-						<div class="wiki-post-wcode-line">
-							<div class="wiki-wcode-line">
-								<a id="bold" class="wiki-wcode-bold" href="javascript:wiki_bold()" title="<?=GetMessage('WIKI_BUTTON_BOLD')?>"></a>
-								<a id="italic" class="wiki-wcode-italic" href="javascript:wiki_italic()" title="<?=GetMessage('WIKI_BUTTON_ITALIC')?>"></a>
-								<a id="wheader" class="wiki-wcode-wheader" href="javascript:wiki_header()" title="<?=GetMessage('WIKI_BUTTON_HEADER')?>"></a>
-								<a id="category" class="wiki-wcode-category" href="javascript:ShowCategoryInsert()" title="<?=GetMessage('WIKI_BUTTON_CATEGORY')?>"></a>
-								<a id="url" class="wiki-wcode-url" href="javascript:ShowInsertLink(false)" title="<?=GetMessage('WIKI_BUTTON_HYPERLINK')?>"></a>
-								<a id="signature" class="wiki-wcode-signature" href="javascript:wiki_signature()" title="<?=GetMessage('WIKI_BUTTON_SIGNATURE')?>"></a>
-								<a id="line" class="wiki-wcode-line" href="javascript:wiki_line()"  title="<?=GetMessage('WIKI_BUTTON_LINE')?>"></a>
-								<a id="ignore" class="wiki-wcode-ignore" href="javascript:wiki_nowiki()" title="<?=GetMessage('WIKI_BUTTON_NOWIKI')?>"></a>
-								<a id="url" class="wiki-wcode-external-url" href="javascript:ShowInsertLink(true)" title="<?=GetMessage('WIKI_BUTTON_EXTERNAL_HYPERLINK')?>"></a>
-								<a id="image" class="wiki-wcode-img" href="javascript:ShowImageInsert()" title="<?=GetMessage('WIKI_BUTTON_IMAGE_LINK')?>"></a>
-								<a id="image-upload" class="wiki-wcode-img-upload" href="javascript:ShowImageUpload()" title="<?=GetMessage('WIKI_BUTTON_IMAGE_UPLOAD')?>"></a>
-								<a id="wiki-code" class="wiki-wcode-code" href="javascript:WikiInsertCode()" title="<?=GetMessage('WIKI_BUTTON_INSERT_CODE')?>"></a>
+						<?
+						if($arResult['ALLOW_HTML'] == 'Y'):
+						?>
+							<input type="radio"
+								   id="wki-text-text"
+								   name="POST_MESSAGE_TYPE"
+								   value="text"<?if($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] != 'html') echo " checked";?>
+							/>
+							<label for="wki-text-text"><?=GetMessage('WIKI_TEXT_TEXT')?></label>
+							<input type="radio"
+								   id="wki-text-html"
+								   name="POST_MESSAGE_TYPE"
+								   value="html"<?if($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] == 'html') echo " checked";?>
+							/>
+							<label for="wki-text-html"><?=GetMessage('WIKI_TEXT_HTML')?></label>
+							<div id="edit-post-html" style="display:none;">
+								<?include($_SERVER['DOCUMENT_ROOT'].$templateFolder.'/lhe_custom.php')?>
+							</div>
+						<?
+						endif;
+						?>
+						<div id="edit-post-text"  style="display:none;">
+							<div class="wiki-post-wcode-line">
+								<div class="wiki-wcode-line">
+									<a id="bold" class="wiki-wcode-bold" title="<?=GetMessage('WIKI_BUTTON_BOLD')?>"></a>
+									<a id="italic" class="wiki-wcode-italic" title="<?=GetMessage('WIKI_BUTTON_ITALIC')?>"></a>
+									<a id="wheader" class="wiki-wcode-wheader" title="<?=GetMessage('WIKI_BUTTON_HEADER')?>"></a>
+									<a id="category" class="wiki-wcode-category" title="<?=GetMessage('WIKI_BUTTON_CATEGORY')?>"></a>
+									<a id="url" class="wiki-wcode-url" title="<?=GetMessage('WIKI_BUTTON_HYPERLINK')?>"></a>
+									<a id="signature" class="wiki-wcode-signature" title="<?=GetMessage('WIKI_BUTTON_SIGNATURE')?>"></a>
+									<a id="line" class="wiki-wcode-line" title="<?=GetMessage('WIKI_BUTTON_LINE')?>"></a>
+									<a id="ignore" class="wiki-wcode-ignore" title="<?=GetMessage('WIKI_BUTTON_NOWIKI')?>"></a>
+									<a id="url" class="wiki-wcode-external-url" title="<?=GetMessage('WIKI_BUTTON_EXTERNAL_HYPERLINK')?>"></a>
+									<a id="image" class="wiki-wcode-img" title="<?=GetMessage('WIKI_BUTTON_IMAGE_LINK')?>"></a>
+									<a id="image-upload" class="wiki-wcode-img-upload" title="<?=GetMessage('WIKI_BUTTON_IMAGE_UPLOAD')?>"></a>
+									<a id="wiki-code" class="wiki-wcode-code" title="<?=GetMessage('WIKI_BUTTON_INSERT_CODE')?>"></a>
+									<div class="wiki-clear-float"></div>
+								</div>
 								<div class="wiki-clear-float"></div>
 							</div>
-							<div class="wiki-clear-float"></div>
+							<div class="wiki-comment-field wiki-comment-field-text">
+								<textarea cols="55" rows="15" tabindex="2" name="POST_MESSAGE" id="MESSAGE"><?=htmlspecialcharsbx($arResult["ELEMENT"]["~DETAIL_TEXT"], ENT_QUOTES)?></textarea>
+							</div>
 						</div>
-						<div class="wiki-comment-field wiki-comment-field-text">
-							<textarea cols="55" rows="15" tabindex="2" onKeyPress="check_ctrl_enter(arguments[0])" name="POST_MESSAGE" id="MESSAGE" onKeyPress="check_ctrl_enter(arguments[0])"><?=htmlspecialcharsbx($arResult["ELEMENT"]["~DETAIL_TEXT"], ENT_QUOTES)?></textarea>
-						</div>
-					</div>
-					<?
-					if($arResult['ALLOW_HTML'] == 'Y'):
-					?>
 						<?
-						$APPLICATION->AddHeadScript("/bitrix/js/main/ajax.js");
-						$APPLICATION->AddHeadScript("/bitrix/js/main/admin_tools.js");
-						$APPLICATION->AddHeadScript("/bitrix/js/main/utils.js");
-						$APPLICATION->SetAdditionalCSS('/bitrix/themes/.default/pubstyles.css');
-						$APPLICATION->SetAdditionalCSS('/bitrix/admin/htmleditor2/editor.css');
-						$APPLICATION->SetTemplateCSS('ajax/ajax.css');
-					endif;
-
-					if($arResult['ELEMENT']['DETAIL_TEXT_TYPE'] == 'html' && $arResult['ALLOW_HTML'] == 'Y'):
+						if($arResult['ALLOW_HTML'] == 'Y')
+						{
+							$APPLICATION->AddHeadScript("/bitrix/js/main/ajax.js");
+							$APPLICATION->AddHeadScript("/bitrix/js/main/admin_tools.js");
+							$APPLICATION->AddHeadScript("/bitrix/js/main/utils.js");
+							$APPLICATION->SetAdditionalCSS('/bitrix/themes/.default/pubstyles.css');
+							$APPLICATION->SetAdditionalCSS('/bitrix/admin/htmleditor2/editor.css');
+							$APPLICATION->SetTemplateCSS('ajax/ajax.css');
+						}
 						?>
-						<script>
-						<!--
-							wikiTextHtmlInit = true;
-							setTimeout("showEditField('html', 'N')", 100);
-						//-->
-						</script>
-						<?
-					else:
-						?>
-						<script>
-						<!--
-							showEditField('text', 'N');
-						//-->
-						</script>
-						<?
-					endif;
-					?>
 					</div>
 					<div class="wiki-post-image" id="wiki-post-image">
-					<?
-					if (!empty($arResult['IMAGES'])):
-						?>
+						<?
+						if (!empty($arResult['IMAGES'])):
+							?>
 						<div><?=GetMessage('WIKI_IMAGES')?></div>
 						<?
 						foreach($arResult['IMAGES'] as $aImg)
@@ -134,24 +155,12 @@ else:
 							<div class="wiki-post-image-item">
 								<div class="wiki-post-image-item-border"><?=$aImg['FILE_SHOW']?></div>
 								<div>
-									<input type="checkbox" name="IMAGE_ID_del[<?=$aImg['ID']?>]" id="img_del_<?=$aImg['ID']?>"/> <label for="img_del_<?=$aImg['ID']?>"><?=GetMessage('WIKI_IMAGE_DELETE')?></label>
+									<input type="checkbox" name="IMAGE_ID_del[<?=$aImg['ID']?>]" id="img_del_<?=$aImg['ID']?>"/>
+									<label for="img_del_<?=$aImg['ID']?>"><?=GetMessage('WIKI_IMAGE_DELETE')?></label>
 								</div>
 							</div>
 							<?
 						}
-						?>
-						<script type="text/javascript">
-						<?
-						reset($arResult['IMAGES']);
-						foreach($arResult['IMAGES'] as $aImg)
-						{
-							?>
-							arWikiImg[<?=$aImg['ID']?>] = '<?=CUtil::JSEscape($aImg['ORIGINAL_NAME'])?>';
-							<?
-						}
-						?>
-						</script>
-						<?
 					endif;
 					?>
 					</div>
@@ -159,7 +168,7 @@ else:
 				<div class="wiki-clear-float"></div>
 				<div class="wiki-post-area" style="height:1em;">
 					<div class="wiki-post-div-animate wiki-post-div-show">
-						<a class="wiki-post-link-dashed" onclick="return replaceLinkByInput(this,'wiki-input-comments');" href="#" title="<?=GetMessage('WIKI_ADD_MODIFY_COMMENT_LINK')?>"><?=GetMessage('WIKI_ADD_MODIFY_COMMENT_LINK')?></a>
+						<a class="wiki-post-link-dashed" onclick="return wikiMainEditor.replaceLinkByInput(this,'wiki-input-comments');" href="#" title="<?=GetMessage('WIKI_ADD_MODIFY_COMMENT_LINK')?>"><?=GetMessage('WIKI_ADD_MODIFY_COMMENT_LINK')?></a>
 					</div>
 					<div class="wiki-post-div-animate wiki-post-div-hide wiki-post-div-nonedisplay" id="wiki-input-comments">
 						<label for="MODIFY_COMMENT"><?=GetMessage('WIKI_ADD_MODIFY_COMMENT_INPUT')?></label><br>
@@ -170,7 +179,7 @@ else:
 					<div class="wiki-post-div-animate wiki-post-div-show">
 						<?=GetMessage('WIKI_TAGS').":"?>&nbsp;&nbsp;
 						<?=CWikiUtils::GetTagsAsLinks($arResult['ELEMENT']['_TAGS'])?>
-						<a class="wiki-post-link-dashed" onclick="return replaceLinkByInput(this,'wiki-input-tags');" href="#" title="<?=GetMessage('WIKI_ADD_TAGS_LINK_TITLE')?>"><?=GetMessage('WIKI_ADD_TAGS_LINK')?></a>
+						<a class="wiki-post-link-dashed" onclick="return wikiMainEditor.replaceLinkByInput(this,'wiki-input-tags');" href="#" title="<?=GetMessage('WIKI_ADD_TAGS_LINK_TITLE')?>"><?=GetMessage('WIKI_ADD_TAGS_LINK')?></a>
 					</div>
 					<div class="wiki-post-div-animate wiki-post-div-hide wiki-post-div-nonedisplay" id="wiki-input-tags">
 						<label for="TAGS"><?=GetMessage('WIKI_TAGS')?></label><br>
@@ -193,12 +202,12 @@ else:
 				</div>
 				<div class="wiki-post-buttons wiki-edit-buttons">
 					<? if(!$arResult["IS_CATEGORY_PAGE"] && ($arResult['SOCNET'] && ($arResult['WIKI_oper'] == 'edit' || $arResult['WIKI_oper'] == 'add'))):?>
-						<label><input type="checkbox" id="cb_post_to_feed" <?=($arResult['POST_TO_FEED'] == "Y" ? "checked" : "")?> onclick="wikiPostToFeedTogle();") title="<?=GetMessage('WIKI_POST_TO_FEED_CB_TITLE')?>"/><?=GetMessage('WIKI_POST_TO_FEED_CB')?></label><br><br>
+						<label><input type="checkbox" id="cb_post_to_feed" <?=($arResult['POST_TO_FEED'] == "Y" ? "checked" : "")?> onclick="wikiMainEditor.wikiPostToFeedTogle();") title="<?=GetMessage('WIKI_POST_TO_FEED_CB_TITLE')?>"/><?=GetMessage('WIKI_POST_TO_FEED_CB')?></label><br><br>
 					<?endif;?>
 					<input type="hidden" name="<?=$arResult['PAGE_VAR']?>" value="<?=htmlspecialcharsbx($arResult['ELEMENT']['NAME'],ENT_QUOTES)?>"/>
 					<input type="hidden" name="<?=htmlspecialcharsbx($arResult['OPER_VAR'],ENT_QUOTES)?>" value="<?=htmlspecialcharsbx($arResult['WIKI_oper'],ENT_QUOTES)?>"/>
 					<input type="hidden" name="save" value="Y"/>
-					<input type="hidden" name="post_to_feed" id="post_to_feed" value="<?=$arResult['POST_TO_FEED']?>">
+					<input type="hidden" name="post_to_feed" id="post_to_feed" value="<?=htmlspecialcharsbx($arResult['POST_TO_FEED'])?>">
 					<input tabindex="5" type="submit" name="save" value="<?=GetMessage($arResult['WIKI_oper'] == 'add' || $arResult['WIKI_oper'] == 'edit' ? 'WIKI_PUBLISH' : 'WIKI_SAVE')?>"/>
 					<? if ($arResult['WIKI_oper'] == 'edit' || $arResult['WIKI_oper'] == 'add'): ?>
 						<input type="submit" name="apply" value="<?=GetMessage('WIKI_APPLY')?>"/>
@@ -215,6 +224,9 @@ else:
 			</div>
 		</div>
 	</div>
+	<script>
+		wikiMainEditor.init();
+	</script>
 	<?
 
 endif;

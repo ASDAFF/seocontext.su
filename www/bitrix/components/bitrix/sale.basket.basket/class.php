@@ -37,6 +37,7 @@ class CBitrixBasketComponent extends CBitrixComponent
 		$arParams["COUNT_DISCOUNT_4_ALL_QUANTITY"] = ($arParams["COUNT_DISCOUNT_4_ALL_QUANTITY"] == "Y") ? "Y" : "N";
 		$arParams['PRICE_VAT_SHOW_VALUE'] = ($arParams['PRICE_VAT_SHOW_VALUE'] == 'N') ? 'N' : 'Y';
 		$arParams["USE_PREPAYMENT"] = ($arParams["USE_PREPAYMENT"] == 'Y') ? 'Y' : 'N';
+		$arParams["AUTO_CALCULATION"] = ($arParams["AUTO_CALCULATION"] == 'N') ? 'N' : 'Y';
 
 		$arParams["WEIGHT_KOEF"] = htmlspecialcharsbx(COption::GetOptionString('sale', 'weight_koef', 1, SITE_ID));
 		$arParams["WEIGHT_UNIT"] = htmlspecialcharsbx(COption::GetOptionString('sale', 'weight_unit', "", SITE_ID));
@@ -72,9 +73,19 @@ class CBitrixBasketComponent extends CBitrixComponent
 			|| strlen(trim($arParams["ACTION_VARIABLE"])) <= 0
 			|| !preg_match('/[a-zA-Z0-9_-~.!*\'(),]/', trim($arParams["ACTION_VARIABLE"]))
 			)
-			$arParams["ACTION_VARIABLE"] = "action";
+			$arParams["ACTION_VARIABLE"] = "basketAction";
 		else
 			$arParams["ACTION_VARIABLE"] = trim($arParams["ACTION_VARIABLE"]);
+
+		//default gifts
+		if(empty($arParams['USE_GIFTS']))
+		{
+			$arParams['USE_GIFTS'] = 'Y';
+		}
+		if(!isset($arParams['GIFTS_PAGE_ELEMENT_COUNT']))
+		{
+			$arParams['GIFTS_PAGE_ELEMENT_COUNT'] = 4;
+		}
 
 		return $arParams;
 	}
@@ -262,7 +273,7 @@ class CBitrixBasketComponent extends CBitrixComponent
 				$quantityIsFloat = true;
 			}
 
-			$arItem["QUANTITY"] = ($quantityIsFloat === false && $this->quantityFloat != "Y") ? intval($arItem['QUANTITY']) : number_format(doubleval($arItem['QUANTITY']), 2, '.', '');
+			$arItem["QUANTITY"] = ($quantityIsFloat === false && $this->quantityFloat != "Y") ? intval($arItem['QUANTITY']) : (number_format(doubleval($arItem['QUANTITY']), 4, '.', '') * 1);
 
 			$arItem["PRICE_VAT_VALUE"] = (($arItem["PRICE"] * $arItem["QUANTITY"] / ($arItem["VAT_RATE"] +1)) * $arItem["VAT_RATE"]) / $arItem["QUANTITY"];
 			//$arItem["PRICE_VAT_VALUE"] = (($arItem["PRICE"] / ($arItem["VAT_RATE"] +1)) * $arItem["VAT_RATE"]);
@@ -380,7 +391,7 @@ class CBitrixBasketComponent extends CBitrixComponent
 				if (($arItem['DISCOUNT_PRICE'] + $arItem['PRICE']) > 0)
 				{
 					$arItem['DISCOUNT_PRICE_PERCENT'] = ($arItem['DISCOUNT_PRICE']*100)/($arItem['DISCOUNT_PRICE'] + $arItem['PRICE']);
-					$arItem['DISCOUNT_PRICE_PERCENT_FORMATED'] = roundEx($arItem['DISCOUNT_PRICE_PERCENT'], SALE_VALUE_PRECISION).'%';
+					$arItem['DISCOUNT_PRICE_PERCENT_FORMATED'] = CSaleBasketHelper::formatQuantity($arItem['DISCOUNT_PRICE_PERCENT']).'%';
 					$arItem['FULL_PRICE'] = $arItem["PRICE"] + $arItem["DISCOUNT_PRICE"];
 				}
 			}
@@ -506,7 +517,7 @@ class CBitrixBasketComponent extends CBitrixComponent
 			{
 				$arOneItem["DISCOUNT_PRICE_PERCENT"] = 0;
 			}
-			$arOneItem["DISCOUNT_PRICE_PERCENT_FORMATED"] = roundEx($arOneItem["DISCOUNT_PRICE_PERCENT"], SALE_VALUE_PRECISION)."%";
+			$arOneItem["DISCOUNT_PRICE_PERCENT_FORMATED"] = CSaleBasketHelper::formatQuantity($arOneItem["DISCOUNT_PRICE_PERCENT"])."%";
 			$DISCOUNT_PRICE_ALL += $arOneItem["DISCOUNT_PRICE"] * $arOneItem["QUANTITY"];
 		}
 		unset($arOneItem);
@@ -569,6 +580,8 @@ class CBitrixBasketComponent extends CBitrixComponent
 			$arResult["ERROR_MESSAGE"] = Loc::getMessage("SALE_EMPTY_BASKET");
 
 		$arResult["DISCOUNT_PRICE_ALL"] = $DISCOUNT_PRICE_ALL;
+		$arResult["APPLIED_DISCOUNT_LIST"] = $arOrder['DISCOUNT_LIST'];
+		$arResult["FULL_DISCOUNT_LIST"] = $arOrder['FULL_DISCOUNT_LIST'];
 		$arResult["DISCOUNT_PRICE_ALL_FORMATED"] = CCurrencyLang::CurrencyFormat($DISCOUNT_PRICE_ALL, $allCurrency, true);
 
 		if($this->usePrepayment == "Y")
@@ -657,18 +670,33 @@ class CBitrixBasketComponent extends CBitrixComponent
 
 		if (is_array($arParents))
 		{
+			$updateBasketProps = array();
+
 			foreach ($arBasketItems as &$arItem)
 			{
-				if (array_key_exists($arItem["PRODUCT_ID"], $arParents))
+				if (!isset($arItem['MODULE']) || $arItem['MODULE'] != 'catalog')
+					continue;
+				if (!isset($arParents[$arItem['PRODUCT_ID']]))
+					continue;
+
+				$arSKU = CCatalogSKU::GetInfoByProductIBlock($arParents[$arItem['PRODUCT_ID']]['IBLOCK_ID']);
+				if (empty($arSKU))
+					continue;
+
+				if (!isset($arSkuIblockID[$arSKU['IBLOCK_ID']]))
+					$arSkuIblockID[$arSKU['IBLOCK_ID']] = $arSKU;
+
+				$arItem['IBLOCK_ID'] = $arSKU['IBLOCK_ID'];
+				$arItem['SKU_PROPERTY_ID'] = $arSKU['SKU_PROPERTY_ID'];
+
+				$needSkuProps = static::getMissingPropertyCodes($arItem['PROPS'], $arSkuProps);
+				if (!empty($needSkuProps))
 				{
-					$arSKU = CCatalogSKU::GetInfoByProductIBlock($arParents[$arItem["PRODUCT_ID"]]["IBLOCK_ID"]);
-
-					if (!array_key_exists($arSKU["IBLOCK_ID"], $arSkuIblockID))
-						$arSkuIblockID[$arSKU["IBLOCK_ID"]] = $arSKU;
-
-					$arItem["IBLOCK_ID"] = $arSKU["IBLOCK_ID"];
-					$arItem["SKU_PROPERTY_ID"] = $arSKU["SKU_PROPERTY_ID"];
+					if (!isset($updateBasketProps[$arItem['PRODUCT_ID']]))
+						$updateBasketProps[$arItem['PRODUCT_ID']] = array();
+					$updateBasketProps[$arItem['PRODUCT_ID']][$arItem['ID']] = $needSkuProps;
 				}
+				unset($needSkuProps);
 			}
 			unset($arItem);
 
@@ -733,7 +761,8 @@ class CBitrixBasketComponent extends CBitrixComponent
 									'ID' => $arEnum['ID'],
 									'NAME' => $arEnum['NAME'],
 									'SORT' => $arEnum['SORT'],
-									'PICT' => $arEnum['PREVIEW_PICTURE']
+									'PICT' => $arEnum['PREVIEW_PICTURE'],
+									'XML_ID' => $arEnum['NAME']
 								);
 							}
 
@@ -783,6 +812,8 @@ class CBitrixBasketComponent extends CBitrixComponent
 
 			foreach ($arBasketItems as &$arItem)
 			{
+				if (!isset($arItem['MODULE']) || $arItem['MODULE'] != 'catalog')
+					continue;
 				if (isset($arItem["IBLOCK_ID"]) && (int)$arItem["IBLOCK_ID"] > 0 && isset($arRes[$arItem["IBLOCK_ID"]]))
 				{
 					$arItem["SKU_DATA"] = $arRes[$arItem["IBLOCK_ID"]];
@@ -804,22 +835,51 @@ class CBitrixBasketComponent extends CBitrixComponent
 					);
 					while ($obOffer = $rsOffers->GetNextElement())
 					{
+						$productData = $obOffer->GetFields();
+						$productId = $productData['ID'];
+						unset($productData);
 						$arProps = $obOffer->GetProperties();
-
+						$currentSkuPropValues = array();
 						foreach ($arProps as $propName => $propValue)
 						{
-							if (in_array($propName, $arSkuProps))
-							{
-								if (array_key_exists('VALUE', $propValue))
-								{
-									if (strlen($propValue['VALUE']) > 0 && (!is_array($arUsedValues[$arItem["PRODUCT_ID"]][$propName]) || !in_array($propValue['VALUE'], $arUsedValues[$arItem["PRODUCT_ID"]][$propName])))
-									{
-										$arUsedValues[$arItem["PRODUCT_ID"]][$propName][] = $propValue['VALUE'];
-									}
-								}
-							}
+							if (!in_array($propName, $arSkuProps) || !isset($propValue['VALUE']))
+								continue;
+
+							$propValue['VALUE'] = (string)$propValue['VALUE'];
+							if ($propValue['VALUE'] == '')
+								continue;
+							if (!is_array($arUsedValues[$arItem["PRODUCT_ID"]][$propName]) || !in_array($propValue['VALUE'], $arUsedValues[$arItem["PRODUCT_ID"]][$propName]))
+								$arUsedValues[$arItem["PRODUCT_ID"]][$propName][] = $propValue['VALUE'];
+
+							$currentSkuPropValues[$propName] = array(
+								'~CODE' => $propValue['~CODE'],
+								'CODE' => $propValue['CODE'],
+								'~NAME' => $propValue['~NAME'],
+								'NAME' => $propValue['NAME'],
+								'~VALUE' => $propValue['~VALUE'],
+								'VALUE' => $propValue['VALUE'],
+								'~SORT' => $propValue['~SORT'],
+								'SORT' => $propValue['SORT'],
+							);
 						}
+						unset($arProps, $propName, $propValue);
+
+						if (isset($updateBasketProps[$productId]) && !empty($currentSkuPropValues))
+						{
+							foreach ($updateBasketProps[$productId] as $basketId => $updateCodes)
+							{
+								$basketKey = static::getBasketKeyById($arBasketItems, $basketId);
+								if ($basketKey === false)
+									continue;
+								static::fillMissingProperties($arBasketItems[$basketKey]['PROPS'], $updateCodes, $currentSkuPropValues);
+								unset($basketKey);
+							}
+							unset($basketId, $updateCodes);
+						}
+						unset($currentSkuPropValues);
+						unset($productId);
 					}
+					unset($obOffer, $rsOffers);
 
 					if (!empty($arUsedValues))
 					{
@@ -1093,5 +1153,93 @@ class CBitrixBasketComponent extends CBitrixComponent
 		}
 
 		return $arResult;
+	}
+
+	/**
+	 * @param array $itemProperties
+	 * @param array $propertyCodes
+	 * @return array
+	 */
+	protected static function getMissingPropertyCodes(array $itemProperties, array $propertyCodes)
+	{
+		if (empty($propertyCodes) || !is_array($propertyCodes))
+			return array();
+		if (empty($itemProperties))
+			return $propertyCodes;
+		$result = array_fill_keys($propertyCodes, true);
+		foreach ($itemProperties as &$property)
+		{
+			if (empty($property) || !is_array($property))
+				continue;
+			if (!isset($property['CODE']))
+				continue;
+			$code = trim((string)$property['CODE']);
+			if ($code == '')
+				continue;
+			if (isset($result[$code]))
+				unset($result[$code]);
+		}
+		unset($property);
+
+		return (!empty($result) ? array_keys($result) : array());
+	}
+
+	/**
+	 * @param array $basket
+	 * @param int $basketId
+	 * @return bool|int|string
+	 */
+	protected static function getBasketKeyById(array $basket, $basketId)
+	{
+		$result = false;
+		if (empty($basket) || !is_array($basket))
+			return $result;
+		$basketId = (int)$basketId;
+		if ($basketId <= 0)
+			return $result;
+		foreach ($basket as $basketKey => $basketItem)
+		{
+			if (isset($basketItem['ID']) && $basketItem['ID'] == $basketId)
+			{
+				$result = $basketKey;
+				break;
+			}
+		}
+		unset($basketKey, $basketItem);
+
+		return $result;
+	}
+
+	/**
+	 * @param array $itemProperties
+	 * @param array $missingCodes
+	 * @param array $values
+	 * @return void
+	 */
+	protected static function fillMissingProperties(array &$itemProperties, array $missingCodes, array $values)
+	{
+		if (empty($missingCodes) || !is_array($missingCodes))
+			return;
+		if (empty($values) || !is_array($values))
+			return;
+		foreach ($missingCodes as &$code)
+		{
+			if (!isset($values[$code]))
+				continue;
+			$found = false;
+			foreach ($itemProperties as $existValue)
+			{
+				if (isset($existValue['CODE']) && $existValue['CODE'] == $code)
+				{
+					$found = true;
+					break;
+				}
+			}
+			unset($existValue);
+			if (!$found)
+				$itemProperties[] = $values[$code];
+			unset($found);
+		}
+		unset($code);
 	}
 }

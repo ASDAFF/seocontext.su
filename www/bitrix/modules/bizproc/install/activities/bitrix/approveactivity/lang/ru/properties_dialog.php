@@ -25,4 +25,8 @@ $MESS["BPAR_PD_COMMENT_LABEL_MESSAGE"] = "Метка для поля комме�
 $MESS["BPAR_PD_TASK_BUTTON1_MESSAGE"] = "Текст кнопки подтверждения в задании";
 $MESS["BPAR_PD_TASK_BUTTON2_MESSAGE"] = "Текст кнопки отказа в задании";
 $MESS["BPAR_PD_ACCESS_CONTROL"] = "Ограничить доступ";
+$MESS["BPAA_PD_TIMEOUT_LIMIT"] = "Минимальный период утверждения";
+$MESS["BPAR_PD_COMMENT_REQUIRED"] = "Обязательность комментария";
+$MESS["BPAR_PD_COMMENT_REQUIRED_YA"] = "Только при утверждении";
+$MESS["BPAR_PD_COMMENT_REQUIRED_YR"] = "Только при отклонении";
 ?>

@@ -1144,21 +1144,20 @@
 		Init: function()
 		{
 			var
-			_this = this,
-			defaultItem = {
-				TEXT: BX.message('ContMenuDefProps'),
-				ACTION: function()
-				{
-					_this.editor.selection.SetBookmark(_this.savedRange);
-					_this.editor.GetDialog('Default').Show(false, _this.savedRange);
-					_this.Hide();
-				}
-			};
+				_this = this,
+				defaultItem = {
+					TEXT: BX.message('ContMenuDefProps'),
+					ACTION: function()
+					{
+						_this.editor.selection.SetBookmark(_this.savedRange);
+						_this.editor.GetDialog('Default').Show(false, _this.savedRange);
+						_this.Hide();
+					}
+				};
 
 			// Remove format ?
 			// Replace Node by children ?
 
-			//this.tagsList = [];
 			this.items = {
 				// Surrogates
 				'php' : [
@@ -1860,14 +1859,13 @@
 				}
 			}
 
-			if (arItems.length == 0)
+			if (arItems.length == 0 && (!this.editor.bbCode || this.items['DEFAULT'].bbMode))
 			{
-				var def = this.items['DEFAULT'];
-				if (!this.editor.bbCode || def.bbMode)
+				if (!this.savedRange || !this.savedRange.collapsed)
 				{
-					for (j = 0; j < def.length; j++)
+					for (j = 0; j < this.items['DEFAULT'].length; j++)
 					{
-						arItems.push(def[j]);
+						arItems.push(this.items['DEFAULT'][j]);
 					}
 				}
 			}
@@ -1895,7 +1893,10 @@
 					CLOSE_ON_CLICK: true
 				});
 				this.OPENER.Open();
-				this.OPENER.GetMenu().DIV.style.zIndex = '3005';
+				var popupDiv = this.OPENER.GetMenu().DIV;
+				popupDiv.style.zIndex = '3005';
+				popupDiv.id = 'bx-admin-prefix';
+				BX.addClass(popupDiv, 'bx-core-popup-menu-editor');
 
 				this.isOpened = true;
 				BX.addCustomEvent(this.editor, 'OnIframeClick', BX.proxy(this.Hide, this));
@@ -2154,7 +2155,9 @@
 				{
 					this.controls.More.GetCont().style.display = 'none';
 				}
-				this.controls.More.Close();
+
+				if (this.controls.More.pCont && this.controls.More.pCont.style.display !== 'none')
+					this.controls.More.Close();
 			}
 
 			if (!bCompact && this.showMoreButton)
@@ -3654,6 +3657,260 @@
 		return this.values;
 	};
 
+	function PasteControl(editor)
+	{
+		this.editor = editor;
+		if (this.editor.config.pasteSetColors !== this.editor.config.pasteSetBorders ||
+				this.editor.config.pasteSetColors !== this.editor.config.pasteSetDecor)
+		{
+			this.mode = 'default';
+		}
+		else
+		{
+			this.mode = this.editor.config.pasteSetColors &&
+			this.editor.config.pasteSetBorders &&
+			this.editor.config.pasteSetDecor ? 'text' : 'rich';
+		}
+
+		var _this = this;
+
+		this.items = [];
+		if (this.mode == 'default')
+		{
+			this.items = [
+				{
+					TEXT: BX.message('BXEdPasteDefault'),
+					ACTION: function()
+					{
+						_this.Hide('default');
+					},
+					CHECKED: this.mode == 'default',
+					_MODE: 'default'
+				}
+			];
+		}
+
+		this.items.push({
+			TEXT: BX.message('BXEdPasteText'),
+			ACTION: function()
+			{
+				_this.Hide('text');
+			},
+			CHECKED: this.mode == 'text',
+			_MODE: 'text'
+		});
+		this.items.push({
+			TEXT: BX.message('BXEdPasteFormattedText'),
+			ACTION: function()
+			{
+				_this.Hide('rich');
+			},
+			CHECKED: this.mode == 'rich',
+			_MODE: 'rich'
+		});
+	}
+
+	PasteControl.prototype = {
+		Show: function ()
+		{
+			this.lastPreviewMode = false;
+			this.savedRange = this.editor.selection.GetBookmark();
+			this.Hide();
+
+			this.pOverlay = this.editor.overlay.Show();
+			BX.bind(this.pOverlay, 'click', BX.proxy(this.Hide, this));
+			BX.bind(this.pOverlay, 'mousemove', BX.proxy(this.PreviewContent, this));
+
+			if (!this.dummyTarget)
+			{
+				this.dummyTarget = this.editor.dom.iframeCont.appendChild(BX.create('DIV', {props: {className: 'bxhtmled-dummy-target'}}));
+			}
+
+			var
+				_this = this,
+				cursorNode = this.editor.GetIframeElement('bx-cursor-node'),
+				top = 0, left = 0, node;
+
+			if (cursorNode)
+			{
+				if (cursorNode.parentNode)
+				{
+					top += cursorNode.offsetHeight;
+					node = cursorNode;
+					do
+					{
+						top += node.offsetTop || 0;
+						left += node.offsetLeft || 0;
+						node = node.offsetParent;
+					} while (node && node.nodeName != 'BODY');
+				}
+			}
+
+			var scrollPos = BX.GetWindowScrollPos(this.editor.GetIframeDoc());
+
+			top -= scrollPos.scrollTop;
+			left -= scrollPos.scrollLeft;
+
+			var
+				editorSize = this.editor.GetSceletonSize(),
+				maxTop = editorSize.height - this.items.length * 40,
+				maxLeft = editorSize.width - 100;
+
+			if (top < 0)
+				top = 0;
+			else if (top > maxTop)
+				top = maxTop;
+
+			if (left < 0)
+				left = 0;
+			else if (left > maxLeft)
+				left = maxLeft;
+
+			this.dummyTarget.style.left = left + 'px';
+			this.dummyTarget.style.top = top + 'px';
+			this.dummyTarget.style.zIndex = '2002';
+
+			this.OPENER = new BX.COpener({
+				DIV: this.dummyTarget, MENU: this.items, TYPE: 'click', ACTIVE_CLASS: 'adm-btn-active', CLOSE_ON_CLICK: true
+			});
+			this.OPENER.Open();
+
+			var popupDiv = this.OPENER.GetMenu().DIV;
+			popupDiv.style.zIndex = '3005';
+			BX.addClass(popupDiv, 'bxhtmled-paste-control bx-core-popup-menu-editor');
+
+			BX.addCustomEvent(this.OPENER.GetMenu(), 'onMenuClose', BX.proxy(this.Hide, this));
+
+			var i, items = BX.findChild(popupDiv, {className: 'bx-core-popup-menu-item'}, 1, 1);
+			for (i = 0; i < items.length; i++)
+			{
+				items[i].setAttribute('data-bx-mode', this.items[i]._MODE);
+			}
+
+			BX.bind(popupDiv, 'mousemove', function(e)
+			{
+				var
+					target = e.target || e.srcElement,
+					mode = (target && target.getAttribute) ? target.getAttribute('data-bx-mode') : null;
+
+				if (!mode)
+				{
+					target = BX.findParent(target, function(n)
+					{
+						return n == popupDiv || (n.getAttribute && n.getAttribute('data-bx-mode'));
+					}, popupDiv);
+					mode = (target && target.getAttribute) ? target.getAttribute('data-bx-mode') : null;
+				}
+
+				_this.PreviewContent({mode: mode});
+			});
+
+			this.isOpened = true;
+			BX.addCustomEvent(this.editor, 'OnIframeKeydown', BX.CMenu.broadcastCloseEvent);
+			BX.bind(document.body, "keydown", BX.CMenu.broadcastCloseEvent);
+		},
+
+		Hide: function (mode)
+		{
+			if (this.isOpened)
+			{
+				this.editor.overlay.Hide();
+				if (this.pOverlay)
+				{
+					BX.unbind(this.pOverlay, 'click', BX.proxy(this.Hide, this));
+					BX.unbind(this.pOverlay, 'mousemove', BX.proxy(this.PreviewContent, this));
+				}
+
+				BX.removeCustomEvent(this.editor, 'OnIframeKeydown', BX.CMenu.broadcastCloseEvent);
+				BX.unbind(document.body, "keydown", BX.CMenu.broadcastCloseEvent);
+
+				if (!mode || typeof mode !== 'string' || (mode !== 'text' && mode !== 'rich'))
+					mode = 'default';
+				this.PreviewContent({mode: mode});
+				this.editor.Focus();
+
+				this.editor.On("OnIframePaste");
+				this.editor.On("OnIframeNewWord");
+
+				this.isOpened = false;
+			}
+		},
+
+		PreviewContent: function(params)
+		{
+			if (this.isOpened)
+			{
+				if (this.lastPreviewMode != params.mode || !this.lastPreviewMode)
+				{
+					if (params.doTimeout !== false)
+					{
+						params.doTimeout = false;
+						var _this = this;
+						if (this.previewTimeout)
+							clearTimeout(this.previewTimeout);
+						this.previewTimeout = setTimeout(function(){_this.PreviewContent(params);}, 200);
+						return;
+					}
+
+					if (params.mode == 'rich')
+					{
+						this.editor.config.pasteSetColors = false;
+						this.editor.config.pasteSetBorders = false;
+						this.editor.config.pasteSetDecor = false;
+					}
+					else if (params.mode == 'text')
+					{
+						this.editor.config.pasteSetColors = true;
+						this.editor.config.pasteSetBorders = true;
+						this.editor.config.pasteSetDecor = true;
+					}
+					else // rich
+					{
+						this.editor.config.pasteSetColors = this.defPasteSetColors;
+						this.editor.config.pasteSetBorders = this.defPasteSetBorders;
+						this.editor.config.pasteSetDecor = this.defPasteSetDecor;
+					}
+
+					this.editor.pasteHandleMode = true;
+					this.editor.bbParseContentMode = true;
+
+					this.editor.iframeView.SetValue(this.pastedContent, false);
+
+					this.editor.synchro.FromIframeToTextarea(true, true);
+
+					this.editor.pasteHandleMode = false;
+					this.editor.bbParseContentMode = false;
+
+					this.editor.synchro.lastTextareaValue = false;
+					this.editor.synchro.FromTextareaToIframe(true);
+
+					this.editor.RestoreCursor();
+
+					this.editor.skipPasteHandler = false;
+
+					// Restore settings
+					if (params.mode != 'default')
+					{
+						this.editor.config.pasteSetColors = this.defPasteSetColors;
+						this.editor.config.pasteSetBorders = this.defPasteSetBorders;
+						this.editor.config.pasteSetDecor = this.defPasteSetDecor;
+					}
+				}
+				this.lastPreviewMode = params.mode;
+			}
+		},
+
+		SaveIframeContent: function(content)
+		{
+			// Save default values
+			this.defPasteSetColors = this.editor.config.pasteSetColors;
+			this.defPasteSetBorders = this.editor.config.pasteSetBorders;
+			this.defPasteSetDecor = this.editor.config.pasteSetDecor;
+
+			this.pastedContent = content;
+		}
+	}
+
 	function __run()
 	{
 		window.BXHtmlEditor.TaskbarManager = TaskbarManager;
@@ -3669,6 +3926,7 @@
 		window.BXHtmlEditor.ComboBox = ComboBox;
 		window.BXHtmlEditor.ClassSelector = ClassSelector;
 		window.BXHtmlEditor.Overlay = Overlay;
+		window.BXHtmlEditor.PasteControl = PasteControl;
 
 		BX.onCustomEvent(window.BXHtmlEditor, 'OnEditorBaseControlsDefined');
 	}

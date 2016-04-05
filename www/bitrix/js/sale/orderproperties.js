@@ -61,10 +61,12 @@ BX.Sale.PropertyCollection = (function () {
 		// create groups
 
 		list = data.groups;
-		length = list.length;
 
-		for (i = 0; i < length; i++)
+		for (i in list)
 		{
+			if(!list.hasOwnProperty(i))
+				continue;
+
 			item = list[i];
 			groupId = item.ID;
 
@@ -76,10 +78,12 @@ BX.Sale.PropertyCollection = (function () {
 		// create properties
 
 		list = data.properties;
-		length = list.length;
 
-		for (i = 0; i < length; i++)
+		for (i in list)
 		{
+			if(!list.hasOwnProperty(i))
+				continue;
+
 			item = list[i];
 			propertyId = item.ID;
 
@@ -90,9 +94,13 @@ BX.Sale.PropertyCollection = (function () {
 			properties.push(property);
 
 			if (groupedProperties.hasOwnProperty(groupId))
+			{
 				groupedProperties[groupId].push(property);
+			}
 			else
+			{
 				throw 'undefined group';
+			}
 
 			if (item.TYPE == 'LOCATION' && item.INPUT_FIELD_LOCATION)
 				altLocations.push(property);
