@@ -1,5 +1,9 @@
 <?php
-CJSCore::Init(array("jquery"));
+CJSCore::Init(array("jquery"));?>
+<script>
+$.noConflict();
+</script>
+<?
 \Bitrix\Main\Page\Asset::getInstance()->addJs('/bitrix/js/seocontext.locations/location.js');
 \Bitrix\Main\Page\Asset::getInstance()->addJs('/bitrix/js/seocontext.locations/devbridge/jquery.autocomplete.min.js');
 \Bitrix\Main\Page\Asset::getInstance()->addJs($templateFolder.'/js/jquery.magnific-popup.min.js');

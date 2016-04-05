@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <?
 $aMenuLinks = Array(
 	Array(
