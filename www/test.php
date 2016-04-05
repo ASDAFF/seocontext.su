@@ -29,3 +29,4 @@ $APPLICATION->SetTitle("Новая страница");
 	),
 	false
 );?><br><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+

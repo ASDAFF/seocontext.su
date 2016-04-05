@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?
 $aMenuLinks = Array(
 	Array(
@@ -43,4 +44,5 @@ $aMenuLinks = Array(
 		"" 
 	)
 );
+
 ?>
