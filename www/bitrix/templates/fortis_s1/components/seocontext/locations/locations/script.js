@@ -1,4 +1,5 @@
 $(function () {
+    $.noConflict();
     $(document).on('location:change', function () {
         // check if need to reload
         if ($('input#seocontext_locations_reload').length > 0)

@@ -1,9 +1,65 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Новый раздел");
-?>
-
-Text here....
-
-
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+?><?$APPLICATION->IncludeComponent(
+	"doninbiz:catalog.services",
+	".default",
+	array(
+		"ACTION_VARIABLE" => "action",
+		"ADD_ELEMENT_CHAIN" => "N",
+		"ADD_SECTIONS_CHAIN" => "Y",
+		"AJAX_MODE" => "N",
+		"AJAX_OPTION_ADDITIONAL" => "",
+		"AJAX_OPTION_HISTORY" => "N",
+		"AJAX_OPTION_JUMP" => "N",
+		"AJAX_OPTION_STYLE" => "Y",
+		"CACHE_FILTER" => "N",
+		"CACHE_GROUPS" => "Y",
+		"CACHE_TIME" => "36000000",
+		"CACHE_TYPE" => "A",
+		"DETAIL_CHECK_SECTION_ID_VARIABLE" => "N",
+		"DETAIL_DISPLAY_PREVIEW_TEXT_MODE" => "E",
+		"DISPLAY_BOTTOM_PAGER" => "Y",
+		"DISPLAY_TOP_PAGER" => "N",
+		"ELEMENT_SORT_FIELD" => "sort",
+		"ELEMENT_SORT_FIELD2" => "id",
+		"ELEMENT_SORT_ORDER" => "asc",
+		"ELEMENT_SORT_ORDER2" => "desc",
+		"IBLOCK_ID" => "22",
+		"IBLOCK_TYPE" => "fortis_content",
+		"INCLUDE_SUBSECTIONS" => "Y",
+		"LINE_ELEMENT_COUNT" => "4",
+		"MESS_NOT_AVAILABLE" => "По запросу",
+		"PAGER_DESC_NUMBERING" => "N",
+		"PAGER_DESC_NUMBERING_CACHE_TIME" => "36000",
+		"PAGER_SHOW_ALL" => "N",
+		"PAGER_SHOW_ALWAYS" => "N",
+		"PAGER_TEMPLATE" => ".default",
+		"PAGER_TITLE" => "Товары",
+		"PAGE_ELEMENT_COUNT" => "30",
+		"PRICE_PREFIX" => "",
+		"PRICE_SUFFIX" => "�.",
+		"PRODUCT_ID_VARIABLE" => "id",
+		"SECTION_COUNT_ELEMENTS" => "N",
+		"SECTION_ID_VARIABLE" => "SECTION_ID",
+		"SEF_MODE" => "Y",
+		"SET_STATUS_404" => "N",
+		"SET_TITLE" => "Y",
+		"SHOW_CHILDREN_SECTIONS" => "Y",
+		"TEXT_DOCS" => "Документы",
+		"TEXT_GALLERY" => "Галерея",
+		"TEXT_PORTFOLIO" => "Работы",
+		"TEXT_PRODUCTS" => "Продукция",
+		"TEXT_SERVICES" => "Похожие услуги",
+		"TEXT_TEAM" => "Сотрудники",
+		"USE_ELEMENT_COUNTER" => "Y",
+		"COMPONENT_TEMPLATE" => ".default",
+		"SEF_FOLDER" => "/resheniya/",
+		"SEF_URL_TEMPLATES" => array(
+			"sections" => "",
+			"section" => "#SECTION_CODE_PATH#/",
+			"element" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/",
+		)
+	),
+	false
+);?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

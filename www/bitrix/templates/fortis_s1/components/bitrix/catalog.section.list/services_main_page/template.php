@@ -10,19 +10,18 @@
 /** @var string $templateFolder */
 /** @var string $componentPath */
 /** @var CBitrixComponent $component */
-//test_dump($arResult);
+//test_dump($arResult["SECTIONS"]);
 $this->setFrameMode(true);
 
 $iColumns = !empty($arParams['COLUMNS_COUNT']) ? intval($arParams['COLUMNS_COUNT']) : 3;
 $iBootstrapColumn = 12 / $iColumns;
 
-?>
 
-<?if( ! empty($arResult["ITEMS"])):?>
+if( ! empty($arResult["SECTIONS"])):?>
     <div class="home-features-v1">
 
         <div class="row">
-            <?$i= 0;foreach($arResult["ITEMS"] as $arItem):?>
+            <?$i= 0;foreach($arResult["SECTIONS"] as $arItem):?>
 
                 <div class="col-sm-<?=$iBootstrapColumn?>">
                     <?
@@ -31,20 +30,20 @@ $iBootstrapColumn = 12 / $iColumns;
                     ?>
 
                     <?
-                        $sLink       = !empty($arItem['PROPERTY_LINK_VALUE']) ? $arItem['PROPERTY_LINK_VALUE'] : (!empty($arItem["DETAIL_PAGE_URL"]) && $arItem["DETAIL_PAGE_URL"] != SITE_DIR ? $arItem["DETAIL_PAGE_URL"] : null);
-                        $sButtonName = !empty($arItem['PROPERTY_BUTTON_NAME']) ? $arItem['PROPERTY_BUTTON_NAME'] : GetMessage('FHF1_BUTTON_NAME');
+                    $sLink       = !empty($arItem['SECTION_PAGE_URL']) ? $arItem['SECTION_PAGE_URL'] : (!empty($arItem["LIST_PAGE_URL"]) && $arItem["LIST_PAGE_URL"] != SITE_DIR ? $arItem["DETAIL_PAGE_URL"] : null);
+                    $sButtonName = !empty($arItem['PROPERTY_BUTTON_NAME']) ? $arItem['PROPERTY_BUTTON_NAME'] : GetMessage('FHF1_BUTTON_NAME');
 
-                        $arImage      = $arItem['PREVIEW_PICTURE'];
-                        $arThumbImage = CFile::ResizeImageGet($arImage, array("width" => 70, "height" => 35));
-                        /*$sImageAlt   = $arImage['ALT'];
-                        $sImageTitle = $arImage['TITLE'];*/
-                        $sImageAlt   = $arItem["PROPERTY_NAME_VALUE"];
-                        $sImageTitle = $arItem["PROPERTY_NAME_VALUE"];
+                    $arImage      = $arItem['PICTURE'];
+                    $arThumbImage = CFile::ResizeImageGet($arImage, array("width" => 70, "height" => 35));
+                    /*$sImageAlt   = $arImage['ALT'];
+                    $sImageTitle = $arImage['TITLE'];*/
+                    $sImageAlt   = $arItem["NAME"];
+                    $sImageTitle = $arItem["NAME"];
 
-                        $sIcon = !empty($arItem['PROPERTY_ICON_VALUE']) ? $arItem['PROPERTY_ICON_VALUE'] : null;
+                    $sIcon = !empty($arItem['PROPERTY_ICON_VALUE']) ? $arItem['PROPERTY_ICON_VALUE'] : null;
                     ?>
 
-                    <div class="item<?if($i == count($arResult["ITEMS"])-1):?> last-item<?endif?>" id="<?=$this->GetEditAreaId($arItem['ID']);?>">
+                    <div class="item<?if($i == count($arResult["SECTIONS"])-1):?> last-item<?endif?>" id="<?=$this->GetEditAreaId($arItem['ID']);?>">
                         <div class="icon-block">
                             <div class="outer">
                                 <div class="inner">
@@ -68,7 +67,7 @@ $iBootstrapColumn = 12 / $iColumns;
                             </div>
 
                             <div class="text">
-                                <?=$arItem["PREVIEW_TEXT"]?>
+                                <?=$arItem["DESCRIPTION"]?>
                             </div>
 
                         </div>
@@ -82,7 +81,7 @@ $iBootstrapColumn = 12 / $iColumns;
 
                 </div>
 
-                <?++$i; if($i % $iColumns == 0 && $i != count($arResult["ITEMS"])) echo '</div><div class="row">';?>
+                <?++$i; if($i % $iColumns == 0 && $i != count($arResult["SECTIONS"])) echo '</div><div class="row">';?>
             <?endforeach;?>
         </div>
 

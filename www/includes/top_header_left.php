@@ -3,8 +3,8 @@
         <i class="fa fa-at"></i>
         <a href="mailto:info@seocontext.su">info@seocontext.su</a>
     </li>
-    <li><i class="fa fa-phone"></i><a href="tel:89898998393" class="tel-mobile">8 (989) 899-83-93</span></li>
-    <li><i class="fa fa-phone"></i><a href="tel:89660104116" class="tel-mobile">8 (966) 010-41-16</span></li>
+    <li><span><i class="fa fa-phone"></i><a href="tel:89898998393" class="tel-mobile">8 (989) 899-83-93</span></li>
+    <li><span><i class="fa fa-phone"></i><a href="tel:89660104116" class="tel-mobile">8 (966) 010-41-16</span></li>
     <li>
         <i class="fa fa-phone-square"></i>
         <a href="<?=SITE_DIR?>order/call.php" class="get-call-form">Заказать звонок</a>
