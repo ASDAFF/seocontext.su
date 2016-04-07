@@ -1,0 +1,6 @@
+<?
+$sSectionName = "Трансилитератор";
+$arDirProperties = Array(
+
+);
+?>
