@@ -16,8 +16,6 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $this->setFrameMode(true);
 ?>
 
-<script src="//api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
-
 <div class="seocontext-detecting-location">
     <div>
         <span class="seocontext-detected-location"></span>
@@ -39,6 +37,7 @@ $this->setFrameMode(true);
 
 <div class="seocontext-locations mfp-hide">
     <input type="text" size="50" name="location">
+    <span class="reset-location" title="<?= GetMessage('SEOCONTEXT_LOCATIONS_CLEAR_INPUT') ?>"></span>
     <? if ($arParams['RELOAD_PAGE'] == 'Y'): ?>
         <input type="hidden" id="seocontext_locations_reload" value="true">
     <? endif; ?>
@@ -51,5 +50,5 @@ $this->setFrameMode(true);
     </ul>
     <button><?= GetMessage('SEOCONTEXT_LOCATIONS_SAVE') ?></button>
 </div>
-<div id="script-container"></div>
+
 

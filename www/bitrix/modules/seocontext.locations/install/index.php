@@ -5,7 +5,6 @@ use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\ModuleManager;
-use Maycat\D7dull\ExampleTable;
 
 Loc::loadMessages(__FILE__);
 Loader::includeModule('sale');

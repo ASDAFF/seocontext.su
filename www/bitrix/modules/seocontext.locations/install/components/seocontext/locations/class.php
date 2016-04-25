@@ -77,7 +77,7 @@ class Locations extends CBitrixComponent
     
     protected function executeEpilog()
     {
-        \Bitrix\Main\Page\Asset::getInstance()->addJs('/bitrix/js/seocontext.locations/main.js');
+        \Bitrix\Main\Page\Asset::getInstance()->addJs('/bitrix/js/seocontext.locations/loc-conf.js');
     }
 }
 
