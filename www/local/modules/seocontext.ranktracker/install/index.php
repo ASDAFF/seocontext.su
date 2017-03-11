@@ -1,10 +1,10 @@
 <?php
 
 use Bitrix\Main\Application;
+use Bitrix\Main\Entity\Base;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
-use Seocontext\Ranktracker\QueryTable;
-use Bitrix\Main\Entity\Base;
+use Seocontext\Ranktracker\SearchQueryTable;
 
 
 Loc::loadMessages(__FILE__);
@@ -133,11 +133,48 @@ class seocontext_ranktracker extends CModule
     public function InstallDB()
     {
         Loader::includeModule($this->MODULE_ID);
-        if (!Application::getConnection(QueryTable::getConnectionName())->isTableExists(
-            Base::getInstance('Seocontext\Ranktracker\QueryTable')->getDBTableName()
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\SearchQueryTable')->getDBTableName()
         )
         ) {
-            Base::getInstance('Seocontext\Ranktracker\QueryTable')->createDbTable();
+            Base::getInstance('Seocontext\Ranktracker\SearchQueryTable')->createDbTable();
+        }
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\WebSiteTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\WebSiteTable')->createDbTable();
+        }
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\SearchServiceTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\SearchServiceTable')->createDbTable();
+        }
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\SearchServiceAccountTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\SearchServiceAccountTable')->createDbTable();
+        }
+
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\OrganicSearchResultTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\OrganicSearchResultTable')->createDbTable();
+        }
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\RankTrackerTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\RankTrackerTable')->createDbTable();
+        }
+        if (!Application::getConnection(SearchQueryTable::getConnectionName())->isTableExists(
+            Base::getInstance('Seocontext\Ranktracker\SearchRankTable')->getDBTableName()
+        )
+        ) {
+            Base::getInstance('Seocontext\Ranktracker\SearchRankTable')->createDbTable();
         }
     }
 
@@ -148,8 +185,26 @@ class seocontext_ranktracker extends CModule
     public function UnInstallEvents()
     {
         Loader::includeModule($this->MODULE_ID);
-        Application::getConnection(QueryTable::getConnectionName())->
-        queryExecute('DROP TABLE IF EXISTS '.Base::getInstance('Seocontext\Ranktracker\QueryTable')->
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\SearchQueryTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\WebSiteTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\SearchServiceTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\SearchServiceAccountTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\OrganicSearchResultTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\RankTrackerTable')->
+            getDBTableName());
+        Application::getConnection(SearchQueryTable::getConnectionName())->
+        queryExecute('DROP TABLE IF EXISTS ' . Base::getInstance('Seocontext\Ranktracker\SearchRankTable')->
             getDBTableName());
 
         /** @var TYPE_NAME $this */
