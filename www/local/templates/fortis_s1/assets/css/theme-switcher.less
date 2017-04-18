@@ -1,0 +1,379 @@
+@import "vendor/lesshat";
+
+#theme-switcher {
+  position: fixed;
+  top: 150px; left: -210px;
+  z-index: 1000;
+  background: #2F383D;
+  width: 210px;
+  min-height: 100px;
+  color: #fff;
+  font-size: 13px;
+  .border-radius(0 0 3px 3px);
+
+  h4 {
+    background: darken(#2F383D, 5%);
+    display: block;
+    width: 250px;
+    margin: 0;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 10px;
+    color: #fff;
+    .border-radius(0 3px 3px 0);
+
+    a {
+      float: right;
+      display: block;
+      color: #f4f4f4;
+      text-decoration: none;
+      width: 40px;
+      height: 40px;
+      padding: 0 0 0 10px;
+      border: solid #fff;
+      border-width: 1px 1px 1px 0;
+      .border-radius(0 3px 3px 0);
+
+      &:hover, &:focus {
+        background: #000;
+      }
+
+      .icon-open {
+
+      }
+      .icon-close {
+        padding: 0 0 0 4px;
+        display: none;
+      }
+    }
+  }
+
+  &.opened {
+    .box-shadow(1px 1px 5px rgba(0, 0, 0, 0.4));
+
+    h4 {
+      a {
+        border-color: transparent;
+        .icon-open {
+          display: none;
+        }
+        .icon-close {
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  @media (max-height: 790px) {
+    top: 10px;
+    width: 240px;
+    left: -240px;
+
+    h4 {
+      width: 280px;
+    }
+
+    form {
+      overflow: auto;
+    }
+  }
+
+  form {
+    position: relative;
+
+    hr {
+      border : 0;
+      margin : 0;
+      border-top: 1px solid #1C2225;
+      background-color: #546772;
+      height: 1px;
+      .opacity(0.5);
+    }
+
+    .btn {
+      font-size: 13px;
+      border: 1px solid #777;
+      color: #a3a3a3;
+      .border-radius(0);
+      .box-shadow(none);
+
+      &:hover {
+        border-color: #ccc;
+        color: #fff;
+      }
+      &:active, &.active {
+        border-color: #ccc;
+        color: #fff;
+        background: #242B2F;
+      }
+      &.active:hover {
+        background: none;
+      }
+    }
+
+    .item {
+      padding: 5px 10px;
+
+      .name {
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #f0f0f0;
+        margin: 0 0 7px 0;
+      }
+
+      .btn-group {
+        width: 100%;
+        text-align: center;
+
+        .btn {
+          float: none;
+          display: inline-block;
+          padding: 1px 5px;
+
+          .fa {
+            display: none;
+          }
+          &.active {
+            .fa {
+              display: inline-block;
+            }
+          }
+        }
+      }
+
+      &.change-layout {
+        .btn-group {
+          .btn {
+            float: none;
+            display: inline-block;
+            padding: 1px 5px;
+
+            &.wide {
+              margin-right: 5px;
+              width: 88px;
+            }
+            &.boxed {
+              width: 88px;
+            }
+            &.rubber {
+              margin-top: 5px;
+              width: 185px;
+            }
+          }
+        }
+      }
+
+      &.change-header-color {
+
+        .btn-group {
+          margin-bottom: 5px;
+
+          .btn.light {
+            margin-bottom: 5px;
+            width: 185px;
+          }
+          .btn.colored, .btn.dark {
+            width: 88px;
+          }
+          .btn.colored {
+            margin-right: 5px;
+          }
+          .btn.dark {
+          }
+        }
+
+      }
+
+      &.change-header-type {
+
+        .btn-group {
+          margin-bottom: 5px;
+
+          .btn {
+            width: 88px;
+          }
+          .btn:first-child {
+            margin-right: 5px;
+          }
+        }
+
+      }
+
+      &.change-home-zebra {
+
+        .btn-group {
+          margin-bottom: 5px;
+
+          .btn.left, .btn.right {
+            width: 88px;
+          }
+          .btn.left {
+            margin-right: 5px;
+          }
+          .btn.right {
+          }
+        }
+
+      }
+
+      &.change-color {
+
+        .def-colors {
+          .btn {
+            position: relative;
+            float: left;
+            display: block;
+            height: 20px;
+            width: 20px;
+            padding: 0;
+            border: 1px solid #000;
+            margin: 0 0 -1px -1px;
+
+            span {
+              position: absolute;
+              display: block;
+              width: 100%; height: 100%;
+              border: 1px solid transparent;
+              font-size: 10px;
+              line-height: 16px;
+
+              .fa {
+                visibility: hidden;
+              }
+            }
+
+            &:active, &.active {
+              .transform(none);
+
+              span {
+                border: 1px solid #fff;
+
+                .fa {
+                  visibility: visible;
+                }
+              }
+            }
+
+            input {
+              visibility: hidden;
+              position: absolute;
+            }
+          }
+        }
+
+        .custom-color {
+          .name {
+            text-transform: inherit;
+            font-size: 13px;
+            line-height: 13px;
+            margin-bottom: 3px;
+            font-weight: 400;
+          }
+          .field-custom-color {
+            float: left;
+            outline: none;
+            width: 100px;
+            border: 1px solid #ccc;
+            padding: 0 5px;
+            height: 20px;
+            margin-right: 5px;
+          }
+          .change-custom-color {
+            float: left;
+            padding: 0 5px;
+            line-height: 16px;
+            height: 20px;
+            border-color: #ccc;
+            color: #fff;
+            background: #242B2F;
+          }
+        }
+      }
+
+      &.change-sidebar-align {
+
+        .btn-group {
+          margin-bottom: 5px;
+
+          .btn.left, .btn.right {
+            width: 88px;
+          }
+          .btn.left {
+            margin-right: 5px;
+          }
+          .btn.right {
+          }
+        }
+
+      }
+
+      &.change-textures, &.change-images {
+        .btn-group {
+
+          .btn {
+            position: relative;
+            float: left;
+            display: block;
+            height: 20px;
+            width: 20px;
+            padding: 0;
+            border: 1px solid #000;
+            margin: 0 0 -1px -1px;
+
+            span {
+              position: absolute;
+              display: block;
+              width: 100%; height: 100%;
+              border: 1px solid transparent;
+              font-size: 10px;
+              line-height: 16px;
+
+              .fa {
+                visibility: hidden;
+
+                &.b {
+                  color: #212121;
+                }
+                &.s {
+                  text-shadow: 0 0 1px #000;
+                }
+              }
+            }
+
+            &:active, &.active {
+              .transform(none);
+
+              span {
+                border: 1px solid #fff;
+
+                .fa {
+                  visibility: visible;
+                }
+              }
+            }
+
+            input {
+              visibility: hidden;
+              position: absolute;
+            }
+          }
+        }
+      }
+    }
+
+    .button-default {
+      text-align: center;
+
+      .btn {
+        padding: 1px 5px;
+        margin: 10px 0;
+        background: none;
+        text-transform: uppercase;
+        outline: none;
+      }
+    }
+
+  }
+
+}
